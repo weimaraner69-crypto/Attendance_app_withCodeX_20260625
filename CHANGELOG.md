@@ -5,6 +5,47 @@
 
 ---
 
+## [2026-06-25] B-002 店長ダッシュボードを実データ化
+
+### 実施概要
+デバッグ確認で残っていた固定サンプル氏名、固定時刻、固定月次サマリーを削除し、店長ダッシュボードを Supabase の実データ表示へ置き換えた。
+
+### 変更
+- `src/app/(manager)/manager/[storeId]/page.tsx`
+  - Client Component のモック表示を Server Component の実データ取得へ変更。
+  - `manager_store_permissions` と `stores` から担当店舗を取得。
+  - `staff`, `store_staff_assignments`, `attendance_records` から当日の出勤状況を表示。
+  - 出勤中、休憩中、退勤済み、未打刻の件数カードを追加。
+  - 複数担当店舗がある場合の店舗切り替えボタンを追加。
+  - 打刻漏れ確認用に、スタッフ別の状態、出勤、退勤、休憩、勤務、最終更新を一覧化。
+- `src/app/(manager)/manager/[storeId]/requests/page.tsx`
+  - 実名風の固定サンプル申請を削除し、B-003までの空状態表示に変更。
+- `src/app/(manager)/manager/[storeId]/shifts/page.tsx`
+  - 実名風の固定サンプルシフトを削除し、B-004までの空状態表示に変更。
+- `NEXT.md`
+  - B-002を完了扱いに更新。
+- `FINISHED.md`
+  - `B-002 店長ダッシュボードの実データ化` の完了ログを追加。
+
+### 確認
+- `npm run lint` が成功。
+- `npm run build` が成功。
+- Git管理対象に `.env.local` が含まれていないことを確認。
+- 追跡対象ファイルに実APIキー、Secret key、Service role key の値が含まれていないことを確認。
+
+### 影響ファイル
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+- `src/app/(manager)/manager/[storeId]/page.tsx`
+- `src/app/(manager)/manager/[storeId]/requests/page.tsx`
+- `src/app/(manager)/manager/[storeId]/shifts/page.tsx`
+
+### 戻し方
+- `src/app/(manager)/manager/[storeId]/page.tsx` を直前のモック表示へ戻し、`NEXT.md` / `FINISHED.md` / `CHANGELOG.md` の今回追記分を削除する。
+
+---
+
 ## [2026-06-25] B-001 打刻画面を店舗iPad用と個人スマホ用に分離
 
 ### 実施概要

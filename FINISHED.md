@@ -10,6 +10,38 @@
 
 ---
 
+## B-002 店長ダッシュボードの実データ化
+
+- 実装日: 2026-06-25
+- 種別: 業務画面/デバッグ
+
+### 実装内容
+
+- `/manager/[storeId]` の固定サンプル氏名、固定時刻、固定月次サマリーを削除。
+- 店長の担当店舗権限を確認し、対象店舗を Supabase の `stores` から取得。
+- 当日の `attendance_records` と所属中スタッフを取得し、出勤中、休憩中、退勤済み、未打刻の件数を表示。
+- 複数担当店舗がある場合の店舗切り替えボタンを追加。
+- 打刻漏れを見つけやすいように、スタッフ別の状態、出勤時刻、退勤時刻、休憩、勤務時間、最終更新を一覧表示。
+- 申請管理、シフト管理に残っていた実名風の固定サンプルデータを削除し、後続タスクまでの空状態表示に変更。
+
+### 確認内容
+
+- `npm run lint` が成功。
+- `npm run build` が成功。
+- Git管理対象に `.env.local` が含まれていないことを確認。
+- 追跡対象ファイルに実APIキー、Secret key、Service role key の値が含まれていないことを確認。
+
+### 影響ファイル
+
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+- `src/app/(manager)/manager/[storeId]/page.tsx`
+- `src/app/(manager)/manager/[storeId]/requests/page.tsx`
+- `src/app/(manager)/manager/[storeId]/shifts/page.tsx`
+
+---
+
 ## B-001 打刻画面の作り替え
 
 - 実装日: 2026-06-25
