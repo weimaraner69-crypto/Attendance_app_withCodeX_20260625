@@ -5,6 +5,54 @@
 
 ---
 
+## [2026-06-25] B-001 打刻画面を店舗iPad用と個人スマホ用に分離
+
+### 実施概要
+打刻画面を実データ化し、店舗iPad打刻と個人スマホ打刻を分けた。どちらも A-005 で追加した `POST /api/attendance/stamp` へ接続した。
+
+### 追加
+- `src/components/stamp/KioskStampPanel.tsx`
+  - 店舗iPad用のスタッフ選択、端末選択、PIN入力、出勤/休憩開始/休憩終了/退勤ボタンを追加。
+- `src/components/stamp/MobileStampPanel.tsx`
+  - 個人スマホ用の店舗選択、GPS取得、出勤/休憩開始/休憩終了/退勤ボタンを追加。
+- `src/app/(public)/stamp/mobile/page.tsx`
+  - ログイン済みスタッフ向けの個人スマホ打刻画面を追加。
+
+### 変更
+- `src/app/(public)/stamp/page.tsx`
+  - モック店舗選択を Supabase の実店舗一覧へ置き換え。
+  - 店舗iPad打刻と個人スマホ打刻の入口に整理。
+- `src/app/(public)/stamp/[shopId]/page.tsx`
+  - 店舗iPad用画面として実データ化。
+  - 所属スタッフと有効な `kiosk_devices` を表示し、PIN付き打刻を実行。
+- `src/app/(public)/stamp/[shopId]/[staffId]/page.tsx`
+  - 旧スタッフ個別打刻URLを店舗iPad画面へリダイレクトするよう整理。
+- `NEXT.md`
+  - B-001を完了扱いに更新。
+- `FINISHED.md`
+  - `B-001 打刻画面の作り替え` の完了ログを追加。
+
+### 確認
+- `npm run lint` が成功。
+- `npm run build` が成功。
+
+### 影響ファイル
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+- `src/app/(public)/stamp/page.tsx`
+- `src/app/(public)/stamp/[shopId]/page.tsx`
+- `src/app/(public)/stamp/[shopId]/[staffId]/page.tsx`
+- `src/app/(public)/stamp/mobile/page.tsx`
+- `src/components/stamp/KioskStampPanel.tsx`
+- `src/components/stamp/MobileStampPanel.tsx`
+
+### 戻し方
+- 追加した2つの打刻パネルと `/stamp/mobile` を削除し、`/stamp` 配下のページを直前状態に戻す。
+- `NEXT.md` / `FINISHED.md` / `CHANGELOG.md` の今回追記分を削除する。
+
+---
+
 ## [2026-06-25] A-005 打刻APIを実装
 
 ### 実施概要

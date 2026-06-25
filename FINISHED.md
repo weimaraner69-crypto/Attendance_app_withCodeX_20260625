@@ -10,6 +10,40 @@
 
 ---
 
+## B-001 打刻画面の作り替え
+
+- 実装日: 2026-06-25
+- 種別: 業務画面/API接続
+
+### 実装内容
+
+- `/stamp` を打刻入口として実データ化。
+- `/stamp/[storeId]` を店舗iPad打刻画面として実装。
+- 店舗iPad打刻画面で、店舗固定、スタッフ選択、店舗iPad端末選択、PIN入力、出勤/休憩開始/休憩終了/退勤ボタンを実装。
+- `/stamp/mobile` をログイン済みスタッフ向け個人スマホ打刻画面として追加。
+- 個人スマホ打刻画面で、所属店舗選択、GPS取得、出勤/休憩開始/休憩終了/退勤ボタンを実装。
+- 旧 `/stamp/[storeId]/[staffId]` は店舗iPad画面へリダイレクトするよう整理。
+- 店舗iPad用と個人スマホ用の両方を `POST /api/attendance/stamp` へ接続。
+
+### 確認内容
+
+- `npm run lint` が成功。
+- `npm run build` が成功。
+
+### 影響ファイル
+
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+- `src/app/(public)/stamp/page.tsx`
+- `src/app/(public)/stamp/[shopId]/page.tsx`
+- `src/app/(public)/stamp/[shopId]/[staffId]/page.tsx`
+- `src/app/(public)/stamp/mobile/page.tsx`
+- `src/components/stamp/KioskStampPanel.tsx`
+- `src/components/stamp/MobileStampPanel.tsx`
+
+---
+
 ## A-005 打刻API実装
 
 - 実装日: 2026-06-25

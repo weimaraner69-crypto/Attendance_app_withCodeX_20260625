@@ -1,68 +1,74 @@
-'use client'
+import Link from 'next/link';
 
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { useState } from 'react'
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { createSupabaseAdminClient } from '@/lib/supabase';
 
-export default function StampPage() {
-  const [selectedShop, setSelectedShop] = useState<string>('')
+type StoreRow = {
+  id: string;
+  name: string;
+  code: string | null;
+};
 
-  const shops = [
-    { id: 'shop1', name: '渋谷店' },
-    { id: 'shop2', name: '新宿店' },
-    { id: 'shop3', name: '池袋店' },
-  ]
+export const dynamic = 'force-dynamic';
+
+export default async function StampPage() {
+  const supabase = createSupabaseAdminClient();
+  const { data: stores } = await supabase
+    .from('stores')
+    .select('id, name, code')
+    .eq('is_active', true)
+    .order('name', { ascending: true });
+
+  const storeRows = (stores ?? []) as StoreRow[];
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center gap-6 p-8">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>打刻システム</CardTitle>
-          <CardDescription>店舗を選択して進みます</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">店舗を選択</label>
-            <Select value={selectedShop} onValueChange={setSelectedShop}>
-              <SelectTrigger>
-                <SelectValue placeholder="店舗を選択してください" />
-              </SelectTrigger>
-              <SelectContent>
-                {shops.map((shop) => (
-                  <SelectItem key={shop.id} value={shop.id}>
-                    {shop.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+    <main className="min-h-screen bg-gray-50 p-6">
+      <div className="mx-auto flex max-w-3xl flex-col gap-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">打刻</h1>
+            <p className="mt-1 text-sm text-gray-600">店舗iPad打刻または個人スマホ打刻を選択します。</p>
           </div>
-
-          {selectedShop && (
-            <Link
-              href={`/stamp/${selectedShop}`}
-              className="block"
-            >
-              <Button className="w-full" size="lg">
-                次へ
-              </Button>
-            </Link>
-          )}
-
-          <Link href="/" className="block">
-            <Button variant="outline" className="w-full">
-              戻る
-            </Button>
+          <Link href="/">
+            <Button variant="outline">戻る</Button>
           </Link>
-        </CardContent>
-      </Card>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>店舗iPad打刻</CardTitle>
+            <CardDescription>店舗を固定し、スタッフ選択とPIN入力で打刻します。</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3 sm:grid-cols-2">
+            {storeRows.map((store) => (
+              <Link key={store.id} href={`/stamp/${store.id}`} className="block">
+                <Button variant="outline" className="h-auto w-full justify-start py-4">
+                  <span className="text-left">
+                    <span className="block font-medium">{store.name}</span>
+                    {store.code && <span className="block text-xs text-gray-500">{store.code}</span>}
+                  </span>
+                </Button>
+              </Link>
+            ))}
+            {storeRows.length === 0 && (
+              <p className="text-sm text-gray-500">有効な店舗がありません。</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>個人スマホ打刻</CardTitle>
+            <CardDescription>ログイン済みスタッフとして店舗を選択し、GPS付きで打刻します。</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/stamp/mobile">
+              <Button className="w-full" size="lg">個人スマホ打刻へ</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
     </main>
-  )
+  );
 }
