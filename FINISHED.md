@@ -10,6 +10,37 @@
 
 ---
 
+## A-003 スタッフ管理の実装
+
+- 実装日: 2026-06-25
+- 種別: 業務画面/DB操作
+
+### 実装内容
+
+- オーナー向け `/owner/staff` を Supabase 実データに接続。
+- スタッフ一覧を `staff` から取得して表示。
+- スタッフの新規作成を実装。
+- 氏名、ふりがな、従業員コード、雇用形態、時給、電話、メール、入社日、退職日の編集を実装。
+- スタッフの有効/無効切り替えを実装。
+- `default_store_id` と `store_staff_assignments` による所属店舗設定を実装。
+- 店舗iPad打刻用PINを `scrypt` 形式のハッシュで保存する更新処理を実装。
+- 個人スマホ利用者向けに `auth_user_id` の紐づけを実装。
+- すべての更新をオーナーの `organization_id` にスコープして実行するようにした。
+
+### 確認内容
+
+- `npm run lint` が成功。
+- `npm run build` が成功。
+
+### 影響ファイル
+
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+- `src/app/(authenticated)/owner/staff/page.tsx`
+
+---
+
 ## A-002 店舗管理の実装
 
 - 実装日: 2026-06-25

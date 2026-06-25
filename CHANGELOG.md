@@ -5,6 +5,39 @@
 
 ---
 
+## [2026-06-25] A-003 スタッフ管理画面を実データ化
+
+### 実施概要
+オーナー向け `/owner/staff` を Supabase 実データに接続し、スタッフの作成、編集、有効/無効切り替え、所属店舗設定、店舗iPad用PIN更新、個人スマホ用AuthユーザーID紐づけを実装した。
+
+### 変更
+- `src/app/(authenticated)/owner/staff/page.tsx`
+  - Server Component 化し、owner ロールの認証済みコンテキストから組織IDを取得。
+  - `staff` の一覧表示、作成、編集、有効/無効切り替えを追加。
+  - 氏名、ふりがな、従業員コード、雇用形態、時給、電話、メール、入社日、退職日を管理できるようにした。
+  - `default_store_id` と `store_staff_assignments` を使った所属店舗設定を追加。
+  - 店舗iPad打刻用PINを `scrypt` 形式のハッシュとして保存する更新フォームを追加。
+  - 個人スマホ利用者向けに `auth_user_id` の紐づけ入力を追加。
+- `NEXT.md`
+  - A-003を完了扱いに更新。
+- `FINISHED.md`
+  - `A-003 スタッフ管理の実装` の完了ログを追加。
+
+### 確認
+- `npm run lint` が成功。
+- `npm run build` が成功。
+
+### 影響ファイル
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+- `src/app/(authenticated)/owner/staff/page.tsx`
+
+### 戻し方
+- `src/app/(authenticated)/owner/staff/page.tsx` をプレースホルダー状態へ戻し、`NEXT.md` / `FINISHED.md` / `CHANGELOG.md` の今回追記分を削除する。
+
+---
+
 ## [2026-06-25] A-002 店舗管理画面を実データ化
 
 ### 実施概要
