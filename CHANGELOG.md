@@ -5,6 +5,65 @@
 
 ---
 
+## [2026-06-25] Sランク仕様確定とSupabase接続基盤追加
+
+### 実施概要
+`NEXT.md` の Sランク項目に沿って、DB方針、打刻方式、権限設計を確定。
+あわせて、Supabase接続に必要なnpmパッケージ、環境変数テンプレート、client/server/admin用ヘルパーを追加した。
+
+### 完了
+- `S-001 DB方針の確定`
+  - Supabase PostgreSQLで継続する方針に確定。
+- `S-002 打刻方式の仕様確定`
+  - 店舗iPadは氏名選択+PIN。
+  - 個人スマホはログイン+GPS。
+  - LINEは初期実装ではWeb打刻URL誘導を優先。
+- `S-003 権限設計の確定`
+  - オーナー、店長、社労士、スタッフの権限方針を確定。
+  - スタッフ打刻はサーバー側APIで検証してからDB書き込みする方針に整理。
+
+### 追加
+- `docs/implementation-decisions.md`
+  - S-001〜S-003の決定内容を記録。
+- `.env.example`
+  - Supabase接続用の環境変数テンプレートを追加。
+- `src/lib/supabase/`
+  - `client.ts`: ブラウザ用Supabase client。
+  - `server.ts`: Next.jsサーバー用Supabase client。
+  - `admin.ts`: service role用Supabase admin client。
+  - `env.ts`: 環境変数取得ヘルパー。
+  - `database.types.ts`: 初期スキーマに対応するDB型。
+  - `index.ts`: Supabase関連export。
+
+### 変更
+- `NEXT.md`
+  - S-001〜S-003を完了扱いに更新。
+  - S-004を一部着手として更新。
+- `FINISHED.md`
+  - S-001〜S-003の完了ログを追記。
+- `package.json` / `package-lock.json`
+  - `@supabase/supabase-js` と `@supabase/ssr` を追加。
+
+### 未完了
+- Supabaseプロジェクト作成。
+- マイグレーション適用。
+- `.env.local` 設定。
+
+### 影響ファイル
+- `.env.example`
+- `CHANGELOG.md`
+- `FINISHED.md`
+- `NEXT.md`
+- `docs/implementation-decisions.md`
+- `package.json`
+- `package-lock.json`
+- `src/lib/supabase/`
+
+### 戻し方
+- 追加したSupabase接続ファイルと `.env.example` を削除し、`package.json` / `package-lock.json` からSupabase関連パッケージを戻す。
+
+---
+
 ## [2026-06-25] 作業管理ファイルとREADME整備
 
 ### 実施概要

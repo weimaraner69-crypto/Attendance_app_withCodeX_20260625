@@ -13,34 +13,40 @@
 
 ## S: 最重要
 
-### S-001 DB方針の確定
+### S-001 DB方針の確定（完了）
 
 - Supabaseで継続するか、Firebaseへ移行するかを最終決定する。
 - 現在は Supabase PostgreSQL 前提のスキーマを作成済み。
 - 決定後、DB接続、認証、API、LINE連携の方針を固定する。
+- 決定内容は `docs/implementation-decisions.md` に記録済み。
 
-### S-002 打刻方式の仕様確定
+### S-002 打刻方式の仕様確定（完了）
 
 - 店舗iPad打刻: スタッフ一覧、氏名選択、PIN入力、出勤/退勤/休憩打刻。
 - 個人スマホ打刻: メールアドレス/パスワードログイン、店舗選択、GPS取得、出勤/退勤打刻。
 - LINE打刻: 直接打刻にするか、GPS付きWeb打刻URLへ誘導するかを決める。
 - 不正防止の観点では、初期実装はLINEからWeb打刻URLへ誘導する方式を有力候補とする。
+- 決定内容は `docs/implementation-decisions.md` に記録済み。
 
-### S-003 権限設計の確定
+### S-003 権限設計の確定（完了）
 
 - オーナー: 全店舗管理。
 - 店長: 担当店舗のみ管理。
 - 社労士: 閲覧/CSV出力中心。
 - スタッフ: 自分の勤怠/シフト確認、打刻。
 - Supabase RLS とサーバー側APIの責務分担を確定する。
+- 決定内容は `docs/implementation-decisions.md` に記録済み。
 
-### S-004 Supabaseプロジェクト作成・接続
+### S-004 Supabaseプロジェクト作成・接続（一部着手）
 
 - Supabaseプロジェクトを用意する。
 - `supabase/migrations` の初期スキーマを適用する。
 - `.env.local` に Supabase URL と anon key を設定する。
 - `@supabase/supabase-js` を導入する。
 - client/server/admin 用の接続ファイルを作成する。
+- `@supabase/supabase-js` と `@supabase/ssr` は導入済み。
+- `.env.example` と `src/lib/supabase` の接続ヘルパーは作成済み。
+- 未完了: Supabaseプロジェクト作成、マイグレーション適用、`.env.local` 設定。
 
 ## A: 実装基盤
 
