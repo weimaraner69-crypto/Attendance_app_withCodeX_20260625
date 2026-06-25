@@ -10,6 +10,46 @@
 
 ---
 
+## A-001-PART Supabase Authログイン基盤追加
+
+- 実装日: 2026-06-25
+- 種別: 認証/アクセス制御
+
+### 実装内容
+
+- Supabase Auth のメール/パスワードログインをオーナー、社労士、店長ログイン画面へ接続。
+- ログイン後に `/api/auth/session` で `user_profiles.role` を取得し、ロール別にリダイレクトする処理を追加。
+- 店長は `manager_store_permissions` の先頭担当店舗へ自動リダイレクトする方針で実装。
+- オーナー画面、社労士画面、店長店舗画面にサーバー側アクセス制御を追加。
+- `/auth/logout` でSupabase Authからログアウトできるようにした。
+
+### 確認内容
+
+- `npm run lint` が成功。
+- `npm run build` が成功。
+
+### 残タスク
+
+- スタッフ個人スマホ画面をログイン必須にする。
+- Authユーザー作成/招待フローを実装する。
+- パスワードリセットを実装する。
+
+### 影響ファイル
+
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+- `src/app/(authenticated)/login/page.tsx`
+- `src/app/(authenticated)/owner/layout.tsx`
+- `src/app/(authenticated)/sr/layout.tsx`
+- `src/app/(manager)/manager/login/page.tsx`
+- `src/app/(manager)/manager/[storeId]/layout.tsx`
+- `src/app/api/auth/session/route.ts`
+- `src/app/auth/logout/route.ts`
+- `src/lib/auth/session.ts`
+
+---
+
 ## A-000-PHASE1 日報アプリ向け外部連携API Phase 1 実装
 
 - 実装日: 2026-06-25

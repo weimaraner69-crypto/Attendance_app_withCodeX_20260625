@@ -5,6 +5,63 @@
 
 ---
 
+## [2026-06-25] A-001 Supabase Authログイン基盤を追加
+
+### 実施概要
+Supabase Auth と `user_profiles` を使ったログイン基盤を追加し、オーナー、社労士、店長向け画面のロール別リダイレクトとアクセス制御を実装した。
+
+### 追加
+- `src/lib/auth/session.ts`
+  - 現在のAuthユーザー、業務プロフィール、店長担当店舗、スタッフ紐づけ情報を取得するサーバー側ユーティリティを追加。
+  - ロール別ホームパス、ロール必須チェック、店長店舗アクセスチェックを追加。
+- `src/app/api/auth/session/route.ts`
+  - ログイン後にクライアントから権限情報とリダイレクト先を取得するAPIを追加。
+- `src/app/auth/logout/route.ts`
+  - Supabase Auth のサインアウトRouteを追加。
+- `src/app/(manager)/manager/[storeId]/layout.tsx`
+  - 店長の担当店舗アクセス制御を追加。
+
+### 変更
+- `src/app/(authenticated)/login/page.tsx`
+  - Supabase Auth のメール/パスワードログインへ接続。
+  - 選択ロールと `user_profiles.role` の一致確認、ロール別リダイレクトを追加。
+- `src/app/(manager)/manager/login/page.tsx`
+  - Supabase Auth の店長ログインへ接続。
+  - 担当店舗へ自動リダイレクトするよう変更。
+- `src/app/(authenticated)/owner/layout.tsx`
+  - owner ロール必須のサーバー側アクセス制御とログアウトフォームを追加。
+- `src/app/(authenticated)/sr/layout.tsx`
+  - sr ロール必須のサーバー側アクセス制御とログアウトフォームを追加。
+- `NEXT.md`
+  - A-001を一部着手として更新。
+
+### 確認
+- `npm run lint` が成功。
+- `npm run build` が成功。
+
+### 未完了
+- スタッフ個人スマホ画面のログイン必須化。
+- Authユーザー作成/招待フロー。
+- パスワードリセット。
+
+### 影響ファイル
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+- `src/app/(authenticated)/login/page.tsx`
+- `src/app/(authenticated)/owner/layout.tsx`
+- `src/app/(authenticated)/sr/layout.tsx`
+- `src/app/(manager)/manager/login/page.tsx`
+- `src/app/(manager)/manager/[storeId]/layout.tsx`
+- `src/app/api/auth/session/route.ts`
+- `src/app/auth/logout/route.ts`
+- `src/lib/auth/session.ts`
+
+### 戻し方
+- 追加した認証Route/ユーティリティ/店長店舗layoutを削除し、ログイン画面とowner/sr layoutを直前状態に戻す。
+
+---
+
 ## [2026-06-25] A-000 Phase 1 外部連携API基盤を実装
 
 ### 実施概要

@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -9,25 +10,29 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 
 const loginSchema = z.object({
-  storeId: z.string().min(1, '店舗を選択してください'),
   email: z.string().email('有効なメールアドレスを入力してください'),
   password: z.string().min(6, 'パスワードは6文字以上必要です'),
 })
 
 type LoginFormData = z.infer<typeof loginSchema>
 
+type SessionResponse = {
+  authenticated: true
+  profile: {
+    role: string
+  }
+  redirect_path: string
+} | {
+  authenticated: false
+}
+
 export default function ManagerLoginPage() {
+  const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
-  const [selectedStore, setSelectedStore] = useState<string>('')
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const {
     register,
     handleSubmit,
@@ -37,21 +42,47 @@ export default function ManagerLoginPage() {
   })
 
   const onSubmit = async (data: LoginFormData) => {
+    setErrorMessage(null)
+    const supabase = createSupabaseBrowserClient()
+
     try {
       setIsLoading(true)
-      console.log('店長ログイン:', data)
-    } catch (error) {
-      console.error(error)
+      const { error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      })
+
+      if (error) {
+        setErrorMessage('メールアドレスまたはパスワードが違います')
+        return
+      }
+
+      const response = await fetch('/api/auth/session')
+      if (!response.ok) {
+        setErrorMessage('ログインユーザーの権限情報を取得できませんでした')
+        await supabase.auth.signOut()
+        return
+      }
+
+      const session = (await response.json()) as SessionResponse
+      if (!session.authenticated || session.profile.role !== 'manager') {
+        setErrorMessage('店長権限のユーザーでログインしてください')
+        await supabase.auth.signOut()
+        return
+      }
+
+      if (session.redirect_path === '/manager/login') {
+        setErrorMessage('担当店舗が設定されていません')
+        await supabase.auth.signOut()
+        return
+      }
+
+      router.replace(session.redirect_path)
+      router.refresh()
     } finally {
       setIsLoading(false)
     }
   }
-
-  const stores = [
-    { id: 'store1', name: '渋谷店' },
-    { id: 'store2', name: '新宿店' },
-    { id: 'store3', name: '池袋店' },
-  ]
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center gap-6 p-8">
@@ -62,25 +93,6 @@ export default function ManagerLoginPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="storeId">店舗</Label>
-              <Select value={selectedStore} onValueChange={setSelectedStore}>
-                <SelectTrigger>
-                  <SelectValue placeholder="店舗を選択してください" />
-                </SelectTrigger>
-                <SelectContent>
-                  {stores.map((store) => (
-                    <SelectItem key={store.id} value={store.id}>
-                      {store.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.storeId && (
-                <p className="text-sm text-red-500">{errors.storeId.message}</p>
-              )}
-            </div>
-
             <div className="space-y-2">
               <Label htmlFor="email">メールアドレス</Label>
               <Input
@@ -106,6 +118,10 @@ export default function ManagerLoginPage() {
                 <p className="text-sm text-red-500">{errors.password.message}</p>
               )}
             </div>
+
+            {errorMessage && (
+              <p className="text-sm text-red-600">{errorMessage}</p>
+            )}
 
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? 'ログイン中...' : 'ログイン'}
