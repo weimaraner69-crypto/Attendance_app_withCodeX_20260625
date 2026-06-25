@@ -30,6 +30,13 @@ export default function OwnerPage() {
             </CardHeader>
           </Card>
         </Link>
+        <Link href="/owner/sr-accounts">
+          <Card className="hover:shadow-lg cursor-pointer">
+            <CardHeader>
+              <CardTitle className="text-lg">権限管理</CardTitle>
+            </CardHeader>
+          </Card>
+        </Link>
       </div>
     </div>
   )

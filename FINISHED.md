@@ -10,6 +10,36 @@
 
 ---
 
+## A-004 店長の担当店舗設定
+
+- 実装日: 2026-06-25
+- 種別: 権限管理/DB操作
+
+### 実装内容
+
+- オーナー向け `/owner/sr-accounts` を権限管理画面として Supabase 実データに接続。
+- `user_profiles.role = manager` の店長ユーザー一覧を表示。
+- `manager_store_permissions` の担当店舗一覧を表示。
+- 店長ユーザーへの担当店舗追加を実装。
+- 店長ユーザーからの担当店舗解除を実装。
+- オーナーダッシュボードに権限管理カードを追加。
+- 更新はオーナーの `organization_id` にスコープして実行するようにした。
+
+### 確認内容
+
+- `npm run lint` が成功。
+- `npm run build` が成功。
+
+### 影響ファイル
+
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+- `src/app/(authenticated)/owner/page.tsx`
+- `src/app/(authenticated)/owner/sr-accounts/page.tsx`
+
+---
+
 ## A-003 スタッフ管理の実装
 
 - 実装日: 2026-06-25

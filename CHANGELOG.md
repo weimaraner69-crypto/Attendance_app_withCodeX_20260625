@@ -5,6 +5,40 @@
 
 ---
 
+## [2026-06-25] A-004 店長の担当店舗設定を実装
+
+### 実施概要
+オーナー向け `/owner/sr-accounts` を権限管理画面として実データ化し、店長ユーザーに担当店舗を割り当て・解除できるようにした。
+
+### 変更
+- `src/app/(authenticated)/owner/sr-accounts/page.tsx`
+  - Server Component 化し、owner ロールの認証済みコンテキストから組織IDを取得。
+  - `user_profiles.role = manager` の店長ユーザー一覧を表示。
+  - `manager_store_permissions` の担当店舗一覧を表示。
+  - 店長への担当店舗追加と解除をServer Actionで実装。
+- `src/app/(authenticated)/owner/page.tsx`
+  - オーナーダッシュボードに権限管理カードを追加。
+- `NEXT.md`
+  - A-004を完了扱いに更新。
+- `FINISHED.md`
+  - `A-004 店長の担当店舗設定` の完了ログを追加。
+
+### 確認
+- `npm run lint` が成功。
+- `npm run build` が成功。
+
+### 影響ファイル
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+- `src/app/(authenticated)/owner/page.tsx`
+- `src/app/(authenticated)/owner/sr-accounts/page.tsx`
+
+### 戻し方
+- `src/app/(authenticated)/owner/sr-accounts/page.tsx` をプレースホルダー状態へ戻し、`owner/page.tsx` の権限管理カードと `NEXT.md` / `FINISHED.md` / `CHANGELOG.md` の今回追記分を削除する。
+
+---
+
 ## [2026-06-25] A-003 スタッフ管理画面を実データ化
 
 ### 実施概要
