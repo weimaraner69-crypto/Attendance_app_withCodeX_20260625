@@ -41,3 +41,14 @@
 - スタッフは自分の勤怠とシフトを閲覧できる。
 - スタッフの打刻書き込みは、RLSで直接許可せず、サーバー側APIで検証してから service role 経由で行う。
 - service role key はサーバー専用とし、ブラウザへ公開しない。
+
+## A-000 日報アプリ向け外部連携API
+
+- 勤怠管理アプリを出退勤データの正本とし、日報管理アプリは外部API経由で読み取り専用にする。
+- 日報管理アプリ側の手入力は当面残し、初期連携は「取り込み後に微修正可」とする。
+- 勤怠側は `attendance_records` を日別勤怠結果、`attendance_events` を監査用打刻ログとして返す。
+- 勤怠側は自分のUUID体系で店舗ID・スタッフID・勤怠記録IDを返し、日報側とのIDマッピングは日報側の責務とする。
+- 外部APIの認証は `X-External-Api-Key` ヘッダによるAPIキー方式とし、APIキーは平文保存しない。
+- Phase 1 は `health`, `stores`, `staff`, `attendance` の読み取りAPIまでを最小リリースとする。
+- `attendance/{id}`, `include_events`, APIキー管理画面、レート制限、APIアクセスログは Phase 2 として扱う。
+- 詳細仕様は `docs/integrations/attendance-api-spec.md` を正とする。

@@ -123,3 +123,35 @@
 - `README.md`
 - `FINISHED.md`
 - `CHANGELOG.md`
+
+---
+
+## DOC-003 日報アプリ向け外部連携APIの実装計画整理
+
+- 実装日: 2026-06-25
+- 種別: ドキュメント/実装計画
+
+### 実装内容
+
+- 日報管理アプリが勤怠データを取り込むための外部連携API仕様を `docs/integrations/attendance-api-spec.md` に追加。
+- GitHub親Issue #1 と子Issue #2〜#7 の実装順を `NEXT.md` に追加。
+- Phase 1を `#2 APIキー認証`, `#3 health/stores/staff`, `#4 attendance一覧` として整理。
+- Phase 2を `#5 詳細/events`, `#6 APIキー管理画面`, `#7 レート制限/アクセスログ` として整理。
+- 勤怠アプリを出退勤データの正本、日報アプリを読み取り側とする方針を関連ドキュメントへ反映。
+
+### 確認内容
+
+- `NEXT.md` に `A-000 日報アプリ向け外部連携API` を追加済み。
+- `docs/implementation-decisions.md` に外部連携APIの決定事項を追加済み。
+- `docs/database-design.md` に連携API用テーブル予定と連携方針を追加済み。
+- `README.md` に日報アプリ連携の目的と仕様書リンクを追加済み。
+
+### 影響ファイル
+
+- `NEXT.md`
+- `README.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+- `docs/database-design.md`
+- `docs/implementation-decisions.md`
+- `docs/integrations/attendance-api-spec.md`

@@ -30,6 +30,8 @@
 | `attendance_records` | スタッフごとの日別勤怠結果。画面表示やCSV出力の主データ。 |
 | `attendance_events` | 打刻イベントの履歴。Web、LINE、手入力の出所やGPS情報を保存。 |
 | `attendance_requests` | 打刻修正、休暇、残業などの申請。 |
+| `external_api_keys` | 日報アプリなど外部システムが勤怠データを読むためのAPIキー。Phase 1で追加予定。 |
+| `external_api_access_logs` | 外部連携APIのアクセスログ。Phase 2で追加予定。 |
 | `shifts` | 確定・公開されたシフト。 |
 | `shift_submission_windows` | シフト希望提出の募集期間。 |
 | `shift_submissions` | スタッフ単位のシフト希望提出。LINE提出にも対応。 |
@@ -138,6 +140,20 @@ RLSを有効化済みです。
 スタッフ向けの打刻APIやLINE Webhookは、Supabase service role を使うサーバー側処理からDBを書き込みます。
 ブラウザに service role key は絶対に置きません。
 
+## 日報アプリ連携
+
+日報管理アプリ向けに、サーバー間通信の外部連携APIを追加予定です。
+詳細仕様は `docs/integrations/attendance-api-spec.md` を正とします。
+
+基本方針:
+
+- 勤怠管理アプリの `attendance_records` を出退勤データの正本とする。
+- 日報管理アプリは `GET /api/external/v1/attendance` で日別勤怠結果を読み取る。
+- 打刻の監査情報が必要な場合は、Phase 2で `attendance_events` を `include_events` または詳細APIから返す。
+- 店舗ID・スタッフIDは勤怠側のUUIDを返し、日報側のIDとの対応付けは日報側のマッピングテーブルで行う。
+- 外部APIは `X-External-Api-Key` ヘッダによるAPIキー認証を必須とする。
+- APIキーは `external_api_keys` にハッシュ保存し、平文は発行直後のみ表示する。
+
 ## 次に実装するもの
 
 1. Supabase プロジェクト作成。
@@ -146,4 +162,5 @@ RLSを有効化済みです。
 4. `@supabase/supabase-js` を導入。
 5. モックAPIを Supabase API に置き換える。
 6. 打刻APIを Route Handler として作り、`attendance_events` と `attendance_records` を同時更新する。
-7. LINE Webhook 用の Route Handler を追加する。
+7. 日報アプリ向け外部連携APIの Phase 1 を実装する。
+8. LINE Webhook 用の Route Handler を追加する。

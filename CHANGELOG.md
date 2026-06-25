@@ -5,6 +5,42 @@
 
 ---
 
+## [2026-06-25] 日報アプリ向け外部連携APIの実装計画を追加
+
+### 実施概要
+日報管理アプリへ出退勤データを取り込むための外部連携APIについて、仕様書、実装フェーズ、GitHub Issue対応、関連ドキュメントを整理した。
+
+### 追加
+- `docs/integrations/attendance-api-spec.md`
+  - 日報アプリ向け外部連携APIの目的、フェーズ、認証、エンドポイント、エラー形式、cURLサンプルを追加。
+
+### 変更
+- `NEXT.md`
+  - `A-000 日報アプリ向け外部連携API` を追加。
+  - Phase 1はIssue #2〜#4、Phase 2はIssue #5〜#7として整理。
+- `docs/implementation-decisions.md`
+  - 外部連携APIの責務分担、認証方式、Phase分けを記録。
+- `docs/database-design.md`
+  - `external_api_keys`, `external_api_access_logs` の予定と日報連携方針を追記。
+- `README.md`
+  - 日報管理アプリ連携の目的と関連ドキュメントを追記。
+- `FINISHED.md`
+  - `DOC-003 日報アプリ向け外部連携APIの実装計画整理` を記録。
+
+### 影響ファイル
+- `NEXT.md`
+- `README.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+- `docs/database-design.md`
+- `docs/implementation-decisions.md`
+- `docs/integrations/attendance-api-spec.md`
+
+### 戻し方
+- 追加した `docs/integrations/attendance-api-spec.md` を削除し、各ドキュメントの今回追記分を削除する。
+
+---
+
 ## [2026-06-25] GitHub自動コミット/push運用を明記
 
 ### 実施概要

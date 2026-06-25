@@ -50,6 +50,27 @@
 
 ## A: 実装基盤
 
+### A-000 日報アプリ向け外部連携API
+
+- GitHub親Issue: https://github.com/weimaraner69-crypto/Attendance_app_withCodeX_20260625/issues/1
+- 仕様書: `docs/integrations/attendance-api-spec.md`
+- 目的: 日報管理アプリが勤怠アプリの `attendance_records` を読み取り、日報のスタッフ出退勤入力へ取り込めるようにする。
+- 方針: 勤怠アプリを出退勤データの正本、日報アプリを日次経営データの正本として分ける。
+- 日報側とのID差異は、日報側の店舗・スタッフ外部マッピングで吸収する。勤怠側は自分のUUIDを返す。
+
+#### Phase 1 最小リリース
+
+- [ ] #2 外部APIキー認証基盤を実装する。
+- [ ] #3 `GET /api/external/v1/health`, `/stores`, `/staff` を実装する。
+- [ ] #4 `GET /api/external/v1/attendance` 一覧取得を実装する。
+- Phase 1 完了後、日報アプリ側で店舗・スタッフのマッピングと勤怠取り込み検証を開始できる。
+
+#### Phase 2 運用強化
+
+- [ ] #5 `GET /api/external/v1/attendance/{id}` と `include_events` を実装する。
+- [ ] #6 オーナー向けAPIキー管理画面 `/owner/integrations/api-keys` を実装する。
+- [ ] #7 レート制限とAPIアクセスログを実装する。
+
 ### A-001 認証実装
 
 - オーナー、店長、社労士、スタッフのログインを実装する。
