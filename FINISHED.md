@@ -10,6 +10,45 @@
 
 ---
 
+## A-005 打刻API実装
+
+- 実装日: 2026-06-25
+- 種別: API/勤怠処理
+
+### 実装内容
+
+- `POST /api/attendance/stamp` を追加。
+- 店舗iPad打刻では `kiosk_device_id` とPINを検証。
+- 個人スマホ打刻では Supabase Auth ログインユーザーと `staff.auth_user_id` の一致を検証。
+- 個人スマホ打刻では店舗座標とGPS座標の距離を検証。
+- 出勤、休憩開始、休憩終了、退勤の順序不正をエラーにする処理を実装。
+- 二重出勤、二重休憩開始、二重退勤をエラーにする処理を実装。
+- `attendance_events` に打刻生ログを保存。
+- `attendance_records` の日別勤怠結果を作成/更新。
+- PINの `scrypt` ハッシュ生成・検証を `src/lib/auth/pin.ts` に共通化。
+
+### 確認内容
+
+- `npm run lint` が成功。
+- `npm run build` が成功。
+
+### 補足
+
+- 打刻画面の店舗iPad用/個人スマホ用UI分離とAPI接続は `B-001` で実施する。
+
+### 影響ファイル
+
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+- `docs/database-design.md`
+- `src/app/(authenticated)/owner/staff/page.tsx`
+- `src/app/api/attendance/stamp/route.ts`
+- `src/lib/attendance/stamp.ts`
+- `src/lib/auth/pin.ts`
+
+---
+
 ## A-004 店長の担当店舗設定
 
 - 実装日: 2026-06-25

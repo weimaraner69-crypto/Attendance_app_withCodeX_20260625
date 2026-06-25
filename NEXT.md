@@ -112,7 +112,7 @@
 - `manager_store_permissions` を使って、店長が自店舗だけを操作できるようにする。
 - オーナー画面 `/owner/sr-accounts` を権限管理画面として実データ化し、店長ユーザーへの担当店舗追加・解除を実装済み。
 
-### A-005 打刻API実装
+### A-005 打刻API実装（完了）
 
 - サーバー側APIとして打刻処理を実装する。
 - 店舗iPad打刻ではPINを検証する。
@@ -120,6 +120,9 @@
 - `attendance_events` に生ログを保存する。
 - `attendance_records` の日別勤怠を更新する。
 - 不正打刻、二重打刻、順序不正を扱う。
+- `POST /api/attendance/stamp` と打刻処理ユーティリティを実装済み。
+- 店舗iPadは `kiosk_device_id` とPINを検証し、個人スマホはログインユーザーとGPS距離を検証する。
+- 画面接続と店舗iPad/個人スマホ別UIは `B-001` で実施する。
 
 ## B: 業務機能
 

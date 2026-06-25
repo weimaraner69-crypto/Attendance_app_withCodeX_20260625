@@ -5,6 +5,55 @@
 
 ---
 
+## [2026-06-25] A-005 打刻APIを実装
+
+### 実施概要
+店舗iPad打刻と個人スマホ打刻に対応するサーバー側打刻APIを追加し、PIN/GPS検証、順序不正・二重打刻チェック、`attendance_events` 保存、`attendance_records` 更新を実装した。
+
+### 追加
+- `src/app/api/attendance/stamp/route.ts`
+  - `POST /api/attendance/stamp` を追加。
+  - `store_id`, `staff_id`, `event_type`, `source` を検証。
+  - `kiosk` と `mobile_web` の打刻リクエストを受け付ける。
+- `src/lib/attendance/stamp.ts`
+  - 打刻対象店舗/スタッフの確認。
+  - 店舗iPad端末とPINの検証。
+  - 個人スマホログインユーザーとGPS距離の検証。
+  - 出勤、休憩開始、休憩終了、退勤の順序制御。
+  - `attendance_records` の作成/更新と `attendance_events` の保存。
+- `src/lib/auth/pin.ts`
+  - PINの `scrypt` ハッシュ生成と検証を共通化。
+
+### 変更
+- `src/app/(authenticated)/owner/staff/page.tsx`
+  - PINハッシュ生成を共通ユーティリティへ切り出し。
+- `NEXT.md`
+  - A-005を完了扱いに更新。
+- `docs/database-design.md`
+  - 打刻APIのリクエスト項目と処理概要を追記。
+- `FINISHED.md`
+  - `A-005 打刻API実装` の完了ログを追加。
+
+### 確認
+- `npm run lint` が成功。
+- `npm run build` が成功。
+
+### 影響ファイル
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+- `docs/database-design.md`
+- `src/app/(authenticated)/owner/staff/page.tsx`
+- `src/app/api/attendance/stamp/route.ts`
+- `src/lib/attendance/stamp.ts`
+- `src/lib/auth/pin.ts`
+
+### 戻し方
+- 追加した打刻API/打刻ユーティリティ/PINユーティリティを削除し、スタッフ管理画面のPINハッシュ生成を元に戻す。
+- `NEXT.md` / `FINISHED.md` / `CHANGELOG.md` / `docs/database-design.md` の今回追記分を削除する。
+
+---
+
 ## [2026-06-25] A-004 店長の担当店舗設定を実装
 
 ### 実施概要

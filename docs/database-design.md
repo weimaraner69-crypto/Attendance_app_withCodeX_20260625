@@ -70,6 +70,19 @@
 
 ## 打刻フロー
 
+打刻APIは `POST /api/attendance/stamp` です。
+
+主なリクエスト項目:
+
+- `store_id`
+- `staff_id`
+- `event_type`: `clock_in`, `break_start`, `break_end`, `clock_out`
+- `source`: `kiosk` または `mobile_web`
+- `kiosk_device_id`, `pin`: 店舗iPad打刻で必須
+- `latitude`, `longitude`, `gps_accuracy_meters`: 個人スマホ打刻で必須
+
+APIは順序不正、二重打刻、PIN不一致、GPS範囲外をエラーにし、成功時に `attendance_events` と `attendance_records` を更新します。
+
 ### 店舗iPad
 
 店舗に設置しているiPadは `kiosk_devices` として管理します。

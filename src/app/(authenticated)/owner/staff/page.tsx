@@ -1,4 +1,4 @@
-import { createHash, randomBytes, scryptSync } from 'crypto';
+import { createHash } from 'crypto';
 import Link from 'next/link';
 import { revalidatePath } from 'next/cache';
 
@@ -15,6 +15,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { requireAuthenticatedRole } from '@/lib/auth/session';
+import { hashPin } from '@/lib/auth/pin';
 import { createSupabaseAdminClient } from '@/lib/supabase';
 import type { Database } from '@/lib/supabase';
 
@@ -71,12 +72,6 @@ function nullableNumber(value: FormDataEntryValue | null) {
 function nullableEmploymentType(value: FormDataEntryValue | null) {
   const text = value?.toString() ?? '';
   return text ? (text as EmploymentType) : null;
-}
-
-function hashPin(pin: string) {
-  const salt = randomBytes(16).toString('hex');
-  const hash = scryptSync(pin, salt, 32).toString('hex');
-  return `scrypt$${salt}$${hash}`;
 }
 
 function legacyPinFingerprint(pin: string) {
