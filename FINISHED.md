@@ -10,6 +10,35 @@
 
 ---
 
+## A-002 店舗管理の実装
+
+- 実装日: 2026-06-25
+- 種別: 業務画面/DB操作
+
+### 実装内容
+
+- オーナー向け `/owner/stores` を Supabase 実データに接続。
+- 店舗一覧を `stores` から取得して表示。
+- 店舗の新規作成を実装。
+- 店舗名、店舗コード、住所、緯度、経度、GPS許容半径の編集を実装。
+- 店舗の有効/無効切り替えを実装。
+- 店舗iPad打刻に使う `kiosk_devices` の一覧表示、端末登録、有効/無効切り替えを実装。
+- すべての更新をオーナーの `organization_id` にスコープして実行するようにした。
+
+### 確認内容
+
+- `npm run lint` が成功。
+- `npm run build` が成功。
+
+### 影響ファイル
+
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+- `src/app/(authenticated)/owner/stores/page.tsx`
+
+---
+
 ## A-001-PART Supabase Authログイン基盤追加
 
 - 実装日: 2026-06-25

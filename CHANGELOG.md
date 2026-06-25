@@ -5,6 +5,37 @@
 
 ---
 
+## [2026-06-25] A-002 店舗管理画面を実データ化
+
+### 実施概要
+オーナー向け `/owner/stores` を Supabase 実データに接続し、店舗の作成、編集、有効/無効切り替え、店舗iPad端末の登録・有効/無効切り替えを実装した。
+
+### 変更
+- `src/app/(authenticated)/owner/stores/page.tsx`
+  - Server Component 化し、owner ロールの認証済みコンテキストから組織IDを取得。
+  - `stores` の一覧表示、作成、編集、有効/無効切り替えを追加。
+  - 店舗コード、住所、緯度、経度、GPS許容半径を管理できるフォームを追加。
+  - `kiosk_devices` の一覧表示、端末登録、有効/無効切り替えを追加。
+- `NEXT.md`
+  - A-002を完了扱いに更新。
+- `FINISHED.md`
+  - `A-002 店舗管理の実装` の完了ログを追加。
+
+### 確認
+- `npm run lint` が成功。
+- `npm run build` が成功。
+
+### 影響ファイル
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+- `src/app/(authenticated)/owner/stores/page.tsx`
+
+### 戻し方
+- `src/app/(authenticated)/owner/stores/page.tsx` をプレースホルダー状態へ戻し、`NEXT.md` / `FINISHED.md` / `CHANGELOG.md` の今回追記分を削除する。
+
+---
+
 ## [2026-06-25] A-001 Supabase Authログイン基盤を追加
 
 ### 実施概要
