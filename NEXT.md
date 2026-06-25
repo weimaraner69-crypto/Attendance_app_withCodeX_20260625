@@ -46,7 +46,10 @@
 - client/server/admin 用の接続ファイルを作成する。
 - `@supabase/supabase-js` と `@supabase/ssr` は導入済み。
 - `.env.example` と `src/lib/supabase` の接続ヘルパーは作成済み。
+- `docs/supabase-setup.md` にプロジェクト作成、環境変数、マイグレーション適用、接続確認手順を追加済み。
+- `/api/internal/supabase/health` で service role を使ったDB接続確認ができる。
 - 未完了: Supabaseプロジェクト作成、マイグレーション適用、`.env.local` 設定。
+- 補足: 2026-06-25時点で、この環境には Supabase CLI は未インストール。
 
 ## A: 実装基盤
 

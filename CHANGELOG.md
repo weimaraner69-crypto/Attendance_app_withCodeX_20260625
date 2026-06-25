@@ -5,6 +5,47 @@
 
 ---
 
+## [2026-06-25] S-004 Supabase接続確認手順とhealth APIを追加
+
+### 実施概要
+Supabaseプロジェクト作成後に迷わず接続確認できるように、セットアップ手順書とDB接続確認用の内部APIを追加した。
+
+### 追加
+- `docs/supabase-setup.md`
+  - Supabaseプロジェクト作成、環境変数設定、初期スキーマ適用、接続確認手順を追加。
+  - Supabase CLI 利用時のコマンド例と、この環境ではCLI未インストールであることを記録。
+- `src/app/api/internal/supabase/health/route.ts`
+  - service role 経由で `organizations` テーブルへ接続できるか確認する内部APIを追加。
+
+### 変更
+- `NEXT.md`
+  - S-004の進捗として、手順書と接続確認APIの追加を記録。
+- `docs/database-design.md`
+  - 次に実装するものから導入済みのパッケージ導入を外し、health APIでの確認手順へ更新。
+- `README.md`
+  - 関連ドキュメントに Supabase セットアップ手順を追加。
+- `FINISHED.md`
+  - `S-004-PART Supabase接続確認基盤追加` を記録。
+
+### 未完了
+- Supabaseプロジェクト作成。
+- 初期スキーマのクラウド適用。
+- `.env.local` への実キー設定。
+
+### 影響ファイル
+- `NEXT.md`
+- `README.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+- `docs/database-design.md`
+- `docs/supabase-setup.md`
+- `src/app/api/internal/supabase/health/route.ts`
+
+### 戻し方
+- `docs/supabase-setup.md` と `src/app/api/internal/supabase/health/route.ts` を削除し、各ドキュメントの今回追記分を削除する。
+
+---
+
 ## [2026-06-25] 日報アプリ向け外部連携APIの実装計画を追加
 
 ### 実施概要

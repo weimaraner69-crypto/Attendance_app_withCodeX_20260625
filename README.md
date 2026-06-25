@@ -78,4 +78,5 @@ npm run build
 - `FINISHED.md`: 完了した作業ログ
 - `CHANGELOG.md`: 変更履歴
 - `docs/database-design.md`: DB設計メモ
+- `docs/supabase-setup.md`: Supabaseプロジェクト作成・接続手順
 - `docs/integrations/attendance-api-spec.md`: 日報アプリ向け外部連携API仕様

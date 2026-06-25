@@ -126,6 +126,36 @@
 
 ---
 
+## S-004-PART Supabase接続確認基盤追加
+
+- 実装日: 2026-06-25
+- 種別: 実装/ドキュメント
+
+### 実装内容
+
+- Supabaseプロジェクト作成後に使うセットアップ手順を `docs/supabase-setup.md` に追加。
+- `.env.local` に設定すべき Supabase URL、anon key、service role key の扱いを整理。
+- 初期マイグレーション `supabase/migrations/202606250001_initial_attendance_schema.sql` の適用手順を追加。
+- service role 経由で `organizations` テーブルへ接続できるか確認する `/api/internal/supabase/health` を追加。
+- S-004の未完了項目として、実プロジェクト作成、マイグレーション適用、`.env.local` 設定が残ることを `NEXT.md` に明記。
+
+### 確認内容
+
+- `npm run lint` が成功。
+- この環境では `supabase` コマンドが未インストールであることを確認。
+
+### 影響ファイル
+
+- `NEXT.md`
+- `README.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+- `docs/database-design.md`
+- `docs/supabase-setup.md`
+- `src/app/api/internal/supabase/health/route.ts`
+
+---
+
 ## DOC-003 日報アプリ向け外部連携APIの実装計画整理
 
 - 実装日: 2026-06-25

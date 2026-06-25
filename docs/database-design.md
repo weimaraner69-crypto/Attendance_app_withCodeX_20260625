@@ -159,8 +159,10 @@ RLSを有効化済みです。
 1. Supabase プロジェクト作成。
 2. このマイグレーションを Supabase に適用。
 3. `.env.local` に Supabase URL と anon key を設定。
-4. `@supabase/supabase-js` を導入。
+4. `/api/internal/supabase/health` で接続を確認。
 5. モックAPIを Supabase API に置き換える。
 6. 打刻APIを Route Handler として作り、`attendance_events` と `attendance_records` を同時更新する。
 7. 日報アプリ向け外部連携APIの Phase 1 を実装する。
 8. LINE Webhook 用の Route Handler を追加する。
+
+Supabase の接続手順は `docs/supabase-setup.md` を参照します。
