@@ -10,6 +10,51 @@
 
 ---
 
+## A-000-PHASE1 日報アプリ向け外部連携API Phase 1 実装
+
+- 実装日: 2026-06-25
+- 種別: API/DBマイグレーション
+
+### 実装内容
+
+- `external_api_keys` テーブル追加用マイグレーションを作成。
+- `X-External-Api-Key` ヘッダのAPIキー認証を実装。
+- APIキーはSHA-256ハッシュで照合し、平文保存しない方針で実装。
+- 外部API共通エラー応答を実装。
+- `GET /api/external/v1/health` を実装。
+- `GET /api/external/v1/stores` を実装。
+- `GET /api/external/v1/staff` を実装。
+- `GET /api/external/v1/attendance` を実装。
+- APIキー生成・ハッシュ化用の `npm run external-api:hash-key` を追加。
+
+### 確認内容
+
+- `npm run lint` が成功。
+- `npm run build` が成功。
+- `npm run external-api:hash-key -- test-key` が成功。
+
+### 残タスク
+
+- `supabase/migrations/202606250002_external_api_keys.sql` をSupabase SQL Editorで適用する。
+- `organizations` と `external_api_keys` に実データを登録する。
+- 日報管理アプリ側から実API呼び出しを検証する。
+
+### 影響ファイル
+
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+- `docs/database-design.md`
+- `docs/integrations/attendance-api-spec.md`
+- `package.json`
+- `scripts/hash-external-api-key.mjs`
+- `src/app/api/external/v1/`
+- `src/lib/external-api/`
+- `src/lib/supabase/database.types.ts`
+- `supabase/migrations/202606250002_external_api_keys.sql`
+
+---
+
 ## S-004 Supabaseプロジェクト作成・接続
 
 - 実装日: 2026-06-25

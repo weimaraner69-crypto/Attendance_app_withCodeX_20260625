@@ -242,6 +242,18 @@ export type Database = {
         metadata: Json;
         created_at: Timestamp;
       }>;
+      external_api_keys: Table<{
+        id: string;
+        organization_id: string;
+        name: string;
+        key_hash: string;
+        scopes: string[];
+        is_active: boolean;
+        last_used_at: Timestamp | null;
+        expires_at: Timestamp | null;
+        created_at: Timestamp;
+        updated_at: Timestamp;
+      }>;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

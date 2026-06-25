@@ -40,6 +40,38 @@ Issue #2, #3, #4 を対象にする。
 
 Phase 1 が完了すれば、日報アプリ側で店舗・スタッフのマッピングと勤怠取り込み検証を開始できる。
 
+APIキーのハッシュ生成は次のコマンドで行う。
+
+```bash
+npm run external-api:hash-key
+```
+
+既存の平文キーからハッシュを作る場合:
+
+```bash
+npm run external-api:hash-key -- your-plain-api-key
+```
+
+表示された `SHA-256 hash` を `external_api_keys.key_hash` に保存し、平文キーは安全な場所に保管する。
+
+Supabase SQL Editor での登録例:
+
+```sql
+insert into public.external_api_keys (
+  organization_id,
+  name,
+  key_hash,
+  scopes
+) values (
+  'your-organization-uuid',
+  '日報アプリ開発',
+  'generated-sha-256-hash',
+  array['attendance:read']
+);
+```
+
+`organization_id` は `organizations.id` を指定する。
+
 ### Phase 2 運用強化
 
 Issue #5, #6, #7 を対象にする。
@@ -171,8 +203,8 @@ Query:
 - `from`: `YYYY-MM-DD`、必須
 - `to`: `YYYY-MM-DD`、必須
 - `status`: 任意。省略時は `finished`。
-- `include_events`: boolean、任意。Phase 2対象。
-- `cursor`: 任意。ページング用。
+- `include_events`: boolean、任意。`true` は Phase 2対象のため、Phase 1では `400 INVALID_PARAMS` を返す。
+- `cursor`: 任意。ページング用。Phase 1では数値オフセット文字列として扱う。
 
 バリデーション:
 

@@ -5,6 +5,60 @@
 
 ---
 
+## [2026-06-25] A-000 Phase 1 外部連携API基盤を実装
+
+### 実施概要
+日報管理アプリが勤怠データを読み取るための外部API Phase 1として、APIキー認証、疎通確認、店舗一覧、スタッフ一覧、勤怠一覧APIを追加した。
+
+### 追加
+- `supabase/migrations/202606250002_external_api_keys.sql`
+  - `external_api_keys` テーブル、インデックス、updated_atトリガー、RLS有効化を追加。
+- `src/lib/external-api/`
+  - APIキー認証、共通エラー応答、パラメータ検証を追加。
+- `src/app/api/external/v1/`
+  - `health`, `stores`, `staff`, `attendance` の Route Handler を追加。
+- `scripts/hash-external-api-key.mjs`
+  - 外部APIキーの平文生成とSHA-256ハッシュ生成スクリプトを追加。
+
+### 変更
+- `package.json`
+  - `npm run external-api:hash-key` を追加。
+- `src/lib/supabase/database.types.ts`
+  - `external_api_keys` の型を追加。
+- `docs/integrations/attendance-api-spec.md`
+  - APIキーのハッシュ生成・登録手順とPhase 1での `include_events` の扱いを追記。
+- `docs/database-design.md`
+  - `external_api_keys` をPhase 1追加予定から実装済み扱いへ更新。
+- `NEXT.md`
+  - A-000 Phase 1 の #2〜#4 を実装済みに更新し、Supabase適用と実接続検証を残タスクとして明記。
+
+### 確認
+- `npm run lint` が成功。
+- `npm run build` が成功。
+- `npm run external-api:hash-key -- test-key` が成功。
+
+### 未完了
+- `supabase/migrations/202606250002_external_api_keys.sql` のSupabase適用。
+- `organizations` データと `external_api_keys` の実データ登録。
+- 日報管理アプリ側からの実接続検証。
+
+### 影響ファイル
+- `NEXT.md`
+- `CHANGELOG.md`
+- `docs/database-design.md`
+- `docs/integrations/attendance-api-spec.md`
+- `package.json`
+- `scripts/hash-external-api-key.mjs`
+- `src/app/api/external/v1/`
+- `src/lib/external-api/`
+- `src/lib/supabase/database.types.ts`
+- `supabase/migrations/202606250002_external_api_keys.sql`
+
+### 戻し方
+- 追加した外部API関連ファイルとマイグレーションを削除し、`package.json`、`database.types.ts`、関連ドキュメントの追記を戻す。
+
+---
+
 ## [2026-06-25] S-004 Supabaseプロジェクト作成・接続を完了
 
 ### 実施概要

@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "external-api:hash-key": "node scripts/hash-external-api-key.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.0",

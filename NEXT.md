@@ -66,10 +66,11 @@
 
 #### Phase 1 最小リリース
 
-- [ ] #2 外部APIキー認証基盤を実装する。
-- [ ] #3 `GET /api/external/v1/health`, `/stores`, `/staff` を実装する。
-- [ ] #4 `GET /api/external/v1/attendance` 一覧取得を実装する。
+- [x] #2 外部APIキー認証基盤を実装する。
+- [x] #3 `GET /api/external/v1/health`, `/stores`, `/staff` を実装する。
+- [x] #4 `GET /api/external/v1/attendance` 一覧取得を実装する。
 - Phase 1 完了後、日報アプリ側で店舗・スタッフのマッピングと勤怠取り込み検証を開始できる。
+- 未完了: `supabase/migrations/202606250002_external_api_keys.sql` のSupabase適用、組織データ/APIキー登録、日報アプリ側からの実接続検証。
 
 #### Phase 2 運用強化
 

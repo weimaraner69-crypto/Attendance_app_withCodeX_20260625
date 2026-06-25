@@ -30,7 +30,7 @@
 | `attendance_records` | スタッフごとの日別勤怠結果。画面表示やCSV出力の主データ。 |
 | `attendance_events` | 打刻イベントの履歴。Web、LINE、手入力の出所やGPS情報を保存。 |
 | `attendance_requests` | 打刻修正、休暇、残業などの申請。 |
-| `external_api_keys` | 日報アプリなど外部システムが勤怠データを読むためのAPIキー。Phase 1で追加予定。 |
+| `external_api_keys` | 日報アプリなど外部システムが勤怠データを読むためのAPIキー。 |
 | `external_api_access_logs` | 外部連携APIのアクセスログ。Phase 2で追加予定。 |
 | `shifts` | 確定・公開されたシフト。 |
 | `shift_submission_windows` | シフト希望提出の募集期間。 |
