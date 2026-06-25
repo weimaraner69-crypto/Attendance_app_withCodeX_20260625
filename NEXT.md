@@ -37,7 +37,7 @@
 - Supabase RLS とサーバー側APIの責務分担を確定する。
 - 決定内容は `docs/implementation-decisions.md` に記録済み。
 
-### S-004 Supabaseプロジェクト作成・接続（一部着手）
+### S-004 Supabaseプロジェクト作成・接続（完了）
 
 - Supabaseプロジェクトを用意する。
 - `supabase/migrations` の初期スキーマを適用する。
@@ -48,7 +48,10 @@
 - `.env.example` と `src/lib/supabase` の接続ヘルパーは作成済み。
 - `docs/supabase-setup.md` にプロジェクト作成、環境変数、マイグレーション適用、接続確認手順を追加済み。
 - `/api/internal/supabase/health` で service role を使ったDB接続確認ができる。
-- 未完了: Supabaseプロジェクト作成、マイグレーション適用、`.env.local` 設定。
+- Supabaseプロジェクト `Attendance_app_withCodeX_20260625` を作成・GitHub連携済み。
+- `.env.local` に publishable key と secret key を設定済み。
+- 初期マイグレーションを Supabase SQL Editor で適用済み。
+- `/api/internal/supabase/health` が HTTP 200 を返すことを確認済み。
 - 補足: 2026-06-25時点で、この環境には Supabase CLI は未インストール。
 
 ## A: 実装基盤

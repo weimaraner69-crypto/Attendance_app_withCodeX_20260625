@@ -5,6 +5,34 @@
 
 ---
 
+## [2026-06-25] S-004 Supabaseプロジェクト作成・接続を完了
+
+### 実施概要
+Supabaseプロジェクト `Attendance_app_withCodeX_20260625` を作成し、GitHub連携、環境変数設定、初期スキーマ適用、接続確認まで完了した。
+
+### 変更
+- `NEXT.md`
+  - `S-004 Supabaseプロジェクト作成・接続` を完了扱いに更新。
+- `FINISHED.md`
+  - `S-004 Supabaseプロジェクト作成・接続` の完了ログを追加。
+
+### 確認
+- `.env.local` に Supabase URL、publishable key、secret key が設定済み。
+- `.env.local` は Git 管理対象外のまま。
+- `supabase/migrations/202606250001_initial_attendance_schema.sql` を Supabase SQL Editor で適用済み。
+- `/api/internal/supabase/health` が HTTP 200 を返すことを確認。
+
+### 影響ファイル
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+
+### 戻し方
+- `NEXT.md` の S-004 を一部着手に戻し、`FINISHED.md` / `CHANGELOG.md` の今回追記分を削除する。
+- Supabase 側の変更を戻す場合は、対象プロジェクトのDBテーブル・型を確認してから手動で削除する。
+
+---
+
 ## [2026-06-25] S-004 Supabase接続確認手順とhealth APIを追加
 
 ### 実施概要

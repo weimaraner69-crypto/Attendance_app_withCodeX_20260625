@@ -10,6 +10,35 @@
 
 ---
 
+## S-004 Supabaseプロジェクト作成・接続
+
+- 実装日: 2026-06-25
+- 種別: 環境構築/DB接続
+
+### 実装内容
+
+- Supabaseプロジェクト `Attendance_app_withCodeX_20260625` を作成。
+- SupabaseプロジェクトとGitHubリポジトリを連携。
+- 勤怠アプリ側 `.env.local` に Supabase URL、publishable key、secret key を設定。
+- `supabase/migrations/202606250001_initial_attendance_schema.sql` を Supabase SQL Editor で適用。
+- `/api/internal/supabase/health` で Supabase DB 接続を確認。
+
+### 確認内容
+
+- `.env.local` に必要な3項目が設定済みで、Git管理対象外のままであることを確認。
+- publishable key / secret key の形式で設定されていることを確認。
+- 初期マイグレーション実行後、`/api/internal/supabase/health` が HTTP 200 を返すことを確認。
+
+### 影響ファイル
+
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+- `.env.local`（Git管理対象外）
+- Supabaseプロジェクト `Attendance_app_withCodeX_20260625`
+
+---
+
 ## DOC-001 作業管理ファイル整備
 
 - 実装日: 2026-06-25
