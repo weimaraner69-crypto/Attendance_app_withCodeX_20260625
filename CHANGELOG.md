@@ -5,6 +5,27 @@
 
 ---
 
+## [2026-06-25] GitHub自動コミット/push運用を明記
+
+### 実施概要
+今後、特別な指示がない限り、作業完了後にGitHubへコミットとpushまで行う運用をREADMEへ追記した。
+
+### 変更
+- `README.md`
+  - 作業管理ルールに「特別な指示がない限り、作業完了後はGitHubへコミットとpushまで行う」を追記。
+- `FINISHED.md`
+  - `DOC-002 GitHub自動コミット/push運用の明記` を記録。
+
+### 影響ファイル
+- `README.md`
+- `FINISHED.md`
+- `CHANGELOG.md`
+
+### 戻し方
+- `README.md` の該当ルールと、`FINISHED.md` / `CHANGELOG.md` の今回エントリを削除する。
+
+---
+
 ## [2026-06-25] Sランク仕様確定とSupabase接続基盤追加
 
 ### 実施概要

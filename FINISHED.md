@@ -102,3 +102,24 @@
 
 - `docs/implementation-decisions.md`
 - `NEXT.md`
+
+---
+
+## DOC-002 GitHub自動コミット/push運用の明記
+
+- 実装日: 2026-06-25
+- 種別: ドキュメント/運用ルール
+
+### 実装内容
+
+- 特別な指示がない限り、作業完了後にGitHubへコミットとpushまで行う運用を `README.md` に明記。
+
+### 確認内容
+
+- `README.md` の作業管理ルールに追記済み。
+
+### 影響ファイル
+
+- `README.md`
+- `FINISHED.md`
+- `CHANGELOG.md`
