@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 import { CorrectionRequestForm } from '@/components/stamp/CorrectionRequestForm';
@@ -23,6 +24,29 @@ type StaffShiftRow = {
   stores: {
     name: string;
   } | null;
+};
+
+type ShiftSubmissionWindowRow = {
+  id: string;
+  store_id: string | null;
+  title: string;
+  period_start: string;
+  period_end: string;
+  due_at: string;
+};
+
+type StaffSubmissionRow = {
+  id: string;
+  window_id: string;
+  status: string;
+  submitted_at: string | null;
+  items: Array<{
+    preferred_date: string;
+    start_time: string | null;
+    end_time: string | null;
+    is_unavailable: boolean;
+    note: string | null;
+  }>;
 };
 
 function getTokyoDateString(date = new Date()) {
@@ -56,6 +80,121 @@ function formatMinutes(minutes: number) {
   if (hours === 0) return `${rest}分`;
   if (rest === 0) return `${hours}時間`;
   return `${hours}時間${rest}分`;
+}
+
+function toDateTimeLabel(value: string) {
+  return new Intl.DateTimeFormat('ja-JP', {
+    timeZone: 'Asia/Tokyo',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(new Date(value));
+}
+
+function requiredText(value: FormDataEntryValue | null) {
+  return String(value ?? '').trim();
+}
+
+async function submitShiftPreference(formData: FormData) {
+  'use server';
+
+  const context = await requireAuthenticatedRole(['staff']);
+  if (!context.staff) redirect('/login');
+
+  const windowId = requiredText(formData.get('window_id'));
+  if (!windowId) return;
+
+  const supabase = createSupabaseAdminClient();
+  const now = new Date().toISOString();
+
+  const { data: window } = await supabase
+    .from('shift_submission_windows')
+    .select('id, organization_id, store_id, period_start, period_end, due_at, is_open')
+    .eq('id', windowId)
+    .eq('organization_id', context.profile.organization_id)
+    .eq('is_open', true)
+    .gte('due_at', now)
+    .maybeSingle();
+
+  if (!window) return;
+
+  const targetStoreId = window.store_id;
+  if (targetStoreId) {
+    const [{ data: assignment }, { data: staff }] = await Promise.all([
+      supabase
+        .from('store_staff_assignments')
+        .select('id')
+        .eq('organization_id', context.profile.organization_id)
+        .eq('store_id', targetStoreId)
+        .eq('staff_id', context.staff.id)
+        .lte('starts_on', window.period_end)
+        .or(`ends_on.is.null,ends_on.gte.${window.period_start}`)
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from('staff')
+        .select('default_store_id')
+        .eq('id', context.staff.id)
+        .eq('organization_id', context.profile.organization_id)
+        .maybeSingle(),
+    ]);
+
+    if (!assignment && staff?.default_store_id !== targetStoreId) return;
+  }
+
+  const items = [0, 1, 2].flatMap((index) => {
+    const preferredDate = requiredText(formData.get(`item_${index}_date`));
+    const isUnavailable = formData.get(`item_${index}_unavailable`) === 'on';
+    const startTime = requiredText(formData.get(`item_${index}_start`));
+    const endTime = requiredText(formData.get(`item_${index}_end`));
+    const note = requiredText(formData.get(`item_${index}_note`)) || null;
+
+    if (!preferredDate) return [];
+    if (!isUnavailable && (!startTime || !endTime)) return [];
+
+    return [{
+      organization_id: context.profile.organization_id,
+      preferred_date: preferredDate,
+      start_time: isUnavailable ? null : startTime,
+      end_time: isUnavailable ? null : endTime,
+      is_unavailable: isUnavailable,
+      note,
+    }];
+  });
+
+  if (items.length === 0) return;
+
+  const { data: submission } = await supabase
+    .from('shift_submissions')
+    .upsert({
+      organization_id: context.profile.organization_id,
+      window_id: windowId,
+      staff_id: context.staff.id,
+      status: 'submitted',
+      submitted_at: now,
+      source: 'mobile_web',
+    }, { onConflict: 'window_id,staff_id' })
+    .select('id')
+    .single();
+
+  if (!submission) return;
+
+  await supabase
+    .from('shift_submission_items')
+    .delete()
+    .eq('organization_id', context.profile.organization_id)
+    .eq('submission_id', submission.id);
+
+  await supabase
+    .from('shift_submission_items')
+    .insert(items.map((item) => ({
+      ...item,
+      submission_id: submission.id,
+    })));
+
+  revalidatePath('/stamp/mobile');
 }
 
 export default async function MobileStampPage() {
@@ -99,6 +238,32 @@ export default async function MobileStampPage() {
     .order('start_at', { ascending: true });
 
   const shiftRows = (shifts ?? []) as StaffShiftRow[];
+
+  const { data: windows } = storeIds.length > 0
+    ? await supabase
+        .from('shift_submission_windows')
+        .select('id, store_id, title, period_start, period_end, due_at')
+        .eq('organization_id', context.profile.organization_id)
+        .eq('is_open', true)
+        .gte('due_at', new Date().toISOString())
+        .in('store_id', storeIds)
+        .order('due_at', { ascending: true })
+    : { data: [] };
+
+  const windowRows = (windows ?? []) as ShiftSubmissionWindowRow[];
+  const windowIds = windowRows.map((window) => window.id);
+  const { data: submissions } = windowIds.length > 0
+    ? await supabase
+        .from('shift_submissions')
+        .select('id, window_id, status, submitted_at, items:shift_submission_items (preferred_date, start_time, end_time, is_unavailable, note)')
+        .eq('organization_id', context.profile.organization_id)
+        .eq('staff_id', context.staff.id)
+        .in('window_id', windowIds)
+    : { data: [] };
+
+  const submissionsByWindowId = new Map(
+    ((submissions ?? []) as StaffSubmissionRow[]).map((submission) => [submission.window_id, submission]),
+  );
 
   return (
     <main className="min-h-screen bg-gray-50 p-6">
@@ -153,6 +318,90 @@ export default async function MobileStampPage() {
                 )}
               </TableBody>
             </Table>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>シフト希望提出</CardTitle>
+            <CardDescription>受付中の募集に希望日、希望時間、不可日を提出します。</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {windowRows.map((window) => {
+              const submission = submissionsByWindowId.get(window.id);
+              return (
+                <form key={window.id} action={submitShiftPreference} className="space-y-4 rounded-lg border p-4">
+                  <input type="hidden" name="window_id" value={window.id} />
+                  <div>
+                    <h3 className="font-semibold">{window.title}</h3>
+                    <p className="mt-1 text-sm text-gray-600">
+                      対象: {window.period_start} - {window.period_end} / 締切: {toDateTimeLabel(window.due_at)}
+                    </p>
+                    {submission && (
+                      <p className="mt-1 text-sm text-green-700">
+                        提出済み: {submission.submitted_at ? toDateTimeLabel(submission.submitted_at) : '保存済み'}
+                      </p>
+                    )}
+                  </div>
+
+                  {[0, 1, 2].map((index) => {
+                    const item = submission?.items[index];
+                    return (
+                      <div key={index} className="grid gap-3 rounded-lg bg-gray-50 p-3 sm:grid-cols-5">
+                        <div className="space-y-1">
+                          <label className="text-sm font-medium" htmlFor={`item-${window.id}-${index}-date`}>希望日</label>
+                          <input
+                            id={`item-${window.id}-${index}-date`}
+                            name={`item_${index}_date`}
+                            type="date"
+                            defaultValue={item?.preferred_date ?? ''}
+                            className="h-10 w-full rounded-lg border border-input bg-white px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-sm font-medium" htmlFor={`item-${window.id}-${index}-start`}>開始</label>
+                          <input
+                            id={`item-${window.id}-${index}-start`}
+                            name={`item_${index}_start`}
+                            type="time"
+                            defaultValue={item?.start_time?.slice(0, 5) ?? ''}
+                            className="h-10 w-full rounded-lg border border-input bg-white px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-sm font-medium" htmlFor={`item-${window.id}-${index}-end`}>終了</label>
+                          <input
+                            id={`item-${window.id}-${index}-end`}
+                            name={`item_${index}_end`}
+                            type="time"
+                            defaultValue={item?.end_time?.slice(0, 5) ?? ''}
+                            className="h-10 w-full rounded-lg border border-input bg-white px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                          />
+                        </div>
+                        <label className="flex items-center gap-2 pt-7 text-sm">
+                          <input name={`item_${index}_unavailable`} type="checkbox" defaultChecked={item?.is_unavailable ?? false} />
+                          不可日
+                        </label>
+                        <div className="space-y-1">
+                          <label className="text-sm font-medium" htmlFor={`item-${window.id}-${index}-note`}>メモ</label>
+                          <input
+                            id={`item-${window.id}-${index}-note`}
+                            name={`item_${index}_note`}
+                            defaultValue={item?.note ?? ''}
+                            className="h-10 w-full rounded-lg border border-input bg-white px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  <Button type="submit">希望を提出</Button>
+                </form>
+              );
+            })}
+            {windowRows.length === 0 && (
+              <p className="text-sm text-gray-600">受付中のシフト希望募集はありません。</p>
+            )}
           </CardContent>
         </Card>
 

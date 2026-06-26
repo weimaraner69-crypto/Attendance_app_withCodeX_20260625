@@ -41,6 +41,35 @@ type ShiftRow = {
   } | null;
 };
 
+type ShiftSubmissionWindowRow = {
+  id: string;
+  title: string;
+  period_start: string;
+  period_end: string;
+  due_at: string;
+  is_open: boolean;
+  created_at: string;
+};
+
+type ShiftSubmissionRow = {
+  id: string;
+  window_id: string;
+  staff_id: string;
+  status: Database['public']['Enums']['shift_submission_status'];
+  submitted_at: string | null;
+  staff: {
+    name: string;
+    employee_code: string | null;
+  } | null;
+  items: Array<{
+    preferred_date: string;
+    start_time: string | null;
+    end_time: string | null;
+    is_unavailable: boolean;
+    note: string | null;
+  }>;
+};
+
 const statusLabels: Record<ShiftStatus, string> = {
   draft: '下書き',
   published: '公開済み',
@@ -76,6 +105,10 @@ function toTokyoTimestamp(date: string, time: string) {
   return `${date}T${time}:00+09:00`;
 }
 
+function toTokyoDueTimestamp(date: string, time: string) {
+  return `${date}T${time}:00+09:00`;
+}
+
 function formatTokyoTime(value: string) {
   return new Intl.DateTimeFormat('ja-JP', {
     timeZone: 'Asia/Tokyo',
@@ -87,6 +120,17 @@ function formatTokyoTime(value: string) {
 
 function timeInputValue(value: string) {
   return formatTokyoTime(value);
+}
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat('ja-JP', {
+    timeZone: 'Asia/Tokyo',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(new Date(value));
 }
 
 function requiredText(value: FormDataEntryValue | null) {
@@ -164,6 +208,59 @@ async function createShift(formData: FormData) {
   revalidatePath(`/manager/${storeId}/shifts`);
 }
 
+async function createSubmissionWindow(formData: FormData) {
+  'use server';
+
+  const storeId = requiredText(formData.get('store_id'));
+  const title = requiredText(formData.get('title'));
+  const periodStart = requiredText(formData.get('period_start'));
+  const periodEnd = requiredText(formData.get('period_end'));
+  const dueDate = requiredText(formData.get('due_date'));
+  const dueTime = requiredText(formData.get('due_time')) || '23:59';
+
+  if (!storeId || !title || !periodStart || !periodEnd || !dueDate) return;
+
+  const context = await requireManagerStore(storeId);
+  const supabase = createSupabaseAdminClient();
+
+  await supabase
+    .from('shift_submission_windows')
+    .insert({
+      organization_id: context.profile.organization_id,
+      store_id: storeId,
+      title,
+      period_start: periodStart,
+      period_end: periodEnd,
+      due_at: toTokyoDueTimestamp(dueDate, dueTime),
+      is_open: true,
+      created_by_user_id: context.user.id,
+    });
+
+  revalidatePath(`/manager/${storeId}/shifts`);
+}
+
+async function setSubmissionWindowOpen(formData: FormData) {
+  'use server';
+
+  const storeId = requiredText(formData.get('store_id'));
+  const windowId = requiredText(formData.get('window_id'));
+  const isOpen = requiredText(formData.get('is_open')) === 'true';
+
+  if (!storeId || !windowId) return;
+
+  const context = await requireManagerStore(storeId);
+  const supabase = createSupabaseAdminClient();
+
+  await supabase
+    .from('shift_submission_windows')
+    .update({ is_open: isOpen })
+    .eq('id', windowId)
+    .eq('organization_id', context.profile.organization_id)
+    .eq('store_id', storeId);
+
+  revalidatePath(`/manager/${storeId}/shifts`);
+}
+
 async function updateShift(formData: FormData) {
   'use server';
 
@@ -231,7 +328,7 @@ export default async function ManagerShiftsPage({
   const today = getTokyoDateString();
   const rangeEnd = getTokyoDateString(addDays(new Date(), 31));
 
-  const [{ data: store }, staff, { data: shifts }] = await Promise.all([
+  const [{ data: store }, staff, { data: shifts }, { data: windows }, { data: submissions }] = await Promise.all([
     supabase
       .from('stores')
       .select('id, name, is_active')
@@ -248,11 +345,30 @@ export default async function ManagerShiftsPage({
       .lte('work_date', rangeEnd)
       .order('work_date', { ascending: true })
       .order('start_at', { ascending: true }),
+    supabase
+      .from('shift_submission_windows')
+      .select('id, title, period_start, period_end, due_at, is_open, created_at')
+      .eq('organization_id', context.profile.organization_id)
+      .eq('store_id', params.storeId)
+      .order('created_at', { ascending: false })
+      .limit(10),
+    supabase
+      .from('shift_submissions')
+      .select('id, window_id, staff_id, status, submitted_at, staff:staff_id (name, employee_code), items:shift_submission_items (preferred_date, start_time, end_time, is_unavailable, note)')
+      .eq('organization_id', context.profile.organization_id)
+      .order('submitted_at', { ascending: false }),
   ]);
 
   if (!store || !store.is_active) notFound();
 
   const rows = (shifts ?? []) as ShiftRow[];
+  const windowRows = (windows ?? []) as ShiftSubmissionWindowRow[];
+  const windowIds = new Set(windowRows.map((window) => window.id));
+  const submissionRows = ((submissions ?? []) as ShiftSubmissionRow[]).filter((submission) => windowIds.has(submission.window_id));
+  const submissionsByWindowId = submissionRows.reduce<Record<string, ShiftSubmissionRow[]>>((grouped, submission) => {
+    grouped[submission.window_id] = [...(grouped[submission.window_id] ?? []), submission];
+    return grouped;
+  }, {});
 
   return (
     <main className="min-h-screen bg-gray-50 p-8">
@@ -266,6 +382,126 @@ export default async function ManagerShiftsPage({
             <Button variant="outline">戻る</Button>
           </Link>
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>シフト希望募集</CardTitle>
+            <CardDescription>スタッフが希望を提出する期間を作成します。</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form action={createSubmissionWindow} className="grid gap-4 md:grid-cols-6">
+              <input type="hidden" name="store_id" value={params.storeId} />
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="new-window-title">募集名</Label>
+                <Input id="new-window-title" name="title" placeholder="7月前半シフト希望" required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new-window-start">対象開始</Label>
+                <Input id="new-window-start" name="period_start" type="date" defaultValue={today} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new-window-end">対象終了</Label>
+                <Input id="new-window-end" name="period_end" type="date" defaultValue={rangeEnd} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new-window-due-date">締切日</Label>
+                <Input id="new-window-due-date" name="due_date" type="date" defaultValue={today} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new-window-due-time">締切時刻</Label>
+                <Input id="new-window-due-time" name="due_time" type="time" defaultValue="23:59" required />
+              </div>
+              <div className="md:col-span-6">
+                <Button type="submit">募集期間を作成</Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>提出状況</CardTitle>
+            <CardDescription>募集ごとの提出状況と希望内容を確認します。</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {windowRows.map((window) => {
+              const windowSubmissions = submissionsByWindowId[window.id] ?? [];
+              return (
+                <div key={window.id} className="space-y-3 rounded-lg border p-4">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold">{window.title}</h3>
+                        <Badge variant={window.is_open ? 'default' : 'secondary'}>
+                          {window.is_open ? '受付中' : '締切'}
+                        </Badge>
+                      </div>
+                      <p className="mt-1 text-sm text-gray-600">
+                        対象: {window.period_start} - {window.period_end} / 締切: {formatDateTime(window.due_at)}
+                      </p>
+                      <p className="mt-1 text-sm text-gray-600">
+                        提出: {windowSubmissions.length} / {staff.length}
+                      </p>
+                    </div>
+                    <form action={setSubmissionWindowOpen}>
+                      <input type="hidden" name="store_id" value={params.storeId} />
+                      <input type="hidden" name="window_id" value={window.id} />
+                      <input type="hidden" name="is_open" value={window.is_open ? 'false' : 'true'} />
+                      <Button type="submit" size="sm" variant="outline">
+                        {window.is_open ? '締め切る' : '再開する'}
+                      </Button>
+                    </form>
+                  </div>
+
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>スタッフ</TableHead>
+                        <TableHead>状態</TableHead>
+                        <TableHead>希望内容</TableHead>
+                        <TableHead>提出日時</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {windowSubmissions.map((submission) => (
+                        <TableRow key={submission.id}>
+                          <TableCell>
+                            <div className="font-medium">{submission.staff?.name ?? '不明なスタッフ'}</div>
+                            {submission.staff?.employee_code && (
+                              <div className="text-xs text-gray-500">{submission.staff.employee_code}</div>
+                            )}
+                          </TableCell>
+                          <TableCell>{submission.status === 'submitted' ? '提出済み' : submission.status}</TableCell>
+                          <TableCell className="whitespace-normal">
+                            <div className="space-y-1 text-sm">
+                              {submission.items.map((item) => (
+                                <div key={`${submission.id}-${item.preferred_date}-${item.start_time ?? 'none'}`}>
+                                  {item.preferred_date}: {item.is_unavailable ? '不可' : `${item.start_time?.slice(0, 5)}-${item.end_time?.slice(0, 5)}`}
+                                  {item.note ? ` / ${item.note}` : ''}
+                                </div>
+                              ))}
+                            </div>
+                          </TableCell>
+                          <TableCell>{submission.submitted_at ? formatDateTime(submission.submitted_at) : '-'}</TableCell>
+                        </TableRow>
+                      ))}
+                      {windowSubmissions.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={4} className="py-6 text-center text-gray-500">
+                            まだ提出がありません。
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              );
+            })}
+            {windowRows.length === 0 && (
+              <p className="text-sm text-gray-600">シフト希望募集はまだありません。</p>
+            )}
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>

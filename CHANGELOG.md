@@ -5,6 +5,43 @@
 
 ---
 
+## [2026-06-26] B-005 シフト希望提出を実装
+
+### 実施概要
+店長がシフト希望の募集期間を作成し、スタッフが個人スマホ画面から希望日、希望時間、不可日を提出できるようにした。店長画面では募集ごとの提出状況と希望内容を確認できる。
+
+### 変更
+- `src/app/(manager)/manager/[storeId]/shifts/page.tsx`
+  - シフト希望募集期間の作成フォームを追加。
+  - 募集期間の受付中/締切切り替えを追加。
+  - 募集ごとの提出人数、提出スタッフ、希望日、希望時間、不可日、メモを表示。
+- `src/app/(public)/stamp/mobile/page.tsx`
+  - 受付中のシフト希望募集一覧を追加。
+  - スタッフが最大3件の希望日/希望時間/不可日/メモを提出できるフォームを追加。
+  - 再提出時は同じ募集の既存希望を置き換えるようにした。
+- `NEXT.md`
+  - B-005を完了扱いに更新。
+- `FINISHED.md`
+  - `B-005 シフト希望提出` の完了ログを追加。
+
+### 確認
+- `npm run lint` が成功。
+- `npm run build` が成功。
+
+### 影響ファイル
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+- `src/app/(manager)/manager/[storeId]/shifts/page.tsx`
+- `src/app/(public)/stamp/mobile/page.tsx`
+
+### 戻し方
+- `src/app/(manager)/manager/[storeId]/shifts/page.tsx` からシフト希望募集と提出状況の追加部分を削除する。
+- `src/app/(public)/stamp/mobile/page.tsx` からシフト希望提出フォームを削除する。
+- `NEXT.md` / `FINISHED.md` / `CHANGELOG.md` の今回追記分を削除する。
+
+---
+
 ## [2026-06-26] B-004 シフト管理を実装
 
 ### 実施概要
