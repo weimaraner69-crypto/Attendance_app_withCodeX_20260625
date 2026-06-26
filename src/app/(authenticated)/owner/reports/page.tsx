@@ -1,18 +1,25 @@
-'use client'
+import { AttendanceReportView } from '@/components/reports/AttendanceReportView';
+import { requireAuthenticatedRole } from '@/lib/auth/session';
+import { getReportFilters, loadAttendanceReport } from '@/lib/reports/attendance';
 
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
+type ReportsPageProps = {
+  searchParams: Record<string, string | string[] | undefined>;
+};
 
-export default function ReportsPage() {
+export default async function ReportsPage({ searchParams }: ReportsPageProps) {
+  const context = await requireAuthenticatedRole(['owner']);
+  const filters = getReportFilters(searchParams);
+  const report = await loadAttendanceReport(context.profile.organization_id, filters);
+
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold">レポート</h2>
-        <Link href="/owner">
-          <Button variant="outline">戻る</Button>
-        </Link>
-      </div>
-      <p className="text-gray-600">勤務・給与レポート</p>
-    </div>
-  )
+    <AttendanceReportView
+      title="レポート"
+      description="勤務・給与確認向けの月次勤怠一覧です。"
+      backHref="/owner"
+      filters={filters}
+      stores={report.stores}
+      staff={report.staff}
+      rows={report.rows}
+    />
+  );
 }

@@ -5,6 +5,47 @@
 
 ---
 
+## [2026-06-26] B-006 オーナー/社労士向けレポートを実データ化
+
+### 実施概要
+オーナーと社労士向けのレポート画面を `attendance_records` の実データへ接続し、月次勤怠一覧、集計カード、期間/店舗/スタッフ絞り込みを追加した。
+
+### 追加
+- `src/lib/reports/attendance.ts`
+  - レポート用の期間初期値、絞り込み、勤怠取得、集計、表示整形を追加。
+- `src/components/reports/AttendanceReportView.tsx`
+  - オーナー/社労士共通の勤怠レポート画面を追加。
+
+### 変更
+- `src/app/(authenticated)/owner/reports/page.tsx`
+  - プレースホルダーを実データレポートに置き換え。
+- `src/app/(authenticated)/sr/reports/page.tsx`
+  - プレースホルダーを実データレポートに置き換え。
+- `NEXT.md`
+  - B-006を完了扱いに更新。
+- `FINISHED.md`
+  - `B-006 オーナー/社労士向けレポート` の完了ログを追加。
+
+### 確認
+- `npm run lint` が成功。
+- `npm run build` が成功。
+
+### 影響ファイル
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+- `src/app/(authenticated)/owner/reports/page.tsx`
+- `src/app/(authenticated)/sr/reports/page.tsx`
+- `src/components/reports/AttendanceReportView.tsx`
+- `src/lib/reports/attendance.ts`
+
+### 戻し方
+- `src/components/reports/AttendanceReportView.tsx` と `src/lib/reports/attendance.ts` を削除する。
+- `/owner/reports` と `/sr/reports` を直前のプレースホルダー表示へ戻す。
+- `NEXT.md` / `FINISHED.md` / `CHANGELOG.md` の今回追記分を削除する。
+
+---
+
 ## [2026-06-26] B-005 シフト希望提出を実装
 
 ### 実施概要

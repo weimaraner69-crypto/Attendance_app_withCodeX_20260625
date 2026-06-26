@@ -1,18 +1,25 @@
-'use client'
+import { AttendanceReportView } from '@/components/reports/AttendanceReportView';
+import { requireAuthenticatedRole } from '@/lib/auth/session';
+import { getReportFilters, loadAttendanceReport } from '@/lib/reports/attendance';
 
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
+type SRReportsPageProps = {
+  searchParams: Record<string, string | string[] | undefined>;
+};
 
-export default function SRReportsPage() {
+export default async function SRReportsPage({ searchParams }: SRReportsPageProps) {
+  const context = await requireAuthenticatedRole(['sr']);
+  const filters = getReportFilters(searchParams);
+  const report = await loadAttendanceReport(context.profile.organization_id, filters);
+
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold">レポート</h2>
-        <Link href="/sr">
-          <Button variant="outline">戻る</Button>
-        </Link>
-      </div>
-      <p className="text-gray-600">労働時間・コンプライアンスレポート</p>
-    </div>
-  )
+    <AttendanceReportView
+      title="レポート"
+      description="労働時間・休憩・手修正を確認する社労士向け一覧です。"
+      backHref="/sr"
+      filters={filters}
+      stores={report.stores}
+      staff={report.staff}
+      rows={report.rows}
+    />
+  );
 }

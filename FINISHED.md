@@ -10,6 +10,38 @@
 
 ---
 
+## B-006 オーナー/社労士向けレポート
+
+- 実装日: 2026-06-26
+- 種別: 業務画面/レポート
+
+### 実装内容
+
+- `/owner/reports` を `attendance_records` 実データへ接続。
+- `/sr/reports` を `attendance_records` 実データへ接続。
+- 期間、店舗、スタッフによる絞り込みを追加。
+- 勤務日数、総勤務時間、総休憩時間、深夜時間、要確認件数の集計カードを追加。
+- 月次勤怠一覧に日付、店舗、スタッフ、状態、出勤、退勤、休憩、勤務、深夜、補足を表示。
+- レポート取得ロジックを `src/lib/reports/attendance.ts` に集約。
+- オーナー/社労士共通の表示部品 `AttendanceReportView` を追加。
+
+### 確認内容
+
+- `npm run lint` が成功。
+- `npm run build` が成功。
+
+### 影響ファイル
+
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+- `src/app/(authenticated)/owner/reports/page.tsx`
+- `src/app/(authenticated)/sr/reports/page.tsx`
+- `src/components/reports/AttendanceReportView.tsx`
+- `src/lib/reports/attendance.ts`
+
+---
+
 ## B-005 シフト希望提出
 
 - 実装日: 2026-06-26
