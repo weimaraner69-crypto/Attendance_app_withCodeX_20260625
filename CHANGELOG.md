@@ -5,6 +5,42 @@
 
 ---
 
+## [2026-06-26] C-001 月次勤怠CSV出力を実装
+
+### 実施概要
+オーナー/社労士向けレポート画面の絞り込み条件に合わせて、月次勤怠CSVをダウンロードできるようにした。
+
+### 追加
+- `src/app/api/reports/attendance.csv/route.ts`
+  - `GET /api/reports/attendance.csv` を追加。
+  - オーナー/社労士ロールの認証後、`attendance_records` をCSV化。
+
+### 変更
+- `src/components/reports/AttendanceReportView.tsx`
+  - 現在の絞り込み条件を引き継ぐCSV出力ボタンを追加。
+- `NEXT.md`
+  - C-001のCSV出力を完了扱いに更新。
+- `FINISHED.md`
+  - `C-001 CSV/PDF出力（CSV）` の完了ログを追加。
+
+### 確認
+- `npm run lint` が成功。
+- `npm run build` が成功。
+
+### 影響ファイル
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+- `src/app/api/reports/attendance.csv/route.ts`
+- `src/components/reports/AttendanceReportView.tsx`
+
+### 戻し方
+- `src/app/api/reports/attendance.csv/route.ts` を削除する。
+- `src/components/reports/AttendanceReportView.tsx` からCSV出力ボタンを削除する。
+- `NEXT.md` / `FINISHED.md` / `CHANGELOG.md` の今回追記分を削除する。
+
+---
+
 ## [2026-06-26] B-006 オーナー/社労士向けレポートを実データ化
 
 ### 実施概要

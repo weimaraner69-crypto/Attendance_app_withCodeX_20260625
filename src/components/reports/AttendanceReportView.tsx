@@ -50,6 +50,11 @@ export function AttendanceReportView({
   rows,
 }: AttendanceReportViewProps) {
   const summary = summarizeAttendance(rows);
+  const csvParams = new URLSearchParams();
+  csvParams.set('from', filters.from);
+  csvParams.set('to', filters.to);
+  if (filters.storeId) csvParams.set('store_id', filters.storeId);
+  if (filters.staffId) csvParams.set('staff_id', filters.staffId);
 
   return (
     <div className="space-y-6">
@@ -58,9 +63,14 @@ export function AttendanceReportView({
           <h2 className="text-3xl font-bold">{title}</h2>
           <p className="mt-1 text-sm text-gray-600">{description}</p>
         </div>
-        <Link href={backHref}>
-          <Button variant="outline">戻る</Button>
-        </Link>
+        <div className="flex gap-2">
+          <a href={`/api/reports/attendance.csv?${csvParams.toString()}`}>
+            <Button variant="outline">CSV出力</Button>
+          </a>
+          <Link href={backHref}>
+            <Button variant="outline">戻る</Button>
+          </Link>
+        </div>
       </div>
 
       <Card>

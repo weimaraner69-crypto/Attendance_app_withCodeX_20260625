@@ -10,6 +10,34 @@
 
 ---
 
+## C-001 CSV/PDF出力（CSV）
+
+- 実装日: 2026-06-26
+- 種別: CSV出力/API
+
+### 実装内容
+
+- `GET /api/reports/attendance.csv` を追加。
+- オーナー/社労士ロールでのみ月次勤怠CSVを出力できるようにした。
+- レポート画面の `from`, `to`, `store_id`, `staff_id` 絞り込み条件をCSV出力へ反映。
+- CSV列として日付、店舗、スタッフ、従業員コード、状態、出勤、退勤、休憩分、勤務分、深夜分、手修正、メモを出力。
+- `/owner/reports` と `/sr/reports` にCSV出力ボタンを追加。
+
+### 確認内容
+
+- `npm run lint` が成功。
+- `npm run build` が成功。
+
+### 影響ファイル
+
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+- `src/app/api/reports/attendance.csv/route.ts`
+- `src/components/reports/AttendanceReportView.tsx`
+
+---
+
 ## B-006 オーナー/社労士向けレポート
 
 - 実装日: 2026-06-26
