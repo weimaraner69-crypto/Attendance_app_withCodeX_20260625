@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+import { CorrectionRequestForm } from '@/components/stamp/CorrectionRequestForm';
 import { MobileStampPanel } from '@/components/stamp/MobileStampPanel';
 import { Button } from '@/components/ui/button';
 import { requireAuthenticatedRole } from '@/lib/auth/session';
@@ -55,6 +56,11 @@ export default async function MobileStampPage() {
         <MobileStampPanel
           staffId={context.staff.id}
           staffName={context.profile.display_name}
+          stores={(stores ?? []) as StoreRow[]}
+          defaultStoreId={context.staff.default_store_id}
+        />
+
+        <CorrectionRequestForm
           stores={(stores ?? []) as StoreRow[]}
           defaultStoreId={context.staff.default_store_id}
         />

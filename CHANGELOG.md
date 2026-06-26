@@ -5,6 +5,53 @@
 
 ---
 
+## [2026-06-26] B-003 打刻修正申請を実装
+
+### 実施概要
+スタッフが個人スマホ打刻画面から打刻修正を申請し、店長が担当店舗の申請を承認/却下できるようにした。承認時は勤怠レコードへ反映し、承認/却下操作を監査ログへ記録する。
+
+### 追加
+- `src/app/api/attendance/requests/route.ts`
+  - `POST /api/attendance/requests` を追加。
+  - ログイン済みスタッフの所属店舗またはデフォルト店舗に限って、打刻修正申請を作成。
+
+### 変更
+- `src/components/stamp/CorrectionRequestForm.tsx`
+  - モックの `console.log` 処理を削除し、申請APIへ接続。
+  - 対象店舗、対象日、出勤時刻、退勤時刻、理由を入力できるフォームへ更新。
+- `src/app/(public)/stamp/mobile/page.tsx`
+  - 個人スマホ打刻画面に打刻修正申請フォームを追加。
+- `src/app/(manager)/manager/[storeId]/requests/page.tsx`
+  - 空状態表示を実データ一覧へ置き換え。
+  - 店長の担当店舗内の `attendance_requests` を表示。
+  - 承認時に `attendance_records` を作成/更新。
+  - 承認/却下操作を `audit_logs` に記録。
+- `NEXT.md`
+  - B-003を完了扱いに更新。
+- `FINISHED.md`
+  - `B-003 打刻修正申請` の完了ログを追加。
+
+### 確認
+- `npm run lint` が成功。
+- `npm run build` が成功。
+
+### 影響ファイル
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+- `src/app/api/attendance/requests/route.ts`
+- `src/app/(public)/stamp/mobile/page.tsx`
+- `src/components/stamp/CorrectionRequestForm.tsx`
+- `src/app/(manager)/manager/[storeId]/requests/page.tsx`
+
+### 戻し方
+- `src/app/api/attendance/requests/route.ts` を削除する。
+- `src/components/stamp/CorrectionRequestForm.tsx` と `/stamp/mobile` を直前状態へ戻す。
+- `src/app/(manager)/manager/[storeId]/requests/page.tsx` を空状態表示へ戻す。
+- `NEXT.md` / `FINISHED.md` / `CHANGELOG.md` の今回追記分を削除する。
+
+---
+
 ## [2026-06-25] B-002 店長ダッシュボードを実データ化
 
 ### 実施概要

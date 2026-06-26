@@ -10,6 +10,38 @@
 
 ---
 
+## B-003 打刻修正申請
+
+- 実装日: 2026-06-26
+- 種別: 業務画面/API/監査ログ
+
+### 実装内容
+
+- `POST /api/attendance/requests` を追加し、ログイン済みスタッフが打刻修正申請を作成できるようにした。
+- スタッフの所属店舗またはデフォルト店舗のみ申請できるように検証を追加。
+- `/stamp/mobile` に打刻修正申請フォームを追加。
+- `/manager/[storeId]/requests` を Supabase の `attendance_requests` 実データ一覧へ接続。
+- 店長が申請を承認/却下できる Server Action を実装。
+- 承認時に対象日の `attendance_records` を作成または更新し、手修正扱いの `is_manual` とメモを残すようにした。
+- 承認/却下操作を `audit_logs` に記録するようにした。
+
+### 確認内容
+
+- `npm run lint` が成功。
+- `npm run build` が成功。
+
+### 影響ファイル
+
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+- `src/app/api/attendance/requests/route.ts`
+- `src/app/(public)/stamp/mobile/page.tsx`
+- `src/components/stamp/CorrectionRequestForm.tsx`
+- `src/app/(manager)/manager/[storeId]/requests/page.tsx`
+
+---
+
 ## B-002 店長ダッシュボードの実データ化
 
 - 実装日: 2026-06-25
