@@ -5,6 +5,42 @@
 
 ---
 
+## [2026-06-26] B-004 シフト管理を実装
+
+### 実施概要
+店長が担当店舗のシフトを作成、編集、公開、取消できるようにし、スタッフが個人スマホ打刻画面で自分の公開シフトを確認できるようにした。
+
+### 変更
+- `src/app/(manager)/manager/[storeId]/shifts/page.tsx`
+  - 空状態表示を `shifts` 実データ管理画面へ置き換え。
+  - 店長の担当店舗権限を確認したうえで、所属スタッフと今後31日分のシフトを表示。
+  - シフト作成、編集、公開、取消の Server Action を追加。
+  - シフトステータス `draft`, `published`, `confirmed`, `completed`, `cancelled` を表示/編集できるようにした。
+- `src/app/(public)/stamp/mobile/page.tsx`
+  - ログイン済みスタッフ本人の今後14日分の公開/確認済みシフト一覧を追加。
+- `NEXT.md`
+  - B-004を完了扱いに更新。
+- `FINISHED.md`
+  - `B-004 シフト管理` の完了ログを追加。
+
+### 確認
+- `npm run lint` が成功。
+- `npm run build` が成功。
+
+### 影響ファイル
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+- `src/app/(manager)/manager/[storeId]/shifts/page.tsx`
+- `src/app/(public)/stamp/mobile/page.tsx`
+
+### 戻し方
+- `src/app/(manager)/manager/[storeId]/shifts/page.tsx` を直前の空状態表示へ戻す。
+- `src/app/(public)/stamp/mobile/page.tsx` から今後のシフト一覧を削除する。
+- `NEXT.md` / `FINISHED.md` / `CHANGELOG.md` の今回追記分を削除する。
+
+---
+
 ## [2026-06-26] B-003 打刻修正申請を実装
 
 ### 実施概要
