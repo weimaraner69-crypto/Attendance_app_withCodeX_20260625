@@ -119,6 +119,19 @@ export type Database = {
         created_at: Timestamp;
         updated_at: Timestamp;
       }>;
+      notifications: Table<{
+        id: string;
+        organization_id: string;
+        recipient_user_id: string | null;
+        recipient_staff_id: string | null;
+        title: string;
+        body: string;
+        notification_type: string;
+        related_table: string | null;
+        related_id: string | null;
+        read_at: Timestamp | null;
+        created_at: Timestamp;
+      }>;
       attendance_records: Table<{
         id: string;
         organization_id: string;

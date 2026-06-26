@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { revalidatePath } from 'next/cache';
 import { notFound } from 'next/navigation';
 
 import { Badge } from '@/components/ui/badge';
@@ -6,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { requireManagerStore } from '@/lib/auth/session';
+import { createStaffNotification } from '@/lib/notifications';
 import { createSupabaseAdminClient } from '@/lib/supabase';
 import type { Database } from '@/lib/supabase';
 
@@ -102,6 +104,75 @@ function summarizeRows(rows: DashboardRow[]) {
       finished: 0,
     } satisfies Record<AttendanceStatus, number>,
   );
+}
+
+async function createMissingAttendanceNotifications(formData: FormData) {
+  'use server';
+
+  const storeId = String(formData.get('store_id') ?? '');
+  if (!storeId) return;
+
+  const context = await requireManagerStore(storeId);
+  const supabase = createSupabaseAdminClient();
+  const today = getTokyoDateString();
+
+  const [{ data: assignments }, { data: defaultStaff }, { data: records }] = await Promise.all([
+    supabase
+      .from('store_staff_assignments')
+      .select('staff_id')
+      .eq('organization_id', context.profile.organization_id)
+      .eq('store_id', storeId)
+      .lte('starts_on', today)
+      .or(`ends_on.is.null,ends_on.gte.${today}`),
+    supabase
+      .from('staff')
+      .select('id, name, employee_code, default_store_id')
+      .eq('organization_id', context.profile.organization_id)
+      .eq('default_store_id', storeId)
+      .eq('is_active', true)
+      .order('name', { ascending: true }),
+    supabase
+      .from('attendance_records')
+      .select('staff_id, status, clock_in_at, clock_out_at')
+      .eq('organization_id', context.profile.organization_id)
+      .eq('store_id', storeId)
+      .eq('work_date', today),
+  ]);
+
+  const assignmentStaffIds = Array.from(new Set((assignments ?? []).map((assignment) => assignment.staff_id)));
+  const { data: assignedStaff } = assignmentStaffIds.length > 0
+    ? await supabase
+        .from('staff')
+        .select('id, name, employee_code, default_store_id')
+        .eq('organization_id', context.profile.organization_id)
+        .in('id', assignmentStaffIds)
+        .eq('is_active', true)
+    : { data: [] };
+
+  const staffById = new Map<string, StaffRow>();
+  [...((assignedStaff ?? []) as StaffRow[]), ...((defaultStaff ?? []) as StaffRow[])].forEach((staff) => {
+    staffById.set(staff.id, staff);
+  });
+
+  const recordByStaffId = new Map((records ?? []).map((record) => [record.staff_id, record]));
+  const targets = Array.from(staffById.values()).flatMap((staff) => {
+    const record = recordByStaffId.get(staff.id);
+    if (!record) return [{ staff, title: '本日の打刻が未登録です', body: `${today} の出勤打刻が未登録です。` }];
+    if (record.clock_in_at && !record.clock_out_at) return [{ staff, title: '本日の退勤打刻を確認してください', body: `${today} の退勤打刻が未登録です。` }];
+    return [];
+  });
+
+  await Promise.all(targets.map((target) => createStaffNotification({
+    organizationId: context.profile.organization_id,
+    recipientStaffId: target.staff.id,
+    title: target.title,
+    body: target.body,
+    notificationType: 'attendance_missing',
+    relatedTable: 'attendance_records',
+    relatedId: null,
+  })));
+
+  revalidatePath(`/manager/${storeId}`);
 }
 
 export default async function ManagerDashboardPage({
@@ -246,7 +317,11 @@ export default async function ManagerDashboardPage({
             <CardTitle>今日の出勤状況</CardTitle>
             <CardDescription>未打刻と休憩中を先に確認できるよう、状態を一覧化しています。</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            <form action={createMissingAttendanceNotifications}>
+              <input type="hidden" name="store_id" value={params.storeId} />
+              <Button type="submit" variant="outline">打刻漏れ通知を作成</Button>
+            </form>
             <Table>
               <TableHeader>
                 <TableRow>

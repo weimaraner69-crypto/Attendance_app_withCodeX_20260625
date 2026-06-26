@@ -10,6 +10,45 @@
 
 ---
 
+## C-002 通知機能（アプリ内通知）
+
+- 実装日: 2026-06-26
+- 種別: 通知/マイグレーション
+
+### 実装内容
+
+- `notifications` テーブル追加用マイグレーションを作成。
+- スタッフ向け `/stamp/mobile` に通知一覧を追加。
+- 打刻修正申請の承認/却下時にスタッフへアプリ内通知を作成。
+- シフト公開時に対象スタッフへアプリ内通知を作成。
+- 店長ダッシュボードに打刻漏れ通知作成ボタンを追加。
+- 未打刻または退勤漏れのスタッフへアプリ内通知を作成。
+
+### 確認内容
+
+- `npm run lint` が成功。
+- `npm run build` が成功。
+
+### 補足
+
+- 実DBへ反映するには `supabase/migrations/202606260003_notifications.sql` の適用が必要。
+- LINE通知は未実装。アプリ内通知として土台を作成した。
+
+### 影響ファイル
+
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+- `supabase/migrations/202606260003_notifications.sql`
+- `src/lib/supabase/database.types.ts`
+- `src/lib/notifications/index.ts`
+- `src/app/(manager)/manager/[storeId]/page.tsx`
+- `src/app/(manager)/manager/[storeId]/requests/page.tsx`
+- `src/app/(manager)/manager/[storeId]/shifts/page.tsx`
+- `src/app/(public)/stamp/mobile/page.tsx`
+
+---
+
 ## C-001 CSV/PDF出力（CSV）
 
 - 実装日: 2026-06-26

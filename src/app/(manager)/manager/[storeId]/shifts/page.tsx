@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { requireManagerStore } from '@/lib/auth/session';
+import { createStaffNotification } from '@/lib/notifications';
 import { createSupabaseAdminClient } from '@/lib/supabase';
 import type { Database } from '@/lib/supabase';
 
@@ -191,7 +192,8 @@ async function createShift(formData: FormData) {
   const context = await requireManagerStore(storeId);
   const supabase = createSupabaseAdminClient();
 
-  await supabase
+  const shiftStatus = ['draft', 'published'].includes(status) ? status : 'draft';
+  const { data: insertedShift } = await supabase
     .from('shifts')
     .insert({
       organization_id: context.profile.organization_id,
@@ -201,9 +203,23 @@ async function createShift(formData: FormData) {
       start_at: toTokyoTimestamp(workDate, startTime),
       end_at: toTokyoTimestamp(workDate, endTime),
       break_minutes: breakMinutes,
-      status: ['draft', 'published'].includes(status) ? status : 'draft',
+      status: shiftStatus,
       created_by_user_id: context.user.id,
+    })
+    .select('id')
+    .single();
+
+  if (shiftStatus === 'published' && insertedShift) {
+    await createStaffNotification({
+      organizationId: context.profile.organization_id,
+      recipientStaffId: staffId,
+      title: 'シフトが公開されました',
+      body: `${workDate} のシフトが公開されました。`,
+      notificationType: 'shift_published',
+      relatedTable: 'shifts',
+      relatedId: insertedShift.id,
     });
+  }
 
   revalidatePath(`/manager/${storeId}/shifts`);
 }
@@ -314,6 +330,28 @@ async function setShiftStatus(formData: FormData) {
     .eq('id', shiftId)
     .eq('store_id', storeId)
     .eq('organization_id', context.profile.organization_id);
+
+  if (status === 'published') {
+    const { data: shift } = await supabase
+      .from('shifts')
+      .select('id, staff_id, work_date, start_at, end_at')
+      .eq('id', shiftId)
+      .eq('store_id', storeId)
+      .eq('organization_id', context.profile.organization_id)
+      .maybeSingle();
+
+    if (shift) {
+      await createStaffNotification({
+        organizationId: context.profile.organization_id,
+        recipientStaffId: shift.staff_id,
+        title: 'シフトが公開されました',
+        body: `${shift.work_date} のシフトが公開されました。`,
+        notificationType: 'shift_published',
+        relatedTable: 'shifts',
+        relatedId: shift.id,
+      });
+    }
+  }
 
   revalidatePath(`/manager/${storeId}/shifts`);
 }

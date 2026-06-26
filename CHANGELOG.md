@@ -5,6 +5,57 @@
 
 ---
 
+## [2026-06-26] C-002 アプリ内通知を実装
+
+### 実施概要
+スタッフ向けのアプリ内通知テーブルと通知一覧を追加し、打刻修正申請の承認/却下、シフト公開、打刻漏れ通知を作成できるようにした。
+
+### 追加
+- `supabase/migrations/202606260003_notifications.sql`
+  - `notifications` テーブル、インデックス、RLSポリシーを追加。
+- `src/lib/notifications/index.ts`
+  - 通知作成ヘルパーを追加。
+
+### 変更
+- `src/app/(public)/stamp/mobile/page.tsx`
+  - スタッフ向け通知一覧を追加。
+- `src/app/(manager)/manager/[storeId]/requests/page.tsx`
+  - 打刻修正申請の承認/却下時に通知を作成。
+- `src/app/(manager)/manager/[storeId]/shifts/page.tsx`
+  - シフト公開時に通知を作成。
+- `src/app/(manager)/manager/[storeId]/page.tsx`
+  - 打刻漏れ通知作成ボタンを追加。
+- `src/lib/supabase/database.types.ts`
+  - `notifications` テーブル型を追加。
+- `NEXT.md`
+  - C-002をアプリ内通知完了扱いに更新。
+- `FINISHED.md`
+  - `C-002 通知機能（アプリ内通知）` の完了ログを追加。
+
+### 確認
+- `npm run lint` が成功。
+- `npm run build` が成功。
+
+### 影響ファイル
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+- `supabase/migrations/202606260003_notifications.sql`
+- `src/lib/supabase/database.types.ts`
+- `src/lib/notifications/index.ts`
+- `src/app/(manager)/manager/[storeId]/page.tsx`
+- `src/app/(manager)/manager/[storeId]/requests/page.tsx`
+- `src/app/(manager)/manager/[storeId]/shifts/page.tsx`
+- `src/app/(public)/stamp/mobile/page.tsx`
+
+### 戻し方
+- `supabase/migrations/202606260003_notifications.sql` と `src/lib/notifications/index.ts` を削除する。
+- 各画面から通知作成/通知一覧の追加部分を削除する。
+- `src/lib/supabase/database.types.ts` から `notifications` 型を削除する。
+- `NEXT.md` / `FINISHED.md` / `CHANGELOG.md` の今回追記分を削除する。
+
+---
+
 ## [2026-06-26] C-001 月次勤怠CSV出力を実装
 
 ### 実施概要

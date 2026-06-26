@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { requireManagerStore } from '@/lib/auth/session';
+import { createStaffNotification } from '@/lib/notifications';
 import { createSupabaseAdminClient } from '@/lib/supabase';
 import type { Database } from '@/lib/supabase';
 
@@ -196,6 +197,16 @@ async function reviewAttendanceRequest(formData: FormData) {
         attendance_record_id: attendanceRecordId,
       },
     });
+
+  await createStaffNotification({
+    organizationId: context.profile.organization_id,
+    recipientStaffId: request.staff_id,
+    title: decision === 'approved' ? '打刻修正申請が承認されました' : '打刻修正申請が却下されました',
+    body: `${request.target_date} の打刻修正申請が${decision === 'approved' ? '承認' : '却下'}されました。`,
+    notificationType: decision === 'approved' ? 'attendance_request_approved' : 'attendance_request_rejected',
+    relatedTable: 'attendance_requests',
+    relatedId: request.id,
+  });
 
   revalidatePath(`/manager/${storeId}/requests`);
   revalidatePath(`/manager/${storeId}`);

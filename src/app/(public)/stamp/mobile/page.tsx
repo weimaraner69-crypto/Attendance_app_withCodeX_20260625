@@ -49,6 +49,15 @@ type StaffSubmissionRow = {
   }>;
 };
 
+type NotificationRow = {
+  id: string;
+  title: string;
+  body: string;
+  notification_type: string;
+  read_at: string | null;
+  created_at: string;
+};
+
 function getTokyoDateString(date = new Date()) {
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Tokyo',
@@ -239,6 +248,16 @@ export default async function MobileStampPage() {
 
   const shiftRows = (shifts ?? []) as StaffShiftRow[];
 
+  const { data: notifications } = await supabase
+    .from('notifications')
+    .select('id, title, body, notification_type, read_at, created_at')
+    .eq('organization_id', context.profile.organization_id)
+    .eq('recipient_staff_id', context.staff.id)
+    .order('created_at', { ascending: false })
+    .limit(10);
+
+  const notificationRows = (notifications ?? []) as NotificationRow[];
+
   const { data: windows } = storeIds.length > 0
     ? await supabase
         .from('shift_submission_windows')
@@ -284,6 +303,29 @@ export default async function MobileStampPage() {
           stores={(stores ?? []) as StoreRow[]}
           defaultStoreId={context.staff.default_store_id}
         />
+
+        <Card>
+          <CardHeader>
+            <CardTitle>通知</CardTitle>
+            <CardDescription>申請結果、シフト公開、打刻漏れのお知らせを表示します。</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {notificationRows.map((notification) => (
+              <div key={notification.id} className="rounded-lg border p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="font-medium">{notification.title}</div>
+                    <p className="mt-1 text-sm text-gray-600">{notification.body}</p>
+                  </div>
+                  <span className="shrink-0 text-xs text-gray-500">{toDateTimeLabel(notification.created_at)}</span>
+                </div>
+              </div>
+            ))}
+            {notificationRows.length === 0 && (
+              <p className="text-sm text-gray-600">通知はありません。</p>
+            )}
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>
