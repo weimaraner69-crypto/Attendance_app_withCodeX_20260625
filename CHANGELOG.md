@@ -5,6 +5,41 @@
 
 ---
 
+## [2026-06-27] 機密情報取り扱いルールを明文化
+
+### 実施概要
+`.env.local` の値や各種機密情報を誤って表示しないため、内容を読み取らないことと、必要なアクセスの前にユーザーの明示的な許可を得ることを運用ルールとして追加した。
+
+### 追加
+- `SECURITY.md`
+  - `.env.local`、APIキー、個人情報の取り扱いと漏えい時の対応を追加。
+
+### 変更
+- `README.md` / `NEXT.md`
+  - `.env.local` を読み取り・表示しないルールと `SECURITY.md` への参照を追加。
+- `docs/supabase-setup.md`
+  - 値を表示しない確認手順と事前確認ルールを追加。
+- `NEXT.md` / `FINISHED.md`
+  - 通知マイグレーションの実DB適用とSupabase Secret key / Service role keyのローテーション完了を記録。
+
+### 確認
+- `.env.local` の内容を読み取らず、Git管理対象外であることを確認。
+- Git追跡対象のMarkdownへ実キーやシークレット値を追加していないことを確認。
+
+### 影響ファイル
+- `SECURITY.md`
+- `README.md`
+- `NEXT.md`
+- `docs/supabase-setup.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+
+### 戻し方
+- `SECURITY.md` を削除する。
+- `README.md`、`NEXT.md`、`docs/supabase-setup.md`、`CHANGELOG.md`、`FINISHED.md` の今回追記分を削除する。
+
+---
+
 ## [2026-06-26] C-002 アプリ内通知を実装
 
 ### 実施概要

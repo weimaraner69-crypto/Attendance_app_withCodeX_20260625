@@ -10,6 +10,34 @@
 
 ---
 
+## DOC-004 機密情報取り扱いルールの明文化
+
+- 実装日: 2026-06-27
+- 種別: セキュリティ/運用文書
+
+### 実装内容
+
+- `SECURITY.md` を追加し、`.env.local` の値を読み取り・表示しないルールを明文化。
+- `.env.local` の内容へのアクセスが必要な場合は、目的と安全な確認方法を示し、事前にユーザーの明示的な許可を得るルールを追加。
+- `README.md`、`NEXT.md`、`docs/supabase-setup.md` から共通ルールを参照。
+- 通知マイグレーションの実DB適用とSupabase Secret key / Service role keyのローテーション完了を記録。
+
+### 確認内容
+
+- `.env.local` の内容を読み取らず、Git管理対象外であることを確認。
+- Git追跡対象のMarkdownに実キーやシークレット値を追加していないことを確認。
+
+### 影響ファイル
+
+- `SECURITY.md`
+- `README.md`
+- `NEXT.md`
+- `docs/supabase-setup.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+
+---
+
 ## C-002 通知機能（アプリ内通知）
 
 - 実装日: 2026-06-26
@@ -31,7 +59,7 @@
 
 ### 補足
 
-- 実DBへ反映するには `supabase/migrations/202606260003_notifications.sql` の適用が必要。
+- `supabase/migrations/202606260003_notifications.sql` は 2026-06-27 に Supabase SQL Editor で適用済み。
 - LINE通知は未実装。アプリ内通知として土台を作成した。
 
 ### 影響ファイル

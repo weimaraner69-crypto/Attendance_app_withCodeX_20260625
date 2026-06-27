@@ -13,6 +13,7 @@ Supabase Dashboard で新規プロジェクトを作成します。
 - service_role key: `SUPABASE_SERVICE_ROLE_KEY` に設定
 
 `service_role key` はサーバー専用です。ブラウザ、Git、README、Issue本文には貼り付けません。
+機密情報の共通ルールは [SECURITY.md](../SECURITY.md) を参照してください。
 
 ## 2. 環境変数を設定
 
@@ -25,6 +26,14 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
 
 `.env.local` は `.gitignore` 対象のため、実キーはコミットしません。
+
+`.env.local` の値は、チャットやターミナルへ表示しません。Codexやその他の自動化ツールが内容へアクセスする必要がある場合は、目的と値を表示しない確認方法を先に説明し、ユーザーの明示的な許可を得てください。通常の確認では `.env.example` と環境変数名だけを参照します。
+
+設定ファイルがGit管理対象外であることは、内容を開かず確認できます。
+
+```bash
+git check-ignore .env.local
+```
 
 ## 3. 初期スキーマを適用
 
@@ -44,6 +53,8 @@ supabase/migrations/202606250001_initial_attendance_schema.sql
 - `attendance_events`
 - `shifts`
 - `audit_logs`
+
+追加マイグレーションもファイルの内容だけを SQL Editor へ貼り付けて実行します。ローカルのファイルパス自体をSQLとして実行しないでください。
 
 ## 4. 接続確認
 

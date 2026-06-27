@@ -62,6 +62,8 @@ npm run build
 - 実装が終わった項目は `FINISHED.md` に、項目ID、項目名、実装内容、確認内容を書きます。
 - 仕様や実装に意味のある変更が入ったら `CHANGELOG.md` も更新します。
 - 特別な指示がない限り、作業完了後はGitHubへコミットとpushまで行います。
+- `.env.local` の値は読み取り・表示しません。内容へのアクセスが必要な場合は、目的と値を表示しない確認方法を説明し、必ず事前にユーザーの許可を得ます。
+- 個人情報、APIキー、Secret keyなどの機密情報は [SECURITY.md](SECURITY.md) のルールに従って扱います。
 
 ## 現在の重要方針
 
@@ -77,6 +79,7 @@ npm run build
 - `NEXT.md`: 今後の実装順
 - `FINISHED.md`: 完了した作業ログ
 - `CHANGELOG.md`: 変更履歴
+- [SECURITY.md](SECURITY.md): 機密情報と `.env.local` の取り扱いルール
 - `docs/database-design.md`: DB設計メモ
 - `docs/supabase-setup.md`: Supabaseプロジェクト作成・接続手順
 - `docs/integrations/attendance-api-spec.md`: 日報アプリ向け外部連携API仕様

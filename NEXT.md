@@ -10,6 +10,8 @@
 - 実装完了後は `FINISHED.md` に、項目ID、項目名、実装内容、確認内容を追記します。
 - 仕様や実装に意味のある変更が入った場合は `CHANGELOG.md` も更新します。
 - 完了済み項目は、必要に応じてこのファイル上で `完了` と明記します。ただし履歴の正本は `FINISHED.md` とします。
+- `.env.local` の値は読み取り・表示しません。内容へのアクセスが必要な場合は、目的と値を表示しない確認方法を先に示し、ユーザーの明示的な許可を得ます。
+- 個人情報、APIキー、Secret keyなどの機密情報は [SECURITY.md](SECURITY.md) に従って扱います。
 
 ## S: 最重要
 
@@ -51,7 +53,10 @@
 - Supabaseプロジェクト `Attendance_app_withCodeX_20260625` を作成・GitHub連携済み。
 - `.env.local` に publishable key と secret key を設定済み。
 - 初期マイグレーションを Supabase SQL Editor で適用済み。
+- 通知マイグレーション `202606260003_notifications.sql` を Supabase SQL Editor で適用済み。
 - `/api/internal/supabase/health` が HTTP 200 を返すことを確認済み。
+- Supabase Secret key / Service role key は 2026-06-27 にローテーション済み。
+- `.env.local` の値は表示せず、必要なアクセスは事前にユーザー確認を行う。詳細は [SECURITY.md](SECURITY.md) を参照する。
 - 補足: 2026-06-25時点で、この環境には Supabase CLI は未インストール。
 
 ## A: 実装基盤
@@ -196,6 +201,7 @@
 - 打刻漏れ通知を実装する。
 - 将来的にLINE通知へ接続する。
 - `notifications` テーブルを追加するマイグレーションを作成済み。
+- `supabase/migrations/202606260003_notifications.sql` は Supabase SQL Editor で適用済み。
 - スタッフ向け `/stamp/mobile` にアプリ内通知一覧を追加済み。
 - 打刻修正申請の承認/却下、シフト公開、店長操作による打刻漏れ通知をアプリ内通知として作成する。
 - LINE通知は未着手。
