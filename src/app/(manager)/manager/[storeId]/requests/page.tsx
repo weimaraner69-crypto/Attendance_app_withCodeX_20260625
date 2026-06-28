@@ -10,6 +10,7 @@ import { requireManagerStore } from '@/lib/auth/session';
 import { createStaffNotification } from '@/lib/notifications';
 import { createSupabaseAdminClient } from '@/lib/supabase';
 import type { Database } from '@/lib/supabase';
+import type { Json } from '@/lib/supabase/database.types';
 
 type RequestStatus = Database['public']['Enums']['request_status'];
 type AttendanceStatus = Database['public']['Enums']['attendance_status'];
@@ -40,6 +41,8 @@ type AttendanceRecordRow = {
   break_minutes: number;
   total_work_minutes: number;
   status: AttendanceStatus;
+  is_manual: boolean;
+  note: string | null;
 };
 
 const statusLabels: Record<RequestStatus, string> = {
@@ -94,11 +97,11 @@ async function reviewAttendanceRequest(formData: FormData) {
 
   const { data: request } = await supabase
     .from('attendance_requests')
-    .select('id, organization_id, store_id, staff_id, attendance_record_id, target_date, requested_clock_in_at, requested_clock_out_at, reason, status')
+    .select('id, organization_id, store_id, staff_id, attendance_record_id, target_date, requested_clock_in_at, requested_clock_out_at, reason, status, review_comment')
     .eq('id', requestId)
     .eq('store_id', storeId)
     .eq('organization_id', context.profile.organization_id)
-    .maybeSingle<Omit<AttendanceRequestRow, 'staff' | 'created_at' | 'review_comment'>>();
+    .maybeSingle<Omit<AttendanceRequestRow, 'staff' | 'created_at'>>();
 
   if (!request || request.status !== 'pending') {
     revalidatePath(`/manager/${storeId}/requests`);
@@ -106,18 +109,20 @@ async function reviewAttendanceRequest(formData: FormData) {
   }
 
   let attendanceRecordId = request.attendance_record_id;
+  let attendanceBefore: Record<string, Json | undefined> | null = null;
+  let attendanceAfter: Record<string, Json | undefined> | null = null;
 
   if (decision === 'approved') {
     const { data: existingRecord } = attendanceRecordId
       ? await supabase
           .from('attendance_records')
-          .select('id, clock_in_at, clock_out_at, break_minutes, total_work_minutes, status')
+          .select('id, clock_in_at, clock_out_at, break_minutes, total_work_minutes, status, is_manual, note')
           .eq('id', attendanceRecordId)
           .eq('organization_id', context.profile.organization_id)
           .maybeSingle<AttendanceRecordRow>()
       : await supabase
           .from('attendance_records')
-          .select('id, clock_in_at, clock_out_at, break_minutes, total_work_minutes, status')
+          .select('id, clock_in_at, clock_out_at, break_minutes, total_work_minutes, status, is_manual, note')
           .eq('organization_id', context.profile.organization_id)
           .eq('store_id', storeId)
           .eq('staff_id', request.staff_id)
@@ -131,6 +136,26 @@ async function reviewAttendanceRequest(formData: FormData) {
     const breakMinutes = existingRecord?.break_minutes ?? 0;
     const totalWorkMinutes = calculateWorkMinutes(clockInAt, clockOutAt, breakMinutes);
     const status = resolveStatus(clockInAt, clockOutAt);
+    attendanceBefore = existingRecord
+      ? {
+          status: existingRecord.status,
+          clock_in_at: existingRecord.clock_in_at,
+          clock_out_at: existingRecord.clock_out_at,
+          break_minutes: existingRecord.break_minutes,
+          total_work_minutes: existingRecord.total_work_minutes,
+          is_manual: existingRecord.is_manual,
+          note: existingRecord.note,
+        }
+      : null;
+    attendanceAfter = {
+      status,
+      clock_in_at: clockInAt,
+      clock_out_at: clockOutAt,
+      break_minutes: breakMinutes,
+      total_work_minutes: totalWorkMinutes,
+      is_manual: true,
+      note: reviewComment ?? '打刻修正申請を承認',
+    };
 
     if (existingRecord) {
       await supabase
@@ -182,7 +207,7 @@ async function reviewAttendanceRequest(formData: FormData) {
     .eq('id', request.id)
     .eq('organization_id', context.profile.organization_id);
 
-  await supabase
+  const { error: auditError } = await supabase
     .from('audit_logs')
     .insert({
       organization_id: context.profile.organization_id,
@@ -195,8 +220,24 @@ async function reviewAttendanceRequest(formData: FormData) {
         staff_id: request.staff_id,
         target_date: request.target_date,
         attendance_record_id: attendanceRecordId,
+        before: attendanceBefore ?? {
+          status: request.status,
+          review_comment: request.review_comment,
+          attendance_record_id: request.attendance_record_id,
+        },
+        after: attendanceAfter ?? {
+          status: decision,
+          review_comment: reviewComment,
+          reviewed_at: new Date().toISOString(),
+          reviewed_by_user_id: context.user.id,
+          attendance_record_id: attendanceRecordId,
+        },
       },
     });
+
+  if (auditError) {
+    throw new Error(`監査ログの保存に失敗しました: ${auditError.message}`);
+  }
 
   await createStaffNotification({
     organizationId: context.profile.organization_id,

@@ -37,6 +37,13 @@ export default function OwnerPage() {
             </CardHeader>
           </Card>
         </Link>
+        <Link href="/owner/audit-logs">
+          <Card className="hover:shadow-lg cursor-pointer">
+            <CardHeader>
+              <CardTitle className="text-lg">監査ログ</CardTitle>
+            </CardHeader>
+          </Card>
+        </Link>
       </div>
     </div>
   )

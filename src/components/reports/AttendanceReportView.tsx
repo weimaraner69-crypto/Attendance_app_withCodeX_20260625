@@ -1,5 +1,6 @@
 import Link from 'next/link';
 
+import { AttendancePdfExportButton } from '@/components/reports/AttendancePdfExportButton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -64,6 +65,7 @@ export function AttendanceReportView({
           <p className="mt-1 text-sm text-gray-600">{description}</p>
         </div>
         <div className="flex gap-2">
+          <AttendancePdfExportButton title={title} filters={filters} rows={rows} />
           <a href={`/api/reports/attendance.csv?${csvParams.toString()}`}>
             <Button variant="outline">CSV出力</Button>
           </a>

@@ -10,6 +10,84 @@
 
 ---
 
+## C-003 監査ログ強化
+
+- 実装日: 2026-06-27
+- 種別: 監査/管理画面
+
+### 実装内容
+
+- オーナー向け `/owner/audit-logs` を追加。
+- 監査ログを期間・操作で絞り込み、実行者、日時、対象テーブル、対象IDを表示。
+- 打刻修正申請の承認時は勤怠レコード、却下時は申請の変更前後を監査ログへ保存。
+- 変更前後を項目単位で比較表示。
+- 監査ログ保存失敗を黙って通さず、サーバーエラーとして扱うようにした。
+
+### 確認内容
+
+- `npm run build` が成功。
+
+### 影響ファイル
+
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+- `src/app/(authenticated)/owner/audit-logs/page.tsx`
+- `src/app/(authenticated)/owner/page.tsx`
+- `src/app/(manager)/manager/[storeId]/requests/page.tsx`
+- `src/lib/audit/format.ts`
+
+---
+
+## C-001 CSV/PDF出力（PDF追加）
+
+- 実装日: 2026-06-27
+- 種別: PDF出力/レポート
+
+### 実装内容
+
+- `/owner/reports` と `/sr/reports` にPDF出力ボタンを追加。
+- 表示中の期間、店舗、スタッフ絞り込み結果と集計、勤怠一覧をPDFへ反映。
+- 日本語を文字化けさせないため、ブラウザ描画結果を画像化してPDFへ保存。
+- 長い一覧はA4横向きの複数ページへ分割。
+
+### 確認内容
+
+- `npm run build` が成功。
+
+### 影響ファイル
+
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+- `src/components/reports/AttendancePdfExportButton.tsx`
+- `src/components/reports/AttendanceReportView.tsx`
+
+---
+
+## C-002 通知機能（初期スコープ完了確認）
+
+- 実装日: 2026-06-27
+- 種別: 計画整理
+
+### 実装内容
+
+- 承認/却下、シフト公開、打刻漏れのアプリ内通知が実装・DB適用済みであることを確認。
+- LINE通知は `line_accounts` の紐づけとMessaging API設定が必要なため、LINE連携全体を扱う `C-004` のスコープとして明記。
+
+### 確認内容
+
+- `supabase/migrations/202606260003_notifications.sql` の適用済み記録を確認。
+- `npm run build` が成功。
+
+### 影響ファイル
+
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+
+---
+
 ## DOC-004 機密情報取り扱いルールの明文化
 
 - 実装日: 2026-06-27

@@ -5,6 +5,51 @@
 
 ---
 
+## [2026-06-27] C-001 PDF出力・C-003 監査ログ画面を実装
+
+### 実施概要
+オーナー/社労士向け月次勤怠レポートを日本語PDFとして保存できるようにした。あわせて、オーナーが重要操作の実行者、日時、対象、変更前後を確認できる監査ログ画面を追加した。
+
+### 追加
+- `src/components/reports/AttendancePdfExportButton.tsx`
+  - 表示中の条件・集計・勤怠一覧を画像化し、複数ページ対応のPDFとして保存。
+- `src/app/(authenticated)/owner/audit-logs/page.tsx`
+  - 監査ログを期間・操作で絞り込み、変更前後を一覧表示。
+- `src/lib/audit/format.ts`
+  - 監査操作名、項目名、値の共通表示処理を追加。
+
+### 変更
+- `src/components/reports/AttendanceReportView.tsx`
+  - オーナー/社労士共通レポートへPDF出力ボタンを追加。
+- `src/app/(authenticated)/owner/page.tsx`
+  - 監査ログ画面への導線を追加。
+- `src/app/(manager)/manager/[storeId]/requests/page.tsx`
+  - 承認/却下ログへ変更前後を保存し、監査ログ保存失敗時はエラーとして扱う。
+- `NEXT.md` / `FINISHED.md`
+  - C-001〜C-003の完了内容と、LINE通知をC-004で扱う境界を記録。
+
+### 確認
+- `npm run build` が成功。
+- `.env.local` の内容は読み取っていない。
+
+### 影響ファイル
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+- `src/components/reports/AttendancePdfExportButton.tsx`
+- `src/components/reports/AttendanceReportView.tsx`
+- `src/lib/audit/format.ts`
+- `src/app/(authenticated)/owner/audit-logs/page.tsx`
+- `src/app/(authenticated)/owner/page.tsx`
+- `src/app/(manager)/manager/[storeId]/requests/page.tsx`
+
+### 戻し方
+- 追加したPDF出力部品、監査ログ画面、監査表示処理を削除する。
+- レポート、オーナーダッシュボード、打刻修正申請画面から今回の追加箇所を削除する。
+- `NEXT.md` / `FINISHED.md` / `CHANGELOG.md` の今回追記分を削除する。
+
+---
+
 ## [2026-06-27] 機密情報取り扱いルールを明文化
 
 ### 実施概要
