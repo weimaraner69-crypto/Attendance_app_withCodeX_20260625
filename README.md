@@ -13,7 +13,7 @@
 - オーナーが全店舗のスタッフ、店舗、勤怠、レポートを管理できるようにする。
 - 社労士が必要な勤怠情報を閲覧・出力できるようにする。
 - 日報管理アプリが出退勤データを取り込めるように、サーバー間の読み取りAPIを提供する。
-- 将来的にLINEからシフト確認、シフト提出、打刻導線、通知を扱えるようにする。
+- LINEからシフト確認、シフト提出、GPS打刻導線、通知を扱えるようにする。
 
 ## 技術スタック
 
@@ -70,7 +70,7 @@ npm run build
 - Supabaseを前提にDB設計を進めています。
 - 店舗iPad打刻は、スタッフ一覧から氏名選択後、PIN入力で本人確認します。
 - 個人スマホ打刻は、スタッフログイン後に店舗選択し、GPSログ付きで出勤・退勤を記録します。
-- LINE打刻は未確定です。最初はLINEからGPS付きWeb打刻URLへ誘導する方式が有力です。
+- LINEでは直接打刻せず、GPS付きWeb打刻URLへ誘導する方式です。
 - 日報アプリ連携では、勤怠アプリを出退勤データの正本とし、日報アプリは外部APIから読み取り専用で取り込みます。
 - 外部連携APIの実装順は GitHub Issue #1 と子Issue #2〜#7、仕様は `docs/integrations/attendance-api-spec.md` を参照します。
 
@@ -82,4 +82,5 @@ npm run build
 - [SECURITY.md](SECURITY.md): 機密情報と `.env.local` の取り扱いルール
 - `docs/database-design.md`: DB設計メモ
 - `docs/supabase-setup.md`: Supabaseプロジェクト作成・接続手順
+- `docs/line-setup.md`: LINE Messaging API・Webhook・実機確認手順
 - `docs/integrations/attendance-api-spec.md`: 日報アプリ向け外部連携API仕様

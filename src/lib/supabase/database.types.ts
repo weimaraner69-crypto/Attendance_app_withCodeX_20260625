@@ -119,6 +119,15 @@ export type Database = {
         created_at: Timestamp;
         updated_at: Timestamp;
       }>;
+      line_link_tokens: Table<{
+        id: string;
+        organization_id: string;
+        line_account_id: string;
+        token_hash: string;
+        expires_at: Timestamp;
+        used_at: Timestamp | null;
+        created_at: Timestamp;
+      }>;
       notifications: Table<{
         id: string;
         organization_id: string;
@@ -130,6 +139,9 @@ export type Database = {
         related_table: string | null;
         related_id: string | null;
         read_at: Timestamp | null;
+        line_delivery_status: 'not_applicable' | 'pending' | 'delivered' | 'failed';
+        line_delivered_at: Timestamp | null;
+        line_delivery_error: string | null;
         created_at: Timestamp;
       }>;
       attendance_records: Table<{

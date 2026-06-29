@@ -74,7 +74,11 @@ export default function LoginPage() {
         return
       }
 
-      router.replace(session.redirect_path)
+      const nextPath = new URLSearchParams(window.location.search).get('next')
+      const safeNextPath = nextPath?.startsWith('/') && !nextPath.startsWith('//')
+        ? nextPath
+        : null
+      router.replace(session.profile.role === 'staff' && safeNextPath ? safeNextPath : session.redirect_path)
       router.refresh()
     } finally {
       setIsLoading(false)

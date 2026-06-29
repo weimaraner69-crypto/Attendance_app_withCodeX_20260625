@@ -5,6 +5,53 @@
 
 ---
 
+## [2026-06-29] C-004 LINE連携のコード実装
+
+### 実施概要
+LINE Messaging APIのWebhook、スタッフ本人連携、シフト確認・提出導線、GPS打刻導線、アプリ内通知連動のPush送信を実装した。LINE内で直接打刻せず、既存の認証・GPS検証付きWeb画面を利用する。
+
+### 追加
+- `supabase/migrations/202606290004_line_integration.sql`
+  - ハッシュ化連携トークンとLINE通知配信状態を追加。
+- `src/lib/line/messaging.ts`
+  - Webhook署名検証、Messaging API、プロフィール、連携URL処理を追加。
+- `src/app/api/line/webhook/route.ts`
+  - LINEコマンドとWebhookイベント処理を追加。
+- `src/app/(public)/line/link/page.tsx`
+  - スタッフログインを使った本人連携画面を追加。
+- `docs/line-setup.md`
+  - Supabase、LINE Developers、環境変数、実機確認手順を追加。
+
+### 変更
+- `src/lib/notifications/index.ts`
+  - アプリ内通知保存後にLINE Push送信し、配信結果を記録。
+- `src/lib/audit/format.ts`
+  - LINE連携・解除の監査ログ表示名を追加。
+- `src/app/(public)/stamp/mobile/page.tsx`
+  - LINE連携状態、LINEからのアンカー導線、シフト提出元を追加。
+- `src/app/(authenticated)/login/page.tsx`
+  - スタッフログイン後の安全な内部戻り先に対応。
+- `.env.example`
+  - LINE用サーバー環境変数名を追加。
+- `README.md` / `NEXT.md` / `FINISHED.md` / 設計文書
+  - 実装方針、完了範囲、運用設定待ちを反映。
+
+### 確認
+- `npm run build` が成功。
+- `.env.local` の内容は読み取り・表示していない。
+
+### 運用開始前の残作業
+- 新規マイグレーションのSupabase適用。
+- LINE環境変数とLINE Developers Webhookの設定。
+- LINE実機での本人連携、コマンド、Push通知確認。
+
+### 戻し方
+- `202606290004_line_integration.sql` の変更を逆順で戻すマイグレーションを作成する。
+- 追加したLINE関連ファイルを削除し、通知・ログイン・スマホ画面・型定義を以前の状態へ戻す。
+- `.env.example` と関連文書の今回追記分を削除する。
+
+---
+
 ## [2026-06-27] C-001 PDF出力・C-003 監査ログ画面を実装
 
 ### 実施概要

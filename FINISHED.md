@@ -10,6 +10,57 @@
 
 ---
 
+## C-004 LINE連携（コード実装）
+
+- 実装日: 2026-06-29
+- 種別: LINE Messaging API/Webhook/通知
+
+### 実装内容
+
+- raw bodyと `X-Line-Signature` をHMAC-SHA256で照合するWebhookを追加。
+- LINEプロフィールを `line_accounts` へ登録し、15分間有効なワンタイムURLでスタッフ本人と連携。
+- 連携トークンはSHA-256ハッシュだけをDBへ保存し、再発行時に旧トークンを無効化。
+- LINEから今後14日分の公開シフトを確認可能にした。
+- シフト希望提出とGPS打刻は既存Web画面へ誘導。
+- LINE経由のシフト希望提出へ `source = line` と `line_account_id` を保存。
+- 申請結果、シフト公開、打刻漏れ通知を連携済みLINEアカウントへPush送信。
+- LINE配信結果を `notifications` へ記録。
+- LINE連携・解除を監査ログへ記録。
+
+### 確認内容
+
+- `npm run build` が成功。
+- `.env.local` の内容は読み取り・表示していない。
+
+### 運用開始前の残作業
+
+- `supabase/migrations/202606290004_line_integration.sql` をSupabaseへ適用。
+- LINE用環境変数をサーバーへ設定。
+- LINE DevelopersでWebhook URLを設定して検証。
+- LINE実機で本人連携、各コマンド、Push通知を確認。
+
+### 影響ファイル
+
+- `.env.example`
+- `README.md`
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+- `docs/database-design.md`
+- `docs/implementation-decisions.md`
+- `docs/line-setup.md`
+- `supabase/migrations/202606290004_line_integration.sql`
+- `src/app/api/line/webhook/route.ts`
+- `src/app/(public)/line/link/page.tsx`
+- `src/app/(public)/stamp/mobile/page.tsx`
+- `src/app/(authenticated)/login/page.tsx`
+- `src/lib/line/messaging.ts`
+- `src/lib/notifications/index.ts`
+- `src/lib/audit/format.ts`
+- `src/lib/supabase/database.types.ts`
+
+---
+
 ## C-003 監査ログ強化
 
 - 実装日: 2026-06-27

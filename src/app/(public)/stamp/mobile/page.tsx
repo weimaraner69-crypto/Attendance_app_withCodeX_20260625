@@ -113,6 +113,7 @@ async function submitShiftPreference(formData: FormData) {
   if (!context.staff) redirect('/login');
 
   const windowId = requiredText(formData.get('window_id'));
+  const requestedSource = requiredText(formData.get('source'));
   if (!windowId) return;
 
   const supabase = createSupabaseAdminClient();
@@ -175,6 +176,16 @@ async function submitShiftPreference(formData: FormData) {
 
   if (items.length === 0) return;
 
+  const { data: linkedLineAccount } = requestedSource === 'line'
+    ? await supabase
+        .from('line_accounts')
+        .select('id')
+        .eq('organization_id', context.profile.organization_id)
+        .eq('staff_id', context.staff.id)
+        .eq('status', 'linked')
+        .maybeSingle()
+    : { data: null };
+
   const { data: submission } = await supabase
     .from('shift_submissions')
     .upsert({
@@ -183,7 +194,8 @@ async function submitShiftPreference(formData: FormData) {
       staff_id: context.staff.id,
       status: 'submitted',
       submitted_at: now,
-      source: 'mobile_web',
+      source: linkedLineAccount ? 'line' : 'mobile_web',
+      line_account_id: linkedLineAccount?.id ?? null,
     }, { onConflict: 'window_id,staff_id' })
     .select('id')
     .single();
@@ -206,9 +218,15 @@ async function submitShiftPreference(formData: FormData) {
   revalidatePath('/stamp/mobile');
 }
 
-export default async function MobileStampPage() {
+export default async function MobileStampPage({
+  searchParams,
+}: {
+  searchParams: Record<string, string | string[] | undefined>;
+}) {
   const context = await requireAuthenticatedRole(['staff']);
   if (!context.staff) redirect('/login');
+  const source = Array.isArray(searchParams.source) ? searchParams.source[0] : searchParams.source;
+  const openedFromLine = source === 'line';
 
   const supabase = createSupabaseAdminClient();
   const today = getTokyoDateString();
@@ -258,6 +276,14 @@ export default async function MobileStampPage() {
 
   const notificationRows = (notifications ?? []) as NotificationRow[];
 
+  const { data: lineAccount } = await supabase
+    .from('line_accounts')
+    .select('id, display_name, linked_at')
+    .eq('organization_id', context.profile.organization_id)
+    .eq('staff_id', context.staff.id)
+    .eq('status', 'linked')
+    .maybeSingle();
+
   const { data: windows } = storeIds.length > 0
     ? await supabase
         .from('shift_submission_windows')
@@ -297,14 +323,32 @@ export default async function MobileStampPage() {
           </Link>
         </div>
 
-        <MobileStampPanel
-          staffId={context.staff.id}
-          staffName={context.profile.display_name}
-          stores={(stores ?? []) as StoreRow[]}
-          defaultStoreId={context.staff.default_store_id}
-        />
+        <div id="line-stamp" className="scroll-mt-6">
+          <MobileStampPanel
+            staffId={context.staff.id}
+            staffName={context.profile.display_name}
+            stores={(stores ?? []) as StoreRow[]}
+            defaultStoreId={context.staff.default_store_id}
+          />
+        </div>
 
         <Card>
+          <CardHeader>
+            <CardTitle>LINE連携</CardTitle>
+            <CardDescription>LINEからシフト確認、希望提出、GPS打刻ページへの移動ができます。</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {lineAccount ? (
+              <p className="text-sm text-green-700">
+                連携済み{lineAccount.display_name ? `: ${lineAccount.display_name}` : ''}
+              </p>
+            ) : (
+              <p className="text-sm text-gray-600">未連携です。LINE公式アカウントで「連携」と送信してください。</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card id="line-shift-submission" className="scroll-mt-6">
           <CardHeader>
             <CardTitle>通知</CardTitle>
             <CardDescription>申請結果、シフト公開、打刻漏れのお知らせを表示します。</CardDescription>
@@ -374,6 +418,7 @@ export default async function MobileStampPage() {
               return (
                 <form key={window.id} action={submitShiftPreference} className="space-y-4 rounded-lg border p-4">
                   <input type="hidden" name="window_id" value={window.id} />
+                  <input type="hidden" name="source" value={openedFromLine ? 'line' : 'mobile_web'} />
                   <div>
                     <h3 className="font-semibold">{window.title}</h3>
                     <p className="mt-1 text-sm text-gray-600">

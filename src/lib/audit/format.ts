@@ -3,6 +3,8 @@ export type AuditMetadata = Record<string, unknown>;
 export const auditActionLabels: Record<string, string> = {
   'attendance_request.approved': '打刻修正申請を承認',
   'attendance_request.rejected': '打刻修正申請を却下',
+  'line_account.linked': 'LINEアカウントを連携',
+  'line_account.revoked': 'LINEアカウント連携を解除',
 };
 
 export const auditFieldLabels: Record<string, string> = {
@@ -17,6 +19,8 @@ export const auditFieldLabels: Record<string, string> = {
   reviewed_at: '確認日時',
   reviewed_by_user_id: '確認者',
   attendance_record_id: '勤怠レコード',
+  staff_id: 'スタッフ',
+  linked_at: 'LINE連携日時',
 };
 
 export function isAuditMetadata(value: unknown): value is AuditMetadata {

@@ -120,26 +120,22 @@ PINは平文保存しません。
 
 LINE連携では、LINEの `userId` を `line_accounts.line_user_id` に保存します。
 
-想定フロー:
+実装フロー:
 
 1. スタッフがLINEで連携開始する。
 2. `line_accounts` に `pending` 状態でLINEユーザーを作る。
-3. 店長または本人確認フローで `staff_id` と紐づける。
-4. 連携完了後、`status = linked` にする。
-5. LINEから出勤・退勤・休憩のメッセージやボタン操作を受ける。
-6. `attendance_events.source = line` として保存する。
-7. 同時に `attendance_records` を更新する。
+3. 15分間有効なワンタイムURLを発行し、平文ではなくハッシュを `line_link_tokens` に保存する。
+4. スタッフ本人が勤怠アプリへログインし、自分の `staff_id` と紐づける。
+5. 連携完了後、`status = linked` にする。
+6. LINEの「打刻」コマンドには、GPS必須の個人スマホ打刻URLを返信する。
+7. Web画面でGPS検証後、`attendance_events.source = mobile_web` として保存する。
 
-LINE打刻でGPSを必須にするかは未決定です。
-候補は次の2つです。
-
-- LINEの位置情報送信を必須にして、個人スマホ打刻と同じく店舗距離を検証する。
-- LINEでは打刻リクエストだけ受け、GPS必須のWeb打刻URLへ誘導する。
-
-不正防止を考えると、最初は「LINEからWeb打刻URLへ誘導」が堅いです。
+初期実装ではLINEから直接DBへ打刻しません。LINEは安全なWeb打刻導線として使います。
 
 シフト提出も同じ考え方です。
-LINEから提出された希望は `shift_submissions.source = line` として保存し、希望日ごとの内容は `shift_submission_items` に保存します。
+LINEから開いたWeb画面で連携済みアカウントを確認し、提出された希望は `shift_submissions.source = line` と `line_account_id` を保存します。希望日ごとの内容は `shift_submission_items` に保存します。
+
+通知はアプリ内通知を正本として保存した後、連携済みLINEアカウントへPush送信します。送信結果は `notifications.line_delivery_status` に記録し、LINE送信失敗時もアプリ内通知は残します。
 
 ## 権限設計
 
