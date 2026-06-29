@@ -83,4 +83,5 @@ npm run build
 - `docs/database-design.md`: DB設計メモ
 - `docs/supabase-setup.md`: Supabaseプロジェクト作成・接続手順
 - `docs/line-setup.md`: LINE Messaging API・Webhook・実機確認手順
+- `docs/operations-maintenance.md`: 本番環境変数、監視、バックアップ/復旧、権限・個人情報の運用手順
 - `docs/integrations/attendance-api-spec.md`: 日報アプリ向け外部連携API仕様

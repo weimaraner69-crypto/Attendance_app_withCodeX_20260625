@@ -10,6 +10,40 @@
 
 ---
 
+## C-005 運用・保守
+
+- 実装日: 2026-06-30
+- 種別: 運用設計/保守手順
+
+### 実装内容
+
+- `docs/operations-maintenance.md` を追加。
+- 本番・ステージング・ローカルで管理する環境変数を整理。
+- Supabase、LINE、公開Originに関する変数の用途、公開範囲、必須タイミングを明記。
+- `.env.local` やシークレット値を表示しない確認方法を整理。
+- デプロイ前チェックとして、lint/build、マイグレーション、health API、LINE Webhook、外部APIキーの確認観点を整理。
+- エラー監視方針を、プラットフォーム標準ログ、アプリ内運用ログ、将来の外部監視導入候補に分けて整理。
+- 初期アラート基準として、health API失敗、LINE Webhook失敗、LINE配信失敗、打刻API異常、外部API認証失敗を定義。
+- Supabase PostgreSQLを正本とするバックアップ/復旧方針を整理。
+- オーナー、店長、社労士、スタッフ、外部API、LINE Webhookのロール別確認観点を整理。
+- 個人情報として扱うデータと、毎日・毎月・四半期の定期運用チェックを整理。
+- `README.md` の関連ドキュメントへ運用・保守手順を追加。
+- `NEXT.md` の `C-005` を完了扱いに更新。
+
+### 確認内容
+
+- `.env.local` の値は読まず、`.env.example` と既存ドキュメントのみを参照。
+- C-005の4項目（環境変数、監視、バックアップ/復旧、権限・個人情報）を `docs/operations-maintenance.md` に反映済み。
+- 実運用前に残る外部設定・検証は、C-004とA-000の未完了項目として `NEXT.md` に残した。
+
+### 影響ファイル
+
+- `docs/operations-maintenance.md`
+- `README.md`
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+
 ## C-004 LINE連携（コード実装）
 
 - 実装日: 2026-06-29
