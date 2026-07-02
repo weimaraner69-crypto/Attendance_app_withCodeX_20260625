@@ -75,7 +75,9 @@
 - [x] #3 `GET /api/external/v1/health`, `/stores`, `/staff` を実装する。
 - [x] #4 `GET /api/external/v1/attendance` 一覧取得を実装する。
 - Phase 1 完了後、日報アプリ側で店舗・スタッフのマッピングと勤怠取り込み検証を開始できる。
-- 未完了: `supabase/migrations/202606250002_external_api_keys.sql` のSupabase適用、組織データ/APIキー登録、日報アプリ側からの実接続検証。
+- 2026-07-02: `supabase/migrations/202606250002_external_api_keys.sql` をSupabaseへ適用し、テーブル、RLS、索引を確認済み。
+- 2026-07-02: 組織データとして `株式会社樫尾商店`（`Asia/Tokyo`）を登録済み。
+- 未完了: 外部APIキーの安全な生成・登録、日報アプリ側への設定、日報アプリ側からの実接続検証。
 
 #### Phase 2 運用強化
 

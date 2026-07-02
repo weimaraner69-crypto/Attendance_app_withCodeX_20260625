@@ -5,6 +5,26 @@
 
 ---
 
+## [2026-07-02] A-000 外部連携APIのSupabase運用設定を開始
+
+### 実施概要
+日報アプリ向け外部連携APIの運用開始に向け、Supabaseへ外部APIキー認証テーブルを適用し、利用組織を登録した。
+
+### 実施
+- `supabase/migrations/202606250002_external_api_keys.sql` をSupabaseへ適用。
+- `external_api_keys` テーブル、RLS、組織/有効状態索引、有効期限索引を確認。
+- `organizations` に `株式会社樫尾商店`、タイムゾーン `Asia/Tokyo` を登録。
+- APIキーや環境変数などの機密値は生成・表示していない。
+
+### 未完了
+- 外部APIキーの安全な生成・登録。
+- 日報アプリ側への接続設定。
+- `/health`、`/stores`、`/staff`、`/attendance` の実接続検証。
+
+### 影響ファイル
+- `NEXT.md`
+- `CHANGELOG.md`
+
 ## [2026-06-30] C-005 運用・保守手順を整理
 
 ### 実施概要
