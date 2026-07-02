@@ -26,10 +26,15 @@
 - `npm run build` が成功。
 - `.env.local` の値は読み取り・表示していない。
 
-### 運用開始前の残作業
-- `supabase/migrations/202607020001_privileged_login_pin.sql` をSupabaseへ適用。
-- 店長、オーナー、社労士のAuthユーザーと権限データを作成。
-- 初回PIN設定、画面ロック、PIN解除、6時間期限、5回失敗ロック、完全ログアウトを実機確認。
+### Supabase反映・確認
+- `supabase/migrations/202607020001_privileged_login_pin.sql` をSupabase SQL Editorで適用。
+- 店長、オーナー、社労士のテストAuthユーザー、`user_profiles`、PIN、テスト店舗を作成。
+- 店長の店舗権限と社労士の組織権限を設定。
+- 3ロールすべてでメール/パスワード認証、ロール、PINハッシュ照合、権限設定を確認。
+- テスト資格情報そのものはリポジトリへ記録していない。
+
+### 残作業
+- 画面ロック、PIN解除、6時間期限、5回失敗ロック、完全ログアウトをブラウザで通し確認。
 
 ### 影響ファイル
 - `supabase/migrations/202607020001_privileged_login_pin.sql`
