@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 
 import { createSupabaseAdminClient, createSupabaseServerClient } from '@/lib/supabase';
 import type { Database } from '@/lib/supabase';
+import { isAppUnlocked } from '@/lib/auth/device-session';
 
 export type AppRole = Database['public']['Enums']['app_role'];
 
@@ -9,6 +10,7 @@ export type CurrentAuthContext = {
   user: {
     id: string;
     email: string | null;
+    last_sign_in_at: string | null;
   };
   profile: {
     id: string;
@@ -43,7 +45,7 @@ export function getRoleHomePath(role: AppRole, managerStoreId?: string | null) {
   return '/stamp';
 }
 
-export async function getCurrentAuthContext(): Promise<CurrentAuthContext | null> {
+export async function getRawAuthContext(): Promise<CurrentAuthContext | null> {
   const supabase = createSupabaseServerClient();
   const {
     data: { user },
@@ -100,11 +102,19 @@ export async function getCurrentAuthContext(): Promise<CurrentAuthContext | null
     user: {
       id: user.id,
       email: user.email ?? null,
+      last_sign_in_at: user.last_sign_in_at ?? null,
     },
     profile,
     managerStore,
     staff,
   };
+}
+
+export async function getCurrentAuthContext(): Promise<CurrentAuthContext | null> {
+  const context = await getRawAuthContext();
+  if (!context) return null;
+  if (context.profile.role !== 'staff' && !isAppUnlocked(context.user.id)) return null;
+  return context;
 }
 
 export async function requireAuthenticatedRole(allowedRoles: AppRole[]) {

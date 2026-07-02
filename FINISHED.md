@@ -10,6 +10,57 @@
 
 ---
 
+## A-001-PIN 管理ユーザーの6時間PIN再ログイン（コード実装）
+
+- 実装日: 2026-07-02
+- 種別: 認証/端末ロック
+
+### 実装内容
+
+- 店長、オーナー、社労士の初回メール/パスワード認証後に、4桁PINを登録するフローを追加。
+- PIN登録開始は直近5分以内のメール/パスワード認証後だけに制限。
+- 同じブラウザでは初回認証から6時間以内だけPIN再ログインを許可。
+- 6時間の期限をPIN再ログインでは延長せず、期限後はメール/パスワードを再要求。
+- PINをscryptでハッシュ化し、5回失敗時に10分間ロック。
+- PIN資格情報をRLS有効・クライアントポリシーなしの専用テーブルへ分離し、service role経由だけで操作。
+- 署名付きHttpOnly Cookieで6時間の端末認証と現在の画面ロック解除を分離。
+- 「画面をロック」と「完全ログアウト」を管理画面へ追加。
+- スタッフログインはPIN対象外として既存フローを維持。
+
+### 確認内容
+
+- `npm run lint` が成功。
+- `npm run build` が成功。
+- `.env.local` の値は読み取り・表示していない。
+
+### 運用開始前の残作業
+
+- `supabase/migrations/202607020001_privileged_login_pin.sql` をSupabaseへ適用。
+- 対象ロールのAuthユーザー、`user_profiles`、店長担当店舗を設定。
+- 実アカウントで初回PIN設定から6時間期限までを確認。
+
+### 影響ファイル
+
+- `supabase/migrations/202607020001_privileged_login_pin.sql`
+- `src/lib/auth/device-session.ts`
+- `src/lib/auth/session.ts`
+- `src/lib/auth/login-response.ts`
+- `src/app/api/auth/password/complete/route.ts`
+- `src/app/api/auth/pin/status/route.ts`
+- `src/app/api/auth/pin/setup/route.ts`
+- `src/app/api/auth/pin/unlock/route.ts`
+- `src/app/auth/lock/route.ts`
+- `src/app/auth/logout/route.ts`
+- `src/components/auth/PrivilegedLogin.tsx`
+- `src/components/auth/SessionActions.tsx`
+- `src/app/(authenticated)/login/page.tsx`
+- `src/app/(manager)/manager/login/page.tsx`
+- `README.md`
+- `NEXT.md`
+- `SECURITY.md`
+- `CHANGELOG.md`
+- `docs/implementation-decisions.md`
+
 ## C-005 運用・保守
 
 - 実装日: 2026-06-30

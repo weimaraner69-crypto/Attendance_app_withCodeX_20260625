@@ -37,6 +37,16 @@ export type Database = {
         created_at: Timestamp;
         updated_at: Timestamp;
       }>;
+      user_login_pins: Table<{
+        user_id: string;
+        organization_id: string;
+        pin_hash: string;
+        pin_updated_at: Timestamp;
+        failed_attempts: number;
+        locked_until: Timestamp | null;
+        created_at: Timestamp;
+        updated_at: Timestamp;
+      }>;
       stores: Table<{
         id: string;
         organization_id: string;

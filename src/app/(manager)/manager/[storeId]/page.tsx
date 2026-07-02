@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { SessionActions } from '@/components/auth/SessionActions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { requireManagerStore } from '@/lib/auth/session';
@@ -277,9 +278,7 @@ export default async function ManagerDashboardPage({
             <Link href={`/manager/${params.storeId}/shifts`}>
               <Button variant="outline">シフト管理</Button>
             </Link>
-            <Link href="/auth/logout">
-              <Button variant="outline">ログアウト</Button>
-            </Link>
+            <SessionActions />
           </div>
         </div>
 

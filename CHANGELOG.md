@@ -5,6 +5,53 @@
 
 ---
 
+## [2026-07-02] A-001 管理ユーザーの6時間PIN再ログインを実装
+
+### 実施概要
+店長、オーナー、社労士が共用iPad等で毎回メールアドレスとパスワードを入力せずに済むよう、初回認証から6時間以内に限った4桁PIN再ログインを追加した。
+
+### 実施
+- ブラウザからアクセスできない専用テーブル `user_login_pins` へ、PINハッシュ、更新日時、失敗回数、一時ロック期限を追加するマイグレーションを作成。
+- 初回メール/パスワード認証後、PIN未設定ユーザーへ4桁PIN登録画面を表示。
+- PIN登録開始時にSupabase Authの最終サインインが直近5分以内であることを検証し、古いセッションからの登録を拒否。
+- 同じ端末かつ6時間以内の場合、店長、オーナー、社労士のログイン画面をPIN入力へ切り替えるAPIとUIを追加。
+- 6時間の端末認証と画面ロック解除を、署名付きHttpOnly Cookieで分離して管理。
+- PINを5回間違えた場合の10分ロックを追加。
+- `user_login_pins` はRLSを有効化し、service roleを使うサーバーだけがアクセスできる構成にした。
+- 管理画面に「画面をロック」と「完全ログアウト」を追加。
+- スタッフ個人スマホログインは従来のSupabase Auth方式を維持。
+
+### 確認
+- `npm run lint` が成功。
+- `npm run build` が成功。
+- `.env.local` の値は読み取り・表示していない。
+
+### 運用開始前の残作業
+- `supabase/migrations/202607020001_privileged_login_pin.sql` をSupabaseへ適用。
+- 店長、オーナー、社労士のAuthユーザーと権限データを作成。
+- 初回PIN設定、画面ロック、PIN解除、6時間期限、5回失敗ロック、完全ログアウトを実機確認。
+
+### 影響ファイル
+- `supabase/migrations/202607020001_privileged_login_pin.sql`
+- `src/lib/auth/device-session.ts`
+- `src/lib/auth/session.ts`
+- `src/lib/auth/login-response.ts`
+- `src/app/api/auth/password/complete/route.ts`
+- `src/app/api/auth/pin/status/route.ts`
+- `src/app/api/auth/pin/setup/route.ts`
+- `src/app/api/auth/pin/unlock/route.ts`
+- `src/app/auth/lock/route.ts`
+- `src/app/auth/logout/route.ts`
+- `src/components/auth/PrivilegedLogin.tsx`
+- `src/components/auth/SessionActions.tsx`
+- `src/app/(authenticated)/login/page.tsx`
+- `src/app/(manager)/manager/login/page.tsx`
+- `README.md`
+- `NEXT.md`
+- `SECURITY.md`
+- `FINISHED.md`
+- `docs/implementation-decisions.md`
+
 ## [2026-07-02] A-000 外部連携APIのSupabase運用設定を開始
 
 ### 実施概要
