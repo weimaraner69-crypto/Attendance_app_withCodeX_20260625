@@ -54,6 +54,22 @@ npm run external-api:hash-key -- --store-keychain
 
 この方法では、サービス名 `attendance-app.external-api`、アカウント名 `daily-report-production` で保存し、Supabase登録用のSHA-256ハッシュだけを表示する。
 
+キーチェーンの現在値からハッシュを計算し、`.env.local` のサーバー設定を内部利用してSupabaseへ同期する場合:
+
+```bash
+npm run external-api:sync-keychain
+```
+
+このコマンドは平文キー、Supabase URL、Service role keyを表示しない。
+
+ローカル起動中のAPIへ、キーを表示せず疎通確認する場合:
+
+```bash
+npm run external-api:verify-keychain
+```
+
+`health`、`stores`、`staff` のHTTP状態と件数だけを表示する。店舗が未登録の場合、店舗指定が必須の `attendance` 検証はスキップする。
+
 既存の平文キーからハッシュを作る場合:
 
 ```bash

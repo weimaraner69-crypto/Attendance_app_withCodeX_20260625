@@ -28,11 +28,11 @@ if (storeInKeychain) {
       '-l',
       'Attendance app external API key',
       '-w',
+      rawKey,
     ],
     {
-      input: `${rawKey}\n`,
       encoding: 'utf8',
-      stdio: ['pipe', 'ignore', 'pipe'],
+      stdio: ['ignore', 'ignore', 'pipe'],
     },
   );
 

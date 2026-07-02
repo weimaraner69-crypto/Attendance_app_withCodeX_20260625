@@ -17,16 +17,28 @@
 - `日報アプリ本番` APIキーを生成し、平文を表示せずmacOSキーチェーンへ保存。
 - SHA-256ハッシュだけをSupabaseへ登録し、有効な `attendance:read` キーが1件あることを確認。
 - `scripts/hash-external-api-key.mjs` に `--store-keychain` を追加。
+- `scripts/sync-external-api-keychain.mjs` を追加し、キーチェーンの現在値からハッシュを計算してSupabaseへ同期可能にした。
+- `scripts/verify-external-api-keychain.mjs` を追加し、レスポンス本文やキーを表示せずローカル外部APIを検証可能にした。
 - `docs/integrations/attendance-api-spec.md` にキーチェーン保存手順を追加。
+- `.env.local` はNext.jsと同期スクリプトに内部読込させ、値そのものは表示していない。
+
+### 確認
+- キーチェーン値とSupabase登録値を同期後、`/health`、`/stores`、`/staff` がHTTP 200。
+- 現在は店舗・スタッフが0件のため、店舗指定が必須の `/attendance` 実データ検証は未実施。
+- 初回のキーチェーン保存値不一致は、新しいキーへのローテーションとハッシュ再同期で解消。
 
 ### 未完了
 - 日報アプリ側への接続設定。
-- `/health`、`/stores`、`/staff`、`/attendance` の実接続検証。
+- 日報アプリ側からの実接続検証。
+- 店舗登録後の `/attendance` 実データ検証。
 
 ### 影響ファイル
 - `NEXT.md`
 - `CHANGELOG.md`
 - `scripts/hash-external-api-key.mjs`
+- `scripts/sync-external-api-keychain.mjs`
+- `scripts/verify-external-api-keychain.mjs`
+- `package.json`
 - `docs/integrations/attendance-api-spec.md`
 
 ## [2026-06-30] C-005 運用・保守手順を整理
