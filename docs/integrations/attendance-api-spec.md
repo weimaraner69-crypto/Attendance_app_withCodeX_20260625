@@ -46,6 +46,14 @@ APIキーのハッシュ生成は次のコマンドで行う。
 npm run external-api:hash-key
 ```
 
+macOSでは、平文キーをターミナルへ表示せずキーチェーンへ保存できる。
+
+```bash
+npm run external-api:hash-key -- --store-keychain
+```
+
+この方法では、サービス名 `attendance-app.external-api`、アカウント名 `daily-report-production` で保存し、Supabase登録用のSHA-256ハッシュだけを表示する。
+
 既存の平文キーからハッシュを作る場合:
 
 ```bash

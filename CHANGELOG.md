@@ -14,16 +14,20 @@
 - `supabase/migrations/202606250002_external_api_keys.sql` をSupabaseへ適用。
 - `external_api_keys` テーブル、RLS、組織/有効状態索引、有効期限索引を確認。
 - `organizations` に `株式会社樫尾商店`、タイムゾーン `Asia/Tokyo` を登録。
-- APIキーや環境変数などの機密値は生成・表示していない。
+- `日報アプリ本番` APIキーを生成し、平文を表示せずmacOSキーチェーンへ保存。
+- SHA-256ハッシュだけをSupabaseへ登録し、有効な `attendance:read` キーが1件あることを確認。
+- `scripts/hash-external-api-key.mjs` に `--store-keychain` を追加。
+- `docs/integrations/attendance-api-spec.md` にキーチェーン保存手順を追加。
 
 ### 未完了
-- 外部APIキーの安全な生成・登録。
 - 日報アプリ側への接続設定。
 - `/health`、`/stores`、`/staff`、`/attendance` の実接続検証。
 
 ### 影響ファイル
 - `NEXT.md`
 - `CHANGELOG.md`
+- `scripts/hash-external-api-key.mjs`
+- `docs/integrations/attendance-api-spec.md`
 
 ## [2026-06-30] C-005 運用・保守手順を整理
 
