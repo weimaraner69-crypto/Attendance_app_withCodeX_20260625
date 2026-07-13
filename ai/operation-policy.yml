@@ -1,5 +1,5 @@
 # テンプレートの安定した AI operating policy。
-# ファイル名にはバージョンを含めず、改版履歴は docs/ai/change-log.md に記録する。
+# ファイル名にはバージョンを含めず、改版履歴は CHANGELOG.md に記録する。
 
 schema_version: 1
 policy_name: ai-dev-template-ai-operating-policy

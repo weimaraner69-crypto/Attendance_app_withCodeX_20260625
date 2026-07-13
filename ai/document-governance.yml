@@ -22,6 +22,7 @@ classes:
       - docs/implementation-decisions.md
       - docs/policies.md
       - docs/constraints.md
+      - docs/architecture.md
       - docs/operations-maintenance.md
   TASK_SPEC:
     read_when_task_selected: true
@@ -46,4 +47,4 @@ rules:
   prefer_archive_over_delete_initially: true
   entrypoint_docs_should_delegate_to_ai_yml: true
   avoid_feature_specific_content_in_core_control: true
-  version_history_belongs_in: docs/ai/change-log.md
+  version_history_belongs_in: CHANGELOG.md

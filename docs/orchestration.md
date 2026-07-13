@@ -75,7 +75,7 @@ User Intent
 
 - **メイン会話は常に最上位 Orchestrator**（セッションで役割指定は不要）。primary_orchestrator（その時点で利用可能な最上位の総合推論モデル。解決の正本は [ai/capability-registry.yml](../ai/capability-registry.yml)）が直接行うのは統括・目的関数監査・本質的問題分解・設計判断・計画立案・批判的検証・最終統合・ユーザー報告のみ。
 - **単調・機械的・大量作業は下位 tier のサブエージェントへ委譲する**（bulk 編集・定型ドラフト・探索・証跡整形・閉処理 bookkeeping）。1〜2 ステップの軽微な作業は直接実行してよい。
-- 論理 tier（Bloom 風 3 段・[docs/ai/shogun-operating-model.md](ai/shogun-operating-model.md) の写像方針）: light=理解/抽出/探索/定型整形/定型テスト（ダミーデータの単体・境界値）、standard=実装/複雑なテスト設計（統合・再現性・リーク検査）/ドラフト、high=設計/リスク/監査/リリース判定、top=統括のみ。役割表の tier と本定義は一致させる（test-engineer は定型テスト担当＝light。複雑なテスト設計は implementer〔standard〕が担う）。
+- 論理 tier（Bloom 風 3 段・[Shogun 運用モデル](ai/shogun-operating-model.md) の写像方針）: light=理解/抽出/探索/定型整形/定型テスト（ダミーデータの単体・境界値）、standard=実装/複雑なテスト設計（統合・再現性・リーク検査）/ドラフト、high=設計/リスク/監査/リリース判定、top=統括のみ。役割表の tier と本定義は一致させる（test-engineer は定型テスト担当＝light。複雑なテスト設計は implementer〔standard〕が担う）。
 - tier→モデルの写像は、Copilot では `.github/agents/*.agent.md` の frontmatter `model:` を使う。Claude Code / Codex / Cursor は各ハーネスの公式モデル選択機構を使い、同じ論理 tier と capability role を維持する。実行時解決の正本は [ai/capability-registry.yml](../ai/capability-registry.yml)。
 
 ## 4. サブエージェント応答スキーマ
@@ -119,7 +119,7 @@ push 後の AI レビューループは `.github/instructions/review-loop.instru
 
 ## PR 前批判レビュー
 
-PR 作成前に以下を実行し、`docs/ai/pre-pr-critical-review.md` を更新する。
+PR 作成前に policy check、差分確認、関連文書の整合確認を行い、`docs/ai/pre-pr-critical-review.md` を更新する。
 
 ```bash
 python ci/policy_check.py

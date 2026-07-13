@@ -50,7 +50,7 @@ review_lenses:
 
 outputs:
   report: docs/ai/pre-pr-critical-review.md
-  machine_readable_optional: outputs/ai/pre-pr-critical-review.json
+  machine_readable_optional: docs/ai/reviews/YYYY-MM-DD-prNNN-pre-pr-critical-review.json
   review_report_gate_json:
     # 個人開発の既定では opt-in。多プロバイダのレビュー証跡ゲートを自動化する
     # スクリプト（review_report_gate.py 等）はテンプレート既定には同梱せず、必要な
@@ -72,7 +72,7 @@ outputs:
       本表の codex / claude / copilot は provider ID（実在ツールの識別子）であり役割名ではない。
       独立 peer 監査の役割定義と担い手の解決は ai/capability-registry.yml の
       independent_peer_auditor と ai/sdd-policy.yml の independent_peer_fallback_ladder を正本とする。
-    generator: scripts/run_ai_review.py --review-report-output
+    generator: 手動で repo-aware AI review を実施し、該当する provider の JSON 証跡を docs/ai/reviews/ に保存する
     validation_optional: >
       自動検証を有効化する場合は、多プロバイダ証跡ゲートのスクリプトを取り込み、
       変更差分に対して required provider の証跡が揃っているか検査する（既定では未同梱・任意）。
