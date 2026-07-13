@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   buildStaffPasswordUrl,
+  escapePostgrestLikePattern,
   inviteAndLinkStaff,
   isValidStaffPasswordSession,
   requestStaffPasswordReset,
@@ -265,5 +266,13 @@ describe('staff password redirect URL', () => {
       profile: { role: 'staff' },
       staff: { id: 'staff-1' },
     })).toBe(true);
+  });
+});
+
+describe('case-insensitive email lookup', () => {
+  it('escapes every PostgreSQL LIKE wildcard and escape character', () => {
+    expect(escapePostgrestLikePattern('staff_name%test\\mail@example.com')).toBe(
+      'staff\\_name\\%test\\\\mail@example.com'
+    );
   });
 });

@@ -27,6 +27,8 @@
 ### 確認内容
 
 - スタッフAuthの通常・拒否・補償処理と、期限切れ/再利用時に有効セッションを要求する回帰テストを追加。
+- Copilot Round 1の3指摘に対し、メールLIKE特殊文字を2照合でエスケープし、セッションAPIの通信例外もfail-closeするよう修正。
+- `.ilike()` の利用は対応済み2箇所だけであり、同種の未対応箇所がないことを横断確認。
 - `npm test`、`npm run lint`、`npm run build`、policy/Python回帰テスト、`git diff --check` をPR前に実行する。
 - `.env.local` の値は読み取り・表示していない。
 

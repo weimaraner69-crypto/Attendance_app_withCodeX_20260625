@@ -28,30 +28,34 @@ export default function StaffPasswordPage() {
     let active = true;
 
     const validateSession = async () => {
-      const sessionResult = await Promise.race([
-        supabase.auth.getSession(),
-        new Promise<null>((resolve) => window.setTimeout(() => resolve(null), 5000)),
-      ]);
-      if (!active) return;
-      if (!sessionResult || sessionResult.error || !sessionResult.data.session) {
-        setScreen('invalid');
-        return;
-      }
+      try {
+        const sessionResult = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise<null>((resolve) => window.setTimeout(() => resolve(null), 5000)),
+        ]);
+        if (!active) return;
+        if (!sessionResult || sessionResult.error || !sessionResult.data.session) {
+          setScreen('invalid');
+          return;
+        }
 
-      const response = await fetch('/api/auth/session', { cache: 'no-store' });
-      const session = (await response.json().catch(() => ({}))) as StaffPasswordSession;
-      if (!active) return;
+        const response = await fetch('/api/auth/session', { cache: 'no-store' });
+        const session = (await response.json().catch(() => ({}))) as StaffPasswordSession;
+        if (!active) return;
 
-      if (
-        !response.ok ||
-        !isValidStaffPasswordSession(session)
-      ) {
-        await supabase.auth.signOut({ scope: 'local' });
+        if (
+          !response.ok ||
+          !isValidStaffPasswordSession(session)
+        ) {
+          await supabase.auth.signOut({ scope: 'local' });
+          if (active) setScreen('invalid');
+          return;
+        }
+
+        setScreen('ready');
+      } catch {
         if (active) setScreen('invalid');
-        return;
       }
-
-      setScreen('ready');
     };
 
     void validateSession();
