@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CheckCircle2, KeyRound, LoaderCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,7 @@ import {
 type Screen = 'checking' | 'ready' | 'invalid' | 'success';
 
 export default function StaffPasswordPage() {
-  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
+  const supabaseRef = useRef<ReturnType<typeof createSupabaseBrowserClient> | null>(null);
   const [screen, setScreen] = useState<Screen>('checking');
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
@@ -26,6 +26,17 @@ export default function StaffPasswordPage() {
 
   useEffect(() => {
     let active = true;
+    let supabase: ReturnType<typeof createSupabaseBrowserClient>;
+
+    try {
+      supabase = createSupabaseBrowserClient();
+      supabaseRef.current = supabase;
+    } catch {
+      setScreen('invalid');
+      return () => {
+        active = false;
+      };
+    }
 
     const validateSession = async () => {
       try {
@@ -61,8 +72,11 @@ export default function StaffPasswordPage() {
     void validateSession();
     return () => {
       active = false;
+      if (supabaseRef.current === supabase) {
+        supabaseRef.current = null;
+      }
     };
-  }, [supabase]);
+  }, []);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -74,6 +88,12 @@ export default function StaffPasswordPage() {
     }
     if (password !== confirmation) {
       setErrorMessage('確認用パスワードが一致しません。');
+      return;
+    }
+
+    const supabase = supabaseRef.current;
+    if (!supabase) {
+      setErrorMessage('セッションを確認できませんでした。新しいリンクでやり直してください。');
       return;
     }
 
