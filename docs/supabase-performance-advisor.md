@@ -132,4 +132,4 @@ user_login_pins.idx_user_login_pins_organization
 5. ロールバック後はactive ownerが存在し、staffプロフィール0件、ownerとstaffの一時紐付け0件であることを確認した。
 6. Performance Advisorを再実行し、Errors 0、Warnings 0、Info 42を確認した。
 
-RLS管理操作の許可条件は、マイグレーション回帰テストで旧 `FOR ALL` 条件と分割後の `INSERT`、`UPDATE`、`DELETE` 条件が一致することを固定している。本番スモークでは永続データを変更していない。
+RLS管理操作の許可条件は、マイグレーション回帰テストで旧 `FOR ALL` 条件と分割後の `INSERT`、`UPDATE`、`DELETE` 条件が一致することを固定している。本番スモークではownerロールとstaff行をトランザクション内で一時的に更新・挿入したが、結果確認後にロールバックし、手順5で永続化されていないことを確認した。

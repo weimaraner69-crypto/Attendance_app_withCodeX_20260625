@@ -56,7 +56,7 @@ supabase/migrations/202606250001_initial_attendance_schema.sql
 
 追加マイグレーションもファイルの内容だけを SQL Editor へ貼り付けて実行します。ローカルのファイルパス自体をSQLとして実行しないでください。
 
-Supabase Advisor の Warning 対応は、次のマイグレーションを適用してから Dashboard の Database Advisor / Security Advisor を再実行します。
+Supabase Advisor対応は、次のマイグレーションを適用してからDashboardのSecurity Advisor / Performance Advisorを再実行します。
 
 ```text
 supabase/migrations/202607090001_supabase_advisor_warnings.sql
@@ -65,7 +65,7 @@ supabase/migrations/202607130001_supabase_advisor_review_followup.sql
 supabase/migrations/202607130002_performance_advisor_optimization.sql
 ```
 
-このマイグレーションは、関数の `search_path` 固定、service role専用テーブルの明示的なクライアント拒否ポリシー、外部キー参照列の補助インデックス、`pgcrypto` 拡張の `extensions` スキーマ配置を扱います。機能別マイグレーションが未適用で対象テーブルが存在しない場合、そのテーブル向けのポリシーだけをスキップします。
+これらのマイグレーションでは、関数の `search_path` 固定、service role専用テーブルの明示的なクライアント拒否ポリシー、外部キー参照列の補助インデックス、`pgcrypto` 拡張の `extensions` スキーマ配置を扱います。機能別マイグレーションが未適用で対象テーブルが存在しない場合、そのテーブル向けのポリシーだけをスキップします。
 
 `202607130001_supabase_advisor_review_followup.sql` は、レビュー修正前の `202607090001` を適用済みのDB向け追補です。`set_updated_at()` の `search_path` を `pg_catalog` のみに固定し、初期スキーマの `idx_line_accounts_staff` と重複していた `idx_line_accounts_staff_id` を削除します。新規環境でも安全に再実行できる内容です。
 
