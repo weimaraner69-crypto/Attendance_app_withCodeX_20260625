@@ -351,7 +351,7 @@ Orchestrator は **最大 3 ラウンド** まで対応する。Round 1-2 は Mu
     9. Round 1-2 の修正と証跡をコミット・プッシュする
        - `git add -A && git commit -m "fix: AI レビュー指摘対応 (iteration N)"`
        - 指摘が0件でも証跡JSONは `docs: record independent AI review round N` の専用commitでpushする
-       - コード修正をpushしたラ、旧証跡gateの不通過は想定内とし、次ラウンドで新headをレビューする
+       - コード修正をpushしたら、旧証跡gateの不通過は想定内とし、次ラウンドで新headをレビューする
        - `git status --porcelain` で出力が空であることを確認する
        - ⚠️ 出力が空でない場合（未コミットの変更が残っている場合）は **Step 8 に戻る**（直接コミットしない）
        - `git push`

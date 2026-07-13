@@ -133,6 +133,7 @@ push 後の AI レビューループは `.github/instructions/review-loop.instru
 PR 作成前に policy check、差分確認、関連文書の整合確認を行い、`docs/ai/pre-pr-critical-review.md` を更新する。
 
 ```bash
+python3 -m pip install --requirement ci/requirements.txt
 python3 ci/policy_check.py
 ```
 
@@ -140,7 +141,7 @@ python3 ci/policy_check.py
 
 ## release_to_main
 
-main 一本化運用では feature/fix → main の PR がそのままリリースであり、別個の develop→main 昇格工程は存在しない。`release_to_main` の risk tier（green/yellow/red）は「変更リスクに応じた main 直 PR のレビュー軽量化」として適用する（green=低リスク変更の軽量レビュー、yellow/red=高リスク変更のフルレビュー）。閾値・red_if_touches パスは `ai/operation-policy.yml` を正本として現状維持とする。
+main 一本化運用では feature/fix → main の PR がそのままリリースであり、別個の develop→main 昇格工程は存在しない。`release_to_main` の risk tier（green/yellow/red）は「変更リスクに応じた main 直 PR のレビュー軽量化」として適用する（green=低リスク変更の軽量レビュー、yellow/red=高リスク変更のフルレビュー）。tier要件は `ai/operation-policy.yml`、risk pathは `ai/review-risk-paths.json` を正本とする。
 
 - green: 軽量確認。policy check、差分確認、変更箇所 smoke を中心にする。
 - yellow: 追加の AI review、targeted test、release summary を求める。
@@ -160,6 +161,7 @@ red 判定対象は workflow、依存・lockfile、DB migration、設定、秘�
 AI Operating Model 関連の基本検証は次を使う。
 
 ```bash
+python3 -m pip install --requirement ci/requirements.txt
 python3 ci/policy_check.py
 npm run lint
 npm run build

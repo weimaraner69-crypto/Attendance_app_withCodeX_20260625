@@ -13,14 +13,24 @@
     "src/lib/auth/**",
     "src/lib/external-api/**",
     "src/app/api/**",
+    ".github/actions/**",
     ".github/workflows/**",
     ".github/instructions/**",
     "ai/**",
+    "ci/policy_check.py",
+    "ci/requirements.txt",
+    "docs/ai/review-result.schema.json",
     "package.json",
     "package-lock.json",
     "pyproject.toml",
     "uv.lock",
     ".env*",
-    "configs/**"
+    "configs/**",
+    "project-config.yml",
+    "tsconfig.json",
+    "next.config.*",
+    "tailwind.config.*",
+    "postcss.config.*",
+    "vercel.json"
   ]
 }

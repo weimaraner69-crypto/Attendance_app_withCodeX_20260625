@@ -13,7 +13,7 @@
 - Copilotレビューは利用可能時の任意の追加レビューとし、quota、422、timeout、未到着をブロッカーから除外。
 - 認証、権限、Supabase / RLS、SQL / migration、外部API、秘密情報、workflow / release 変更に二重確認を必須化。
 - レビューラウンド上限3回をprovider横断の合計とし、独立性と機械可読証跡をPR完了条件に追加。
-- 証跡schema v2、Git差分fingerprint・変更path・riskの再計算、Round別disposition、独立reviewer検査をpolicy checkと回帰テスで必須化。
+- 証跡schema v2、Git差分fingerprint・変更path・riskの再計算、Round別disposition、独立reviewer検査をpolicy checkと回帰テストで必須化。
 - GitHub Actionsを通常の `quality-gate` と最終 `review-evidence-gate` に分離し、証跡作成前でも独立レビューへ進める順序に変更。
 
 ### 影響ファイル

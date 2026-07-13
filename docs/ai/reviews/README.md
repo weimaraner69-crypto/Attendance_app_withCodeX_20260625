@@ -4,7 +4,7 @@ PR ごとの機械可読な push 後の独立 AI レビュー証跡を置くデ�
 
 証跡には `phase=post_push`、provider、reviewer ID、review session ID、implementation session ID、対象 `head_sha`、diff fingerprint、risk tier、round、高リスクの第2確認結果を記録します。implementation session ID と review session ID は必ず異なる値にします。Must/Should の `disposition=open` が残る証跡は完了条件を満たしません。
 
-`diff_fingerprint` は `origin/main` と `head_sha` の merge-base から `head_sha` までの binary diff（`docs/ai/reviews/**` を除外）の SHA-256 を `sha256:<hex>` 形式で記録します。`changed_files` と `risk_tier` も同じGit差分から `ci/policy_check.py` が再計算します。
+`diff_fingerprint` は `origin/main` と `head_sha` の merge-base から `head_sha` までの binary diff（`docs/ai/reviews/**` を除外）の SHA-256 を `sha256:<hex>` 形式で記録します。`changed_files` と `risk_tier` も同じGit差分から `ci/policy_check.py` が再計算します。rename / copy は旧・新両pathを `changed_files` とrisk判定へ含め、risk pathの正本は `ai/review-risk-paths.json` とします。
 
 Round 1-2 の Must/Should は `fixed` または技術的根拠付き `rejected` のみ許可します。Must は全ラウンドで Backlog 化できず、Should の `backlog` は Round 3 の非ブロッキング指摘だけに限定します。
 

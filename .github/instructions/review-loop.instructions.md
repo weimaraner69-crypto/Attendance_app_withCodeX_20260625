@@ -131,7 +131,7 @@ Round 3 処理:
 - ❌ 「Draft PR にレビューをリクエストした」→ Draft 状態ではレビューが発火しない。`gh pr ready <PR番号>` で Ready に変更してからリクエスト
 - ❌ 「実装を行った同じ会話のセルフレビューで完了」→ 別 reviewer/session による独立レビューが必須
 - ❌ 「修正だけして返信せずに push」→ 返信は必須。本手順は返信なしを完了扱いにしてよいという意味ではない
-- ❌ 「Must/Should が残っているので自動修正を停止した」→ Round 3 到達時は非ブロッキング指摘を Backlog 化、即時ブロッカーは fail-close で停止。同一指摘3回繰り返し・再トリガー3回超過・ポリシー違反・認証不能でも停止。Round 4 以降の自動 push/review request は禁止
+- ❌ 「Must/Should が残っているので自動修正を停止した」→ Must は全Roundでfail-close。Round 3の非ブロッキングShouldのみBacklog化し、即時ブロッカーはfail-closeで停止。同一指摘3回繰り返し・再トリガー3回超過・ポリシー違反・認証不能でも停止。Round 4以降の自動push/review requestは禁止
 - ❌ 「状態が変わらないのに同じ override 文言を3回以上要求」→ 進捗ゼロでの override 要求は **2 回まで**。3 回目は不足作業の自動実施・escalation reason 従順・選択肢提示へ切替える
 
 ## 自動 Hooks

@@ -1,0 +1,268 @@
+{
+  "schema_version": 2,
+  "phase": "post_push",
+  "provider": "codex",
+  "reviewer_id": "codex-leibniz-019f5ca1",
+  "review_session_id": "019f5ca1-18d0-7722-be01-c5c64a5abadd",
+  "implementation_session_id": "codex-main-20260714-review-policy",
+  "head_sha": "9cfcb746eb2fd211369c7807e4fecf8b7673b035",
+  "diff_fingerprint": "sha256:311c9be391b90fcc1190a3aae4e4528e63984e6a8ffd27d65308c47cbfa4a7f4",
+  "risk_tier": "red",
+  "round": 1,
+  "review_status": "completed",
+  "secondary_verification": {
+    "required": true,
+    "method": "dedicated_tests",
+    "status": "passed",
+    "evidence": "All policy, migration, TypeScript, lint, and production build checks passed after the Round 1 fixes.",
+    "commands": [
+      {
+        "command": "python3 -m unittest ci.test_policy_check ci.test_supabase_advisor_migrations",
+        "exit_code": 0,
+        "summary": "28 tests passed"
+      },
+      {
+        "command": "python3 ci/policy_check.py",
+        "exit_code": 0,
+        "summary": "Policy check passed"
+      },
+      {
+        "command": "npm test",
+        "exit_code": 0,
+        "summary": "20 tests passed"
+      },
+      {
+        "command": "npm run lint",
+        "exit_code": 0,
+        "summary": "No ESLint warnings or errors"
+      },
+      {
+        "command": "npm run build",
+        "exit_code": 0,
+        "summary": "Production build completed"
+      }
+    ]
+  },
+  "summary": "Independent review found six Must, three Should, and two Nice findings. All findings were fixed and regression-tested before the Round 1 response commit.",
+  "repository_context_mode": "full_repo_agentic",
+  "diff_only_reason": "",
+  "changed_files": [
+    ".github/PULL_REQUEST_TEMPLATE.md",
+    ".github/agents/auditor-reliability.agent.md",
+    ".github/agents/auditor-security.agent.md",
+    ".github/agents/auditor-spec.agent.md",
+    ".github/agents/implementer-single-file.agent.md",
+    ".github/agents/implementer.agent.md",
+    ".github/agents/orchestrator.agent.md",
+    ".github/agents/pre-pr-critical-reviewer.agent.md",
+    ".github/agents/release-manager.agent.md",
+    ".github/agents/test-engineer.agent.md",
+    ".github/instructions/review-loop.instructions.md",
+    ".github/instructions/security.instructions.md",
+    ".github/prompts/FINAL_REVIEW.prompt.md",
+    ".github/workflows/ci.yml",
+    "CHANGELOG.md",
+    "NEXT.md",
+    "ai/coherence-workflow.yml",
+    "ai/operation-policy.yml",
+    "ai/pre-pr-review-policy.yml",
+    "ai/review-risk-paths.json",
+    "ci/policy_check.py",
+    "ci/requirements.txt",
+    "ci/test_policy_check.py",
+    "docs/ai/decision-ledger.md",
+    "docs/ai/execution-ledger.md",
+    "docs/ai/pre-pr-reviews/README.md",
+    "docs/ai/review-result.schema.json",
+    "docs/orchestration.md"
+  ],
+  "related_files": [
+    {
+      "path": "ai/operation-policy.yml",
+      "reason": "Canonical risk and review requirements"
+    },
+    {
+      "path": ".github/instructions/review-loop.instructions.md",
+      "reason": "Canonical review loop"
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "reason": "Evidence gate execution path"
+    },
+    {
+      "path": "docs/ai/review-result.schema.json",
+      "reason": "Machine-readable evidence contract"
+    },
+    {
+      "path": "ci/test_policy_check.py",
+      "reason": "Policy validator regression coverage"
+    }
+  ],
+  "scanned_paths": [
+    ".github",
+    "ai",
+    "ci",
+    "docs",
+    "CHANGELOG.md",
+    "NEXT.md"
+  ],
+  "commands_run": [
+    {
+      "command": "git diff origin/main...HEAD",
+      "exit_code": 0,
+      "summary": "Reviewed the complete PR diff"
+    },
+    {
+      "command": "python3 -m unittest ci.test_policy_check ci.test_supabase_advisor_migrations",
+      "exit_code": 0,
+      "summary": "24 pre-fix tests passed in the independent review session"
+    },
+    {
+      "command": "python3 ci/policy_check.py",
+      "exit_code": 0,
+      "summary": "Normal policy gate passed"
+    },
+    {
+      "command": "python3 ci/policy_check.py --require-review-evidence --pr-number 17",
+      "exit_code": 1,
+      "summary": "Expected pre-evidence failure reproduced"
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "summary": "No whitespace errors"
+    }
+  ],
+  "context_fingerprint": "sha256:b3604964e34c964a9e121db58a71707d5c18492083abd69971226488d80a1c10",
+  "context_budget": {
+    "max_related_files": 40,
+    "max_context_chars": 180000,
+    "max_file_excerpt_chars": 12000,
+    "max_context_commands": 12
+  },
+  "context_truncated": false,
+  "context_truncated_reason": "",
+  "issues": [
+    {
+      "severity": "Must",
+      "category": "fail-open",
+      "file": "ci/policy_check.py",
+      "line": 635,
+      "rationale": "A missing evidence directory could pass the required evidence gate.",
+      "fix": "Fail when the evidence directory is absent in required mode.",
+      "confidence": 1.0,
+      "disposition": "fixed",
+      "disposition_reason": "Required mode now returns an explicit error and has a regression test."
+    },
+    {
+      "severity": "Must",
+      "category": "evidence validation",
+      "file": "ci/policy_check.py",
+      "line": 538,
+      "rationale": "Yellow risk evidence did not require successful targeted tests.",
+      "fix": "Require dedicated successful targeted test evidence for yellow risk.",
+      "confidence": 1.0,
+      "disposition": "fixed",
+      "disposition_reason": "Schema and semantic validation now require dedicated_tests with successful commands for yellow risk."
+    },
+    {
+      "severity": "Must",
+      "category": "reviewer independence",
+      "file": "ci/policy_check.py",
+      "line": 676,
+      "rationale": "A second reviewer could reuse another entry's implementation session.",
+      "fix": "Unify implementation session per PR round and forbid overlap with review sessions.",
+      "confidence": 0.99,
+      "disposition": "fixed",
+      "disposition_reason": "Cross-entry session consistency and disjointness checks were added with regression coverage."
+    },
+    {
+      "severity": "Must",
+      "category": "risk classification",
+      "file": "ai/review-risk-paths.json",
+      "line": 3,
+      "rationale": "Important direct paths and local actions could be classified below red.",
+      "fix": "Support zero-directory globstar matches and enumerate all policy-critical paths.",
+      "confidence": 0.99,
+      "disposition": "fixed",
+      "disposition_reason": "Risk matching now handles zero-directory globstars and the canonical red list includes actions, schema, validator, requirements, and major configs."
+    },
+    {
+      "severity": "Must",
+      "category": "risk classification",
+      "file": "ci/policy_check.py",
+      "line": 339,
+      "rationale": "A rename could hide the old risk-sensitive path.",
+      "fix": "Parse name-status output and include both old and new rename paths.",
+      "confidence": 1.0,
+      "disposition": "fixed",
+      "disposition_reason": "The validator now uses name-status with rename detection and tests both paths."
+    },
+    {
+      "severity": "Must",
+      "category": "GitHub Actions",
+      "file": ".github/workflows/ci.yml",
+      "line": 24,
+      "rationale": "The quality gate tested the PR head rather than GitHub's merge result.",
+      "fix": "Use the default merge ref for quality checks and the head ref only for evidence checks.",
+      "confidence": 0.96,
+      "disposition": "fixed",
+      "disposition_reason": "The quality checkout no longer overrides ref; the evidence job remains pinned to the PR head."
+    },
+    {
+      "severity": "Should",
+      "category": "local execution",
+      "file": "ci/policy_check.py",
+      "line": 20,
+      "rationale": "Fresh checkouts lacked an explicit local dependency bootstrap step.",
+      "fix": "Document the pinned dependency installation before local policy checks.",
+      "confidence": 0.97,
+      "disposition": "fixed",
+      "disposition_reason": "ci/README.md and orchestration commands now include the requirements install step."
+    },
+    {
+      "severity": "Should",
+      "category": "dependency reproducibility",
+      "file": "ci/requirements.txt",
+      "line": 5,
+      "rationale": "typing_extensions was installed transitively without a pin.",
+      "fix": "Pin the remaining Python 3.9 transitive dependency.",
+      "confidence": 0.93,
+      "disposition": "fixed",
+      "disposition_reason": "typing_extensions is now pinned and pip check passes."
+    },
+    {
+      "severity": "Should",
+      "category": "documentation consistency",
+      "file": ".github/instructions/review-loop.instructions.md",
+      "line": 134,
+      "rationale": "One note could be read as allowing nonblocking Must findings into backlog.",
+      "fix": "State that Must always fails closed and only Round 3 Should may enter backlog.",
+      "confidence": 0.94,
+      "disposition": "fixed",
+      "disposition_reason": "The stale note now uses the canonical Must and Round 3 Should rule."
+    },
+    {
+      "severity": "Nice",
+      "category": "documentation typo",
+      "file": ".github/agents/orchestrator.agent.md",
+      "line": 354,
+      "rationale": "A Japanese particle was mistyped.",
+      "fix": "Correct the typo.",
+      "confidence": 1.0,
+      "disposition": "fixed",
+      "disposition_reason": "Corrected pushしたラ to pushしたら."
+    },
+    {
+      "severity": "Nice",
+      "category": "changelog accuracy",
+      "file": "CHANGELOG.md",
+      "line": 16,
+      "rationale": "The word regression test was truncated.",
+      "fix": "Correct the typo.",
+      "confidence": 1.0,
+      "disposition": "fixed",
+      "disposition_reason": "Corrected 回帰テス to 回帰テスト."
+    }
+  ]
+}

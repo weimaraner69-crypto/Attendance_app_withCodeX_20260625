@@ -338,7 +338,8 @@ def review_diff_facts(head_sha: str) -> tuple[str, list[str], str] | None:
     )
     changed = run_git(
         "diff",
-        "--name-only",
+        "--name-status",
+        "-M",
         f"{base_sha}..{head_sha}",
         "--",
         ".",
@@ -346,9 +347,41 @@ def review_diff_facts(head_sha: str) -> tuple[str, list[str], str] | None:
     )
     if diff.returncode != 0 or changed.returncode != 0:
         return None
-    paths = sorted(line for line in changed.stdout.splitlines() if line)
+    paths = parse_name_status_paths(changed.stdout)
     fingerprint = "sha256:" + hashlib.sha256(diff.stdout.encode("utf-8")).hexdigest()
     return fingerprint, paths, risk_tier_for_paths(paths)
+
+
+def parse_name_status_paths(output: str) -> list[str]:
+    """name-status出力からrename/copyの旧・新pathを両方抽出する。"""
+    paths: set[str] = set()
+    for line in output.splitlines():
+        parts = line.split("\t")
+        if len(parts) < 2:
+            continue
+        status = parts[0]
+        if status.startswith(("R", "C")) and len(parts) >= 3:
+            paths.update(parts[1:3])
+        else:
+            paths.add(parts[-1])
+    return sorted(paths)
+
+
+def path_matches_risk_pattern(path: str, pattern: str) -> bool:
+    """`**/`が0階層にも一致するGit wildmatch相当の最小判定を行う。"""
+    candidates = {pattern}
+    pending = [pattern]
+    while pending:
+        candidate = pending.pop()
+        marker = "/**/"
+        index = candidate.find(marker)
+        if index == -1:
+            continue
+        collapsed = candidate[: index + 1] + candidate[index + len(marker) :]
+        if collapsed not in candidates:
+            candidates.add(collapsed)
+            pending.append(collapsed)
+    return any(fnmatch(path, candidate) for candidate in candidates)
 
 
 def risk_tier_for_paths(paths: list[str]) -> str:
@@ -356,7 +389,11 @@ def risk_tier_for_paths(paths: list[str]) -> str:
     config = json.loads(REVIEW_RISK_PATHS_PATH.read_text(encoding="utf-8"))
     for tier in ("red", "yellow"):
         patterns = config[f"{tier}_if_touches"]
-        if any(fnmatch(path, pattern) for path in paths for pattern in patterns):
+        if any(
+            path_matches_risk_pattern(path, pattern)
+            for path in paths
+            for pattern in patterns
+        ):
             return tier
     return str(config["default_tier"])
 
@@ -559,6 +596,26 @@ def validate_review_evidence_data(
                 issues.append(f"red riskの専用回帰テスト証跡不正 in {relative_path}")
         if data["repository_context_mode"] != "full_repo_agentic":
             issues.append(f"red riskはfull_repo_agenticが必須 in {relative_path}")
+    if isinstance(secondary, dict) and data["risk_tier"] == "yellow":
+        commands = secondary.get("commands")
+        if (
+            secondary.get("required") is not True
+            or secondary.get("method") != "dedicated_tests"
+            or secondary.get("status") != "passed"
+            or not str(secondary.get("evidence", "")).strip()
+            or not isinstance(commands, list)
+            or not commands
+            or not all(
+                isinstance(command, dict)
+                and isinstance(command.get("command"), str)
+                and bool(command.get("command"))
+                and command.get("exit_code") == 0
+                and isinstance(command.get("summary"), str)
+                and bool(command.get("summary"))
+                for command in commands
+            )
+        ):
+            issues.append(f"yellow riskのtargeted test証跡不正 in {relative_path}")
 
     evidence_issues = data["issues"]
     if not isinstance(evidence_issues, list):
@@ -633,6 +690,10 @@ def scan_review_evidence(required_pr_number: str | None = None) -> list[str]:
     providers_by_round: dict[tuple[str, str], set[str]] = {}
     evidence_by_round: dict[tuple[str, str], list[tuple[dict[str, object], str]]] = {}
     if not REVIEW_EVIDENCE_DIR.exists():
+        if required_pr_number is not None:
+            return [
+                f"PR #{required_pr_number}のpush後AIレビュー証跡ディレクトリがありません"
+            ]
         return issues
 
     for path in sorted(REVIEW_EVIDENCE_DIR.glob("*.json")):
@@ -683,6 +744,19 @@ def scan_review_evidence(required_pr_number: str | None = None) -> list[str]:
             for data, _ in entries
             if data.get("reviewer_id")
         }
+        implementation_sessions = {
+            str(data.get("implementation_session_id"))
+            for data, _ in entries
+            if data.get("implementation_session_id")
+        }
+        if len(implementation_sessions) != 1:
+            issues.append(
+                f"PR #{pr_number} round {round_number}のimplementation sessionが不統一です"
+            )
+        if review_sessions.intersection(implementation_sessions):
+            issues.append(
+                f"PR #{pr_number} round {round_number}のreview sessionがimplementation sessionを再利用しています"
+            )
         if independent_secondary_required and (
             len(review_sessions) < 2 or len(reviewer_ids) < 2
         ):

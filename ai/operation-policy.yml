@@ -343,7 +343,7 @@ release_to_main:
     release_to_main の risk tier（green/yellow/red）は
     「変更リスクに応じた main 直 PR のレビュー軽量化」として適用する
     （green=低リスク変更の軽量レビュー、yellow/red=高リスク変更のフルレビュー）。
-    閾値・red_if_touches パスは現状維持。
+    tierの閾値は本節、risk pathは ai/review-risk-paths.json を正本とする。
   tiers:
     green:
       additional_copilot_review_rounds_before_push: 0

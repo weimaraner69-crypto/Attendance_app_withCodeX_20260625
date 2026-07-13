@@ -278,12 +278,77 @@ class PolicyCheckTest(TestCase):
         self.assertEqual("green", policy_check.risk_tier_for_paths(["README.md"]))
         self.assertEqual("yellow", policy_check.risk_tier_for_paths(["src/ui/page.tsx"]))
         for path in (
+            ".github/actions/install-gitleaks/action.yml",
+            "docs/ai/review-result.schema.json",
+            "project-config.yml",
+            "src/auth/session.ts",
+            "src/migrations/001.sql",
             "src/modules/time/migrations/001.sql",
             "pyproject.toml",
             "uv.lock",
         ):
             with self.subTest(path=path):
                 self.assertEqual("red", policy_check.risk_tier_for_paths([path]))
+
+    def test_name_status_includes_both_rename_paths(self) -> None:
+        paths = policy_check.parse_name_status_paths(
+            "R100\t.github/workflows/ci.yml\tdocs/ci.yml\n"
+            "M\tsrc/page.tsx\n"
+        )
+
+        self.assertEqual(
+            [".github/workflows/ci.yml", "docs/ci.yml", "src/page.tsx"],
+            paths,
+        )
+
+    def test_yellow_requires_successful_targeted_test_evidence(self) -> None:
+        evidence = self.review_evidence()
+        evidence["risk_tier"] = "yellow"
+        evidence["repository_context_mode"] = "related_context"
+        evidence["secondary_verification"] = {
+            "required": False,
+            "method": "not_required",
+            "status": "not_required",
+            "evidence": "",
+            "commands": [],
+        }
+
+        issues = policy_check.validate_review_evidence_data(
+            evidence,
+            "docs/ai/reviews/2026-07-14-pr16-round1-codex-reviewer-a.json",
+            head_compatible=True,
+        )
+
+        self.assertTrue(any("secondary_verification.required" in issue for issue in issues))
+
+        evidence["secondary_verification"] = {
+            "required": True,
+            "method": "dedicated_tests",
+            "status": "passed",
+            "evidence": "targeted policy tests",
+            "commands": [
+                {
+                    "command": "python3 -m unittest ci.test_policy_check",
+                    "exit_code": 0,
+                    "summary": "passed",
+                }
+            ],
+        }
+        issues = policy_check.validate_review_evidence_data(
+            evidence,
+            "docs/ai/reviews/2026-07-14-pr16-round1-codex-reviewer-a.json",
+            head_compatible=True,
+        )
+
+        self.assertEqual([], issues)
+
+    def test_required_evidence_fails_when_directory_is_missing(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            missing_dir = Path(temp_dir) / "missing"
+            with patch.object(policy_check, "REVIEW_EVIDENCE_DIR", missing_dir):
+                issues = policy_check.scan_review_evidence(required_pr_number="16")
+
+        self.assertTrue(any("証跡ディレクトリがありません" in issue for issue in issues))
 
     def test_rejects_non_contiguous_review_rounds(self) -> None:
         evidence = self.review_evidence()
@@ -339,6 +404,32 @@ class PolicyCheckTest(TestCase):
 
         self.assertIn("stale review target", issues)
         self.assertTrue(any("現在差分に独立第2レビュー証跡がありません" in issue for issue in issues))
+
+    def test_second_reviewer_cannot_reuse_implementation_session(self) -> None:
+        first = self.review_evidence()
+        second = self.review_evidence()
+        second["provider"] = "claude"
+        second["reviewer_id"] = "reviewer-b"
+        second["review_session_id"] = first["implementation_session_id"]
+        second["implementation_session_id"] = "claimed-other-implementation"
+        with TemporaryDirectory() as temp_dir:
+            temp_root = Path(temp_dir)
+            review_dir = temp_root / "docs" / "ai" / "reviews"
+            review_dir.mkdir(parents=True)
+            (review_dir / "2026-07-14-pr16-round1-codex-reviewer-a.json").write_text(
+                json.dumps(first), encoding="utf-8"
+            )
+            (review_dir / "2026-07-14-pr16-round1-claude-reviewer-b.json").write_text(
+                json.dumps(second), encoding="utf-8"
+            )
+            with (
+                patch.object(policy_check, "REPO_ROOT", temp_root),
+                patch.object(policy_check, "REVIEW_EVIDENCE_DIR", review_dir),
+            ):
+                issues = policy_check.scan_review_evidence()
+
+        self.assertTrue(any("implementation sessionが不統一" in issue for issue in issues))
+        self.assertTrue(any("implementation sessionを再利用" in issue for issue in issues))
 
     def test_rejects_same_reviewer_for_independent_secondary_review(self) -> None:
         first = self.review_evidence()

@@ -102,7 +102,7 @@
                 "minLength": 1
               },
               "exit_code": {
-                "type": "integer"
+                "const": 0
               },
               "summary": {
                 "type": "string",
@@ -287,6 +287,26 @@
         "properties": {
           "diff_only_reason": {"minLength": 1},
           "risk_tier": {"const": "green"}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "risk_tier": {"const": "yellow"}
+        }
+      },
+      "then": {
+        "properties": {
+          "secondary_verification": {
+            "properties": {
+              "required": {"const": true},
+              "method": {"const": "dedicated_tests"},
+              "status": {"const": "passed"},
+              "evidence": {"minLength": 1},
+              "commands": {"minItems": 1}
+            }
+          }
         }
       }
     }
