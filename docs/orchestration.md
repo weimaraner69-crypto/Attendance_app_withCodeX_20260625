@@ -1,6 +1,6 @@
 # オーケストレーション
 
-この文書は AI エージェント連携の入口である。複数プラットフォーム（Claude Code / Codex / Copilot / Cursor 等）の routing（入口文書・path 指示・MCP・tier 再現・hooks）は各ハーネスの入口文書（`CLAUDE.md` / `AGENTS.md` / `.github/copilot-instructions.md` 等）と roster frontmatter（`.claude/agents/*.md` / `.github/agents/*.agent.md` / `agents/*.agent.md`）が定義する。日常コマンド解釈、実行方針、仕様駆動開発、文書読込範囲、PR 前批判レビュー、`release_to_main` の詳細は `ai/*.yml` を正本とし、本書では重複定義しない。
+この文書は AI エージェント連携の入口である。複数プラットフォーム（Claude Code / Codex / Copilot / Cursor 等）の routing は各ハーネスの入口文書（`CLAUDE.md` / `AGENTS.md` / `.github/copilot-instructions.md` / `.cursor/rules/repo.mdc`）が定義する。GitHub Copilot の custom agent 定義は `.github/agents/*.agent.md` を使う。現時点では Claude Code / Codex / Cursor の自動 hooks や専用 agent roster は導入しない。日常コマンド解釈、実行方針、仕様駆動開発、文書読込範囲、PR 前批判レビュー、`release_to_main` の詳細は `ai/*.yml` を正本とし、本書では重複定義しない。
 
 ## 正本
 
@@ -76,7 +76,7 @@ User Intent
 - **メイン会話は常に最上位 Orchestrator**（セッションで役割指定は不要）。primary_orchestrator（その時点で利用可能な最上位の総合推論モデル。解決の正本は [ai/capability-registry.yml](../ai/capability-registry.yml)）が直接行うのは統括・目的関数監査・本質的問題分解・設計判断・計画立案・批判的検証・最終統合・ユーザー報告のみ。
 - **単調・機械的・大量作業は下位 tier のサブエージェントへ委譲する**（bulk 編集・定型ドラフト・探索・証跡整形・閉処理 bookkeeping）。1〜2 ステップの軽微な作業は直接実行してよい。
 - 論理 tier（Bloom 風 3 段・[docs/ai/shogun-operating-model.md](ai/shogun-operating-model.md) の写像方針）: light=理解/抽出/探索/定型整形/定型テスト（ダミーデータの単体・境界値）、standard=実装/複雑なテスト設計（統合・再現性・リーク検査）/ドラフト、high=設計/リスク/監査/リリース判定、top=統括のみ。役割表の tier と本定義は一致させる（test-engineer は定型テスト担当＝light。複雑なテスト設計は implementer〔standard〕が担う）。
-- tier→モデルの写像正本は各ハーネスの roster frontmatter `model:`（`.claude/agents/*.md`・`.github/agents/*.agent.md`〔Copilot〕・`agents/*.agent.md`〔Codex〕）。3 ハーネスで同一の論理 tier を維持する。capability role（primary_orchestrator / independent_peer_auditor 等）と実行時解決の正本は [ai/capability-registry.yml](../ai/capability-registry.yml)。
+- tier→モデルの写像は、Copilot では `.github/agents/*.agent.md` の frontmatter `model:` を使う。Claude Code / Codex / Cursor は各ハーネスの公式モデル選択機構を使い、同じ論理 tier と capability role を維持する。実行時解決の正本は [ai/capability-registry.yml](../ai/capability-registry.yml)。
 
 ## 4. サブエージェント応答スキーマ
 

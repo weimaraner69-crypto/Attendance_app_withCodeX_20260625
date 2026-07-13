@@ -1,0 +1,14 @@
+---
+description: 勤怠管理アプリの Cursor 向け共通入口
+alwaysApply: true
+---
+
+# Cursor 入口
+
+本リポジトリの共通ルールは `AGENTS.md`、AI 運用モデルは `ai/*.yml`、機密情報の扱いは `SECURITY.md` を正本とする。本ファイルにプロジェクト固有ルールを重複させない。
+
+- 作業開始時は `ai/command-router.yml` と `ai/context-index.yml` に従い、必要な文書だけを読む。
+- 計画・実行キューは `NEXT.md`、完了ログは `FINISHED.md`、変更履歴は `CHANGELOG.md` を正本とする。
+- `.env.local` の値を読まない、表示しない。必要な場合は、値を表示しない確認方法を先に示し、ユーザーの明示許可を得る。
+- コード変更後は原則 `npm run lint` と `npm run build` を実行する。
+- この導入段階では自動 hooks や Cursor 固有MCP設定を追加しない。

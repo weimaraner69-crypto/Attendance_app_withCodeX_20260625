@@ -50,8 +50,8 @@ selection_criteria: # AND 評価。満たせない条件がある場合は縮退
 
 resolution_rules:
   model_name_locations: # プロバイダ固有モデル名を書いてよい場所（closed list）
-    - "各ハーネス roster frontmatter の model:（.claude/agents/*.md / .github/agents/*.agent.md）"
-    - "project-config.yml の ai_models（roster frontmatter の生成入力。update_agent_models.sh が展開）"
+    - "GitHub Copilot custom agent の frontmatter model:（.github/agents/*.agent.md）"
+    - "project-config.yml の ai_models"
     - "本ファイルの current_resolution"
     - "歴史的記録（docs/ai/reviews/**・docs/ai/*-ledger.md・docs/audits/**）"
   agent_body_rule: >
