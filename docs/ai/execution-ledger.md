@@ -22,9 +22,9 @@
 - 現在の mode: `daily_development`（Issue #13実装）
 - active branch: `feat/issue-13-staff-invitations`
 - 直近完了 PR: PR #14（計画・Issue整合）をCopilotレビュー、CI成功後に `main` へマージ済み
-- 現在タスク: A-001の招待、同一組織・ロール検証、初回設定・再設定、回帰テストを1PRで実装中
-- review baseline: PR作成時のhead SHAを設定する
-- 次タスク: ローカル品質ゲート後、PR作成とCopilotレビューループを実施する
+- 現在タスク: PR #15でA-001の招待、同一組織・ロール検証、初回設定・再設定、回帰テストをレビュー中
+- review baseline: 本台帳同期コミットをpush後、Round 1レビュー依頼時のPR head SHAをGitHub上で基準とする
+- 次タスク: PR #15へCopilotレビューを依頼し、未解決・非outdatedスレッドを最大3ラウンドで対応する
 - レビュー条件: `.github/instructions/review-loop.instructions.md` の最大3ラウンドに従う
 - 安全床: `.env.local` を読まない。秘密情報を表示しない。Supabase本番設定、実メール送信、日報側実接続、本番デプロイ、実店舗データ投入、Go-Liveは対象外
 - 最終更新: 2026-07-14
