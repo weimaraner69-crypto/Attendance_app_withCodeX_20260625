@@ -19,8 +19,8 @@
 - 勤怠管理アプリの本番デプロイ、実店舗データ投入、Go-Live作業は今回の自動実行対象外とする。
 - 今回は次の順序で、1PRで理解できる粒度に分けて進める。
   1. 計画、連携仕様、GitHub Issueの状態を実装実態へ同期する。
-  2. `A-006` Supabase Performance Advisor最適化と `A-007` 自動テスト・CI強化を進める。
-  3. `A-001` のスタッフAuthユーザー招待、紐付け、パスワード再設定を実装する。
+  2. `A-006` Supabase Performance Advisor最適化と `A-007` 自動テスト・CI強化を進める。2026-07-13完了。
+  3. `A-001` のスタッフAuthユーザー招待、紐付け、パスワード再設定を実装する。次の着手対象。
   4. `A-000` のうち日報側の画面実装を必要としないレート制限、アクセスログ、APIキー管理を進める。
   5. `C-004` LINE連携の運用設定と実機確認を進める。
 - 各PRはfeature/choreブランチから作成し、Copilotレビューを明示的に依頼する。到着確認、対応ラウンド、Round 3後の扱いは `.github/instructions/review-loop.instructions.md` の正本手順に従う。
@@ -98,7 +98,7 @@
 - [x] #2 外部APIキー認証基盤を実装する。
 - [x] #3 `GET /api/external/v1/health`, `/stores`, `/staff` を実装する。
 - [x] #4 `GET /api/external/v1/attendance` 一覧取得を実装する。
-- GitHubの#2〜#4は、`A-007` で受入条件を自動契約テストへ固定してからクローズするため、コード実装済み・Issue検証待ちとして開いたままにする。
+- 2026-07-13: `A-007` で受入条件を自動契約テストへ固定し、全品質ゲート成功を確認したため、GitHub Issue #2〜#4へ検証根拠をコメントして `completed` でクローズ済み。
 - Phase 1 完了後、日報アプリ側で店舗・スタッフのマッピングと勤怠取り込み検証を開始できる。
 - 2026-07-02: `supabase/migrations/202606250002_external_api_keys.sql` をSupabaseへ適用し、テーブル、RLS、索引を確認済み。
 - 2026-07-02: 組織データとして `株式会社樫尾商店`（`Asia/Tokyo`）を登録済み。
@@ -125,7 +125,7 @@
 - [ ] #5 `GET /api/external/v1/attendance/{id}` と `include_events` を実装する。日報側の利用要件が固まるまで保留する。
 - [ ] 勤怠側仕様書と日報側に残る初期仕様の差分を解消し、再開時に同一契約を参照できる状態にする。
 
-### A-001 認証実装（一部着手）
+### A-001 認証実装（一部着手・次着手）
 
 - オーナー、店長、社労士、スタッフのログインを実装する。
 - Supabase Auth と `user_profiles` / `staff.auth_user_id` を連携する。
@@ -183,9 +183,9 @@
 - 店舗iPadは `kiosk_device_id` とPINを検証し、個人スマホはログインユーザーとGPS距離を検証する。
 - 画面接続と店舗iPad/個人スマホ別UIは `B-001` で実施する。
 
-### A-006 Supabase Performance Advisor最適化
+### A-006 Supabase Performance Advisor最適化（完了）
 
-- 2026-07-13の最新確認結果はErrors 0、Warnings 73、Info 44。
+- 適用前の確認結果はErrors 0、Warnings 73、Info 44。
 - Warningsは `Auth RLS Initialization Plan` 8件と `Multiple Permissive Policies` 65件、Infoは未索引外部キー13件と未使用インデックス31件。
 - 全件の対象と対応判断は `docs/supabase-performance-advisor.md` を正本とする。
 - [x] PostgreSQLカタログクエリで全指摘を一覧化し、テーブル、ポリシー、操作単位で重複を整理する。
@@ -193,18 +193,22 @@
 - [x] `Multiple Permissive Policies` を、既存の許可条件の和集合を維持して整理するマイグレーションと回帰テストを作成する。
 - [x] 未索引外部キー13件の索引を追加するマイグレーションを作成し、既存索引との重複を検査する。
 - [x] 未使用インデックス31件は削除せず、30日以上の本番トラフィック観測後に削除可否を再評価する方針を記録する。
-- [ ] PRレビュー完了後、`202607130002_performance_advisor_optimization.sql` を本番へ適用し、ロール別RLSスモークテストとPerformance Advisor再実行で残件を記録する。
-- 完了条件: 全73 Warningと44 Infoの対応判断が記録され、採用した変更に回帰確認があり、Performance Advisorを再実行して残件と保留理由を記録する。
+- [x] PRレビュー完了後、`202607130002_performance_advisor_optimization.sql` を本番へ適用し、ロール別RLSスモークテストとPerformance Advisor再実行で残件を記録する。
+- 2026-07-13: 本番SQL Editorで適用し、未最適化の `auth.uid()` ポリシー0件、追加対象索引の不足0件を確認。
+- 2026-07-13: オーナー、店長、社労士は既存プロフィール、スタッフはロールバック専用のトランザクション内fixtureでRLS読み取りを確認し、全項目成功。fixtureの変更が残っていないことも確認済み。
+- 2026-07-13: Performance Advisor再実行後はErrors 0、Warnings 0、Info 42。Infoはすべて `idx_scan = 0` の非制約インデックスであり、通常運用を30日以上観測するまで削除しない。
+- 完了条件: 全73 Warningと44 Infoの対応判断が記録され、採用した変更に回帰確認があり、Performance Advisorを再実行して残件と保留理由を記録する。2026-07-13達成済み。
 
-### A-007 自動テスト・CI強化
+### A-007 自動テスト・CI強化（完了）
 
 - [x] 既存の `ci.test_supabase_advisor_migrations` をGitHub Actionsの品質ゲートへ追加する。
 - [x] Vitestと `npm test` を導入し、GitHub Actionsの品質ゲートへ追加する。
 - [x] 外部APIの認証、パラメータ、組織境界、エラー形式を固定する契約テストを追加する。
 - [x] 打刻状態遷移、GPS判定、認証ロール判定の重要な境界値テストを追加する。
 - [x] 日報側が未実装でも、Phase 1のhealth・勤怠一覧レスポンス互換性を検証できる固定契約テストを用意する。
-- [ ] PRのGitHub Actionsでpolicy check、Python回帰テスト、TypeScriptテスト、lint、buildがすべて成功したことを確認する。
-- 完了条件: policy check、Python回帰テスト、TypeScriptテスト、lint、buildがローカルとCIで実行され、重要な認証・打刻・外部API契約の回帰を検出できる。
+- [x] PRのGitHub Actionsでpolicy check、Python回帰テスト、TypeScriptテスト、lint、buildがすべて成功したことを確認する。
+- 2026-07-13: PR #11の全GitHub Actions成功とCopilotレビュー新規指摘なしを確認し、`main` へマージ済み。
+- 完了条件: policy check、Python回帰テスト、TypeScriptテスト、lint、buildがローカルとCIで実行され、重要な認証・打刻・外部API契約の回帰を検出できる。2026-07-13達成済み。
 
 ## B: 業務機能
 

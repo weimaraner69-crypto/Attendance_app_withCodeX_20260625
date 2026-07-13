@@ -10,6 +10,38 @@
 
 ---
 
+## A-006/A-007 Performance Advisor本番適用・CI完了
+
+- 実施日: 2026-07-13
+- 種別: DB性能/テスト基盤/運用記録
+
+### 実施内容
+
+- PR #10とPR #11をCopilotレビュー、全GitHub Actions成功後に `main` へマージ。
+- `202607130002_performance_advisor_optimization.sql` を本番Supabaseへ適用。
+- A-006とA-007の完了条件を `NEXT.md` へ反映し、次の着手対象をA-001へ更新。
+- 外部API Phase 1のGitHub Issue #2〜#4へ検証結果を記録し、`completed` でクローズ。
+
+### 確認内容
+
+- SQL Editorの適用結果は `Success. No rows returned`。
+- 未最適化の直接 `auth.uid()` ポリシー0件、追加対象索引の不足0件、`public` ポリシー69件を確認。
+- オーナー、店長、社労士、スタッフのロール判定、組織解決、RLS読み取り、組織外非表示を確認し、全項目成功。
+- スタッフはロールバック専用fixtureで確認し、終了後にスタッフプロフィールとowner紐付けが0件へ戻ったことを確認。
+- Performance Advisor再実行後はErrors 0、Warnings 0、Info 42。残件はすべて未使用の非制約インデックスで、30日以上の通常運用後に再評価する。
+- `.env.local` の値は読み取り・表示していない。
+
+### 影響ファイル
+
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+- `docs/supabase-setup.md`
+- `docs/supabase-performance-advisor.md`
+- `docs/ai/execution-ledger.md`
+- `docs/ai/decision-ledger.md`
+- `docs/ai/pre-pr-critical-review.md`
+
 ## A-006/A-007 Performance Advisor実装準備・自動テストCI強化
 
 - 実施日: 2026-07-13

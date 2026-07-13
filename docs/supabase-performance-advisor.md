@@ -2,18 +2,30 @@
 
 最終調査日: 2026-07-13
 
-## 現在値
+## 現在値（適用後）
 
-本番SupabaseのPerformance Advisorと読み取り専用カタログクエリで、次を確認した。
+2026-07-13に `202607130002_performance_advisor_optimization.sql` を本番へ適用し、Performance Advisorを再実行して次を確認した。
+
+- Errors: 0
+- Warnings: 0
+- Info: 42
+- `pg_policies` の対象: `public` 69ポリシー
+- 未最適化の直接 `auth.uid()` ポリシー: 0
+- 追加対象13索引の不足: 0
+- `idx_scan = 0` の非制約インデックス: 42
+
+残るInfo 42件はすべて `Unused Index` である。適用直後の13索引も含まれ得るため、少なくとも30日間の通常運用と統計を確認するまで削除しない。
+
+## 適用前ベースライン
 
 - Errors: 0
 - Warnings: 73
 - Info: 44
 - `pg_policies` の対象: `public` 35ポリシー
 
-本調査ではSQL Editorから `pg_policies`、`pg_constraint`、`pg_index`、`pg_stat_user_indexes` のみを読み取り、本番DBの定義やデータは変更していない。
+適用前調査ではSQL Editorから `pg_policies`、`pg_constraint`、`pg_index`、`pg_stat_user_indexes` のみを読み取り、全指摘を分類した。
 
-## Warnings 73件
+## 適用前Warnings 73件
 
 ### Auth RLS Initialization Plan 8件
 
@@ -45,9 +57,9 @@
 - 従来 `FOR ALL` だけでSELECTを許可していた `kiosk_devices`、`manager_store_permissions`、`sr_organization_permissions` には、同じ条件のSELECTポリシーを追加する。
 - 条件式は `owner`、`manager`、組織境界、店舗境界のいずれも変更しない。
 
-実装は `supabase/migrations/202607130002_performance_advisor_optimization.sql` にまとめた。本番適用前にオーナー、店長、社労士、スタッフのRLSスモークテストを行う。
+実装は `supabase/migrations/202607130002_performance_advisor_optimization.sql` にまとめ、本番適用後のRLSスモークテストまで完了した。
 
-## Info 44件
+## 適用前Info 44件
 
 ### 未索引外部キー 13件
 
@@ -111,12 +123,13 @@ user_login_pins.idx_user_login_pins_organization
 
 現在は本番トラフィックの観測期間が短く、直前に追加した外部キー補助索引も含まれる。少なくとも30日間の通常運用後に `pg_stat_user_indexes` の統計リセット時刻、主要クエリ、外部キー、ユニーク制約を再確認してから削除可否を判断する。新規13索引も適用直後は未使用として表示される可能性があるため、Info総数だけで削除判断を行わない。
 
-## 適用後の確認
+## 適用結果
 
-1. マイグレーション適用前に対象ポリシーと索引の存在を再確認する。
-2. `202607130002_performance_advisor_optimization.sql` をトランザクションとして適用する。
-3. オーナー、店長、社労士、スタッフで既存のRLS読み取りと管理操作をスモークテストする。
-4. Performance Advisorを再実行する。
-5. Warningsの残件、未索引外部キーの残件、未使用索引の新しい一覧を `NEXT.md`、`FINISHED.md`、`CHANGELOG.md` へ記録する。
+1. PR #11のCopilotレビューと全GitHub Actions成功後に、本番SQL Editorでマイグレーションを実行し、`Success. No rows returned` を確認した。
+2. 未最適化の直接 `auth.uid()` ポリシー0件、追加対象索引の不足0件をカタログクエリで確認した。
+3. オーナー、店長、社労士は既存プロフィールを使い、ロール判定、組織解決、組織内読み取り、組織外非表示を確認した。
+4. 本番にスタッフAuthプロフィールがまだないため、スタッフは既存ownerをトランザクション内だけstaffへ変更してスタッフ行を紐付け、同じRLS項目と本人スタッフ行の読み取りを確認後にロールバックした。
+5. ロールバック後はactive ownerが存在し、staffプロフィール0件、ownerとstaffの一時紐付け0件であることを確認した。
+6. Performance Advisorを再実行し、Errors 0、Warnings 0、Info 42を確認した。
 
-本番適用と再実行は、PRレビュー完了後の別工程とする。
+RLS管理操作の許可条件は、マイグレーション回帰テストで旧 `FOR ALL` 条件と分割後の `INSERT`、`UPDATE`、`DELETE` 条件が一致することを固定している。本番スモークでは永続データを変更していない。

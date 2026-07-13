@@ -17,7 +17,19 @@
 
 ## 記録
 
-### 現在状態（2026-07-13 日報連携保留後の計画整合・最新）
+### 現在状態（2026-07-13 A-006/A-007本番検証完了・最新）
+
+- 現在の mode: `daily_development`（ユーザー指定の複数PR実行計画）
+- active branch: `chore/finalize-advisor-rollout`
+- 直近完了 PR: PR #10（計画整合）とPR #11（Performance Advisor最適化・テストCI）をCopilotレビュー、CI成功後に `main` へマージ済み
+- 現在タスク: A-006本番適用結果、A-007 CI完了、GitHub Issue #2〜#4の状態同期を完了し、完了同期PRを準備中
+- review baseline: 完了同期PR作成時のhead SHAを設定する
+- 次タスク: 完了同期PRのレビュー完了後、A-001スタッフAuth招待・紐付け・パスワード再設定へ着手する
+- レビュー条件: PR作成後にCopilotレビューを依頼し、到着確認、対応ラウンド、Round 3後の扱いは `.github/instructions/review-loop.instructions.md` に従う
+- 安全床: `.env.local` を読まない。秘密情報を表示しない。スタッフRLS fixtureはトランザクション内でロールバック済み。本番デプロイ、実店舗データ投入、Go-Liveは対象外
+- 最終更新: 2026-07-13
+
+### 現在状態（2026-07-13 日報連携保留後の計画整合・履歴）
 
 - 現在の mode: `daily_development`（ユーザー指定の複数PR実行計画）
 - active branch: `perf/supabase-advisor-and-test-gates`
