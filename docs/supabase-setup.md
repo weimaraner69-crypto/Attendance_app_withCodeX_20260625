@@ -68,6 +68,8 @@ supabase/migrations/202607130001_supabase_advisor_review_followup.sql
 
 `202607130001_supabase_advisor_review_followup.sql` は、レビュー修正前の `202607090001` を適用済みのDB向け追補です。`set_updated_at()` の `search_path` を `pg_catalog` のみに固定し、初期スキーマの `idx_line_accounts_staff` と重複していた `idx_line_accounts_staff_id` を削除します。新規環境でも安全に再実行できる内容です。
 
+Performance Advisorの73 Warningsと44 Infoの分類、対応判断、適用後の確認手順は `docs/supabase-performance-advisor.md` を参照します。対応マイグレーション `supabase/migrations/202607130002_performance_advisor_optimization.sql` は、PRレビューとロール別スモークテスト計画の確認後に適用します。現時点では本番未適用です。
+
 `Public Can Execute SECURITY DEFINER Function` と `Signed-In Users Can Execute SECURITY DEFINER Function` が残る場合は、`202607090002_security_advisor_function_execute.sql` を適用します。RLS補助関数をData API非公開の `private` スキーマへ移し、`PUBLIC` / `anon` の実行権限を外します。RLSポリシーの評価に必要なため、`authenticated` には `private` スキーマの `USAGE` と対象関数の `EXECUTE` だけを付与します。
 
 適用後は、次の値を表示しない権限確認クエリで、3関数が `private` にあり、`anon_execute=false`、`authenticated_execute=true` であることを確認します。
@@ -101,7 +103,7 @@ order by procedure.proname;
 - RLS補助関数3件は `private` にあり、`anon_execute=false`、`authenticated_execute=true` を確認済み。
 - 未所属ユーザーと、実在するオーナー、店長、社労士を模擬したトランザクション内SQLスモークテストで、期待するRLS付き読み取りを確認済み。テストで使用した識別子やデータ件数は記録していない。
 - Security Advisor再実行後はErrors 0、Warnings 1、Info 0。残件はFreeプランでは有効化できない `Leaked Password Protection Disabled` のみ。
-- Performance Advisor再実行後はErrors 0、Warnings 73、Info 45。Security Advisor対応とは分離し、`NEXT.md` の `A-006` で精査する。
+- Performance AdvisorはErrors 0、Warnings 73。初回確認時のInfo 45から、最新のカタログ確認ではInfo 44（未索引外部キー13件、未使用インデックス31件）となっている。
 - 2026-07-13のCopilotレビューを受け、`set_updated_at()` の `search_path` 最小化と重複索引の解消を反映。`202607130001_supabase_advisor_review_followup.sql` を本番適用し、`search_path` が `pg_catalog` のみ、既存索引が存在、重複索引が削除済みの3条件すべてを `true` と確認済み。
 
 ## 4. 接続確認

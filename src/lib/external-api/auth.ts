@@ -37,6 +37,26 @@ export function hashExternalApiKey(apiKey: string) {
   return createHash('sha256').update(apiKey, 'utf8').digest('hex');
 }
 
+export function getExternalApiKeyRejection(
+  apiKey: ExternalApiKeyRow,
+  requiredScope: string,
+  now = Date.now()
+) {
+  if (!apiKey.is_active) {
+    return externalApiError(403, 'FORBIDDEN', 'APIキーが無効化されています');
+  }
+
+  if (apiKey.expires_at && new Date(apiKey.expires_at).getTime() <= now) {
+    return externalApiError(401, 'UNAUTHENTICATED', 'APIキーの有効期限が切れています');
+  }
+
+  if (!apiKey.scopes.includes(requiredScope)) {
+    return externalApiError(403, 'FORBIDDEN', '必要なスコープがありません');
+  }
+
+  return null;
+}
+
 export async function authenticateExternalApiRequest(
   request: Request,
   requiredScope = 'attendance:read'
@@ -73,24 +93,11 @@ export async function authenticateExternalApiRequest(
     };
   }
 
-  if (!apiKey.is_active) {
+  const rejection = getExternalApiKeyRejection(apiKey, requiredScope);
+  if (rejection) {
     return {
       ok: false,
-      response: externalApiError(403, 'FORBIDDEN', 'APIキーが無効化されています'),
-    };
-  }
-
-  if (apiKey.expires_at && new Date(apiKey.expires_at).getTime() <= Date.now()) {
-    return {
-      ok: false,
-      response: externalApiError(401, 'UNAUTHENTICATED', 'APIキーの有効期限が切れています'),
-    };
-  }
-
-  if (!apiKey.scopes.includes(requiredScope)) {
-    return {
-      ok: false,
-      response: externalApiError(403, 'FORBIDDEN', '必要なスコープがありません'),
+      response: rejection,
     };
   }
 

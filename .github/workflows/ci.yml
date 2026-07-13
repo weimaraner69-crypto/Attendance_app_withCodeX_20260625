@@ -35,8 +35,14 @@ jobs:
       - name: Policy check tests
         run: python3 -m unittest ci.test_policy_check
 
+      - name: Supabase migration tests
+        run: python3 -m unittest ci.test_supabase_advisor_migrations
+
       - name: Policy check
         run: python3 ci/policy_check.py
+
+      - name: TypeScript tests
+        run: npm test
 
       - name: Lint
         run: npm run lint

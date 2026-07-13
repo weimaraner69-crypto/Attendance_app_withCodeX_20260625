@@ -20,11 +20,11 @@
 ### 現在状態（2026-07-13 日報連携保留後の計画整合・最新）
 
 - 現在の mode: `daily_development`（ユーザー指定の複数PR実行計画）
-- active branch: `chore/realign-roadmap-after-integration-deferral`
-- 直近完了 PR: PR #9（Supabase Advisor対応、mainへ反映済み）
-- 現在タスク: PR #10（計画、連携仕様、README、GitHub Issueの状態整合）のCopilotレビュー待ち
-- review baseline: `70cc2b1408d028681c65b7210f96c16bef8338ce` 以降のPR #10 reviewThreads
-- 次タスク: 計画整合PRのレビュー完了後、A-006 Performance AdvisorとA-007テスト・CI強化
+- active branch: `perf/supabase-advisor-and-test-gates`
+- 直近完了 PR: PR #10（計画整合、Copilot再レビューで新規指摘なし、CI成功、マージ待ち）
+- 現在タスク: A-006 Performance Advisor最適化とA-007テスト・CI強化の積み上げPR実装
+- review baseline: PR作成時のhead SHAを設定する
+- 次タスク: A-006/A-007のローカル検証後、PR作成とCopilotレビュー
 - レビュー条件: PR作成後にCopilotレビューを依頼し、到着確認、対応ラウンド、Round 3後の扱いは `.github/instructions/review-loop.instructions.md` に従う
 - 安全床: `.env.local` を読まない。秘密情報を表示しない。破壊的DB操作、本番運用準備、自動マージは対象外
 - 最終更新: 2026-07-13

@@ -185,23 +185,25 @@
 
 ### A-006 Supabase Performance Advisor最適化
 
-- 2026-07-13の再実行結果はErrors 0、Warnings 73、Info 45。
-- Warningでは `Auth RLS Initialization Plan` と `Multiple Permissive Policies`、Infoでは未索引外部キーと未使用インデックスが確認されている。
-- [ ] AdvisorのExportまたはPostgreSQLカタログクエリで全指摘を一覧化し、テーブル、ポリシー、操作単位で重複を整理する。
-- [ ] `Auth RLS Initialization Plan` を、権限境界を変えずに初期化プラン化するマイグレーションと回帰テストを作成する。
-- [ ] `Multiple Permissive Policies` を、既存の許可条件の和集合を維持して整理するマイグレーションと回帰テストを作成する。
-- [ ] 未索引外部キーのうち実クエリと制約確認に必要な索引を追加し、既存索引との重複を検査する。
-- [ ] 未使用インデックスは削除せず、本番トラフィックの観測期間、外部キー制約、ユニーク制約、主要クエリを確認して削除可否を記録する。
-- [ ] 採用した変更を適用した後にPerformance Advisorを再実行し、残件と保留理由を記録する。
-- 完了条件: 全73 Warningと45 Infoの対応判断が記録され、採用した変更に回帰確認があり、Performance Advisorを再実行して残件と保留理由を記録する。
+- 2026-07-13の最新確認結果はErrors 0、Warnings 73、Info 44。
+- Warningsは `Auth RLS Initialization Plan` 8件と `Multiple Permissive Policies` 65件、Infoは未索引外部キー13件と未使用インデックス31件。
+- 全件の対象と対応判断は `docs/supabase-performance-advisor.md` を正本とする。
+- [x] PostgreSQLカタログクエリで全指摘を一覧化し、テーブル、ポリシー、操作単位で重複を整理する。
+- [x] `Auth RLS Initialization Plan` を、権限境界を変えずに初期化プラン化するマイグレーションと回帰テストを作成する。
+- [x] `Multiple Permissive Policies` を、既存の許可条件の和集合を維持して整理するマイグレーションと回帰テストを作成する。
+- [x] 未索引外部キー13件の索引を追加するマイグレーションを作成し、既存索引との重複を検査する。
+- [x] 未使用インデックス31件は削除せず、30日以上の本番トラフィック観測後に削除可否を再評価する方針を記録する。
+- [ ] PRレビュー完了後、`202607130002_performance_advisor_optimization.sql` を本番へ適用し、ロール別RLSスモークテストとPerformance Advisor再実行で残件を記録する。
+- 完了条件: 全73 Warningと44 Infoの対応判断が記録され、採用した変更に回帰確認があり、Performance Advisorを再実行して残件と保留理由を記録する。
 
 ### A-007 自動テスト・CI強化
 
-- [ ] 既存の `ci.test_supabase_advisor_migrations` をGitHub Actionsの品質ゲートへ追加する。
-- [ ] TypeScriptコード向けのテストランナーとCIコマンドを導入する。
-- [ ] 外部APIの認証、パラメータ、組織境界、エラー形式を固定する契約テストを追加する。
-- [ ] 打刻状態遷移、GPS判定、認証ロール判定の重要な境界値テストを追加する。
-- [ ] 日報側が未実装でも、Phase 1レスポンスの互換性を検証できる固定契約テストを用意する。
+- [x] 既存の `ci.test_supabase_advisor_migrations` をGitHub Actionsの品質ゲートへ追加する。
+- [x] Vitestと `npm test` を導入し、GitHub Actionsの品質ゲートへ追加する。
+- [x] 外部APIの認証、パラメータ、組織境界、エラー形式を固定する契約テストを追加する。
+- [x] 打刻状態遷移、GPS判定、認証ロール判定の重要な境界値テストを追加する。
+- [x] 日報側が未実装でも、Phase 1のhealth・勤怠一覧レスポンス互換性を検証できる固定契約テストを用意する。
+- [ ] PRのGitHub Actionsでpolicy check、Python回帰テスト、TypeScriptテスト、lint、buildがすべて成功したことを確認する。
 - 完了条件: policy check、Python回帰テスト、TypeScriptテスト、lint、buildがローカルとCIで実行され、重要な認証・打刻・外部API契約の回帰を検出できる。
 
 ## B: 業務機能
