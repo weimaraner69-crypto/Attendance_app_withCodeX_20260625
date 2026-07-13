@@ -10,6 +10,34 @@
 
 ---
 
+## PLAN-20260714 計画・GitHub Issue・外部API契約の整合
+
+- 実施日: 2026-07-14
+- 種別: 計画/Issue/契約管理
+
+### 実施内容
+
+- GitHub親Issue #1から旧日報リポジトリ名を除き、連携先 `weimaraner69-crypto/kashio-nippou-app_20260611Start`、Phase 1完了状態、Phase 2順序、実接続再開条件へ更新。
+- 完了済みIssue #2〜#4の受け入れチェックを完了へ揃え、Issue #5〜#7に保留理由と着手順を追記。
+- A-001の実装範囲、受け入れ条件、PR分割をGitHub Issue #13へ固定。
+- 勤怠側の外部API仕様を契約スナップショット `attendance-external-v1-2026-07-14` として固定し、日報側初期仕様との差分を記録。
+- 日報側への仕様本文同期、APIキー設定、マッピング、勤怠取り込み、実接続は、日報側 `A-005` のNext昇格まで保留した。
+
+### 確認内容
+
+- GitHub Issue #2〜#4が `completed`、Issue #1、#5〜#7、#13がopenであることを確認。
+- 日報側 `docs/plan.md` で `A-005` がBacklogにあることを確認。
+- `.env.local`、APIキー、認証情報の値は読み取り・表示していない。
+
+### 影響ファイル
+
+- `NEXT.md`
+- `docs/integrations/attendance-api-spec.md`
+- `docs/ai/decision-ledger.md`
+- `docs/ai/execution-ledger.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+
 ## A-006/A-007 Performance Advisor本番適用・CI完了
 
 - 実施日: 2026-07-13
