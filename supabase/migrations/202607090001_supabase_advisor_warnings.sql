@@ -22,7 +22,7 @@ $$;
 create or replace function public.set_updated_at()
 returns trigger
 language plpgsql
-set search_path = public, pg_catalog
+set search_path = pg_catalog
 as $$
 begin
   new.updated_at = now();
@@ -111,10 +111,6 @@ create index if not exists idx_manager_store_permissions_store_id
 
 create index if not exists idx_sr_organization_permissions_user_id
   on public.sr_organization_permissions (user_id);
-
-create index if not exists idx_line_accounts_staff_id
-  on public.line_accounts (staff_id)
-  where staff_id is not null;
 
 create index if not exists idx_attendance_events_store_time
   on public.attendance_events (store_id, occurred_at desc);

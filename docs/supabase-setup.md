@@ -61,9 +61,12 @@ Supabase Advisor の Warning 対応は、次のマイグレーションを適用
 ```text
 supabase/migrations/202607090001_supabase_advisor_warnings.sql
 supabase/migrations/202607090002_security_advisor_function_execute.sql
+supabase/migrations/202607130001_supabase_advisor_review_followup.sql
 ```
 
 このマイグレーションは、関数の `search_path` 固定、service role専用テーブルの明示的なクライアント拒否ポリシー、外部キー参照列の補助インデックス、`pgcrypto` 拡張の `extensions` スキーマ配置を扱います。機能別マイグレーションが未適用で対象テーブルが存在しない場合、そのテーブル向けのポリシーだけをスキップします。
+
+`202607130001_supabase_advisor_review_followup.sql` は、レビュー修正前の `202607090001` を適用済みのDB向け追補です。`set_updated_at()` の `search_path` を `pg_catalog` のみに固定し、初期スキーマの `idx_line_accounts_staff` と重複していた `idx_line_accounts_staff_id` を削除します。新規環境でも安全に再実行できる内容です。
 
 `Public Can Execute SECURITY DEFINER Function` と `Signed-In Users Can Execute SECURITY DEFINER Function` が残る場合は、`202607090002_security_advisor_function_execute.sql` を適用します。RLS補助関数をData API非公開の `private` スキーマへ移し、`PUBLIC` / `anon` の実行権限を外します。RLSポリシーの評価に必要なため、`authenticated` には `private` スキーマの `USAGE` と対象関数の `EXECUTE` だけを付与します。
 
@@ -99,6 +102,7 @@ order by procedure.proname;
 - 未所属ユーザーと、実在するオーナー、店長、社労士を模擬したトランザクション内SQLスモークテストで、期待するRLS付き読み取りを確認済み。テストで使用した識別子やデータ件数は記録していない。
 - Security Advisor再実行後はErrors 0、Warnings 1、Info 0。残件はFreeプランでは有効化できない `Leaked Password Protection Disabled` のみ。
 - Performance Advisor再実行後はErrors 0、Warnings 73、Info 45。Security Advisor対応とは分離し、`NEXT.md` の `A-006` で精査する。
+- 2026-07-13のCopilotレビューを受け、`set_updated_at()` の `search_path` 最小化と重複索引の解消を反映。既に本番適用済みの差分は `202607130001_supabase_advisor_review_followup.sql` の適用後に再確認する。
 
 ## 4. 接続確認
 

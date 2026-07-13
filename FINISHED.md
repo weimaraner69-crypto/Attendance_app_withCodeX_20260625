@@ -10,6 +10,33 @@
 
 ---
 
+## S-004-Advisor Copilotレビュー指摘対応
+
+- 実装日: 2026-07-13
+- 種別: DB運用/レビュー対応
+
+### 実装内容
+
+- `set_updated_at()` は組み込み関数以外を参照しないため、`search_path` を `pg_catalog` のみに縮小。
+- 初期スキーマにある `idx_line_accounts_staff` と同じキーの `idx_line_accounts_staff_id` を元マイグレーションから削除。
+- 既にレビュー修正前のSQLを適用した本番DB向けに、関数設定を更新して重複索引を削除する追補マイグレーション `202607130001_supabase_advisor_review_followup.sql` を追加。
+- 全マイグレーションの明示的な索引定義を横断確認し、今回追加分に同一キーの追加重複がないことを確認。
+- `search_path` と重複索引の安全条件を固定する回帰テストを追加。
+
+### 残作業
+
+- 本番SQL Editorで追補マイグレーションを適用し、関数設定と索引を再確認する。
+
+### 影響ファイル
+
+- `supabase/migrations/202607090001_supabase_advisor_warnings.sql`
+- `supabase/migrations/202607130001_supabase_advisor_review_followup.sql`
+- `ci/test_supabase_advisor_migrations.py`
+- `docs/supabase-setup.md`
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+
 ## S-004-Advisor Supabase本番適用・Security Advisor再検証
 
 - 実装日: 2026-07-13

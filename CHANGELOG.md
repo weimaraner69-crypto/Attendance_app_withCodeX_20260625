@@ -5,6 +5,24 @@
 
 ---
 
+## [2026-07-13] Supabase Advisor対応のCopilotレビュー指摘を修正
+
+### 修正
+- `set_updated_at()` の `search_path` から不要な `public` を外し、`pg_catalog` のみに固定。
+- 初期スキーマの `idx_line_accounts_staff` と重複する `idx_line_accounts_staff_id` の作成を削除。
+- 修正前のSQLを適用済みのDB向けに、関数設定の更新と重複索引の削除を行う追補マイグレーションを追加。
+- 他の追加索引について全マイグレーションの既存索引と照合し、同一キーの追加重複がないことを確認。
+- `search_path` と重複索引の安全条件を固定する回帰テストを追加。
+
+### 影響ファイル
+- `supabase/migrations/202607090001_supabase_advisor_warnings.sql`
+- `supabase/migrations/202607130001_supabase_advisor_review_followup.sql`
+- `ci/test_supabase_advisor_migrations.py`
+- `docs/supabase-setup.md`
+- `NEXT.md`
+- `FINISHED.md`
+- `CHANGELOG.md`
+
 ## [2026-07-13] Supabase Advisor対応を本番適用・再検証
 
 ### 実施

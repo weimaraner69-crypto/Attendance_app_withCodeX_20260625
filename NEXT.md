@@ -64,6 +64,8 @@
 - 2026-07-13: RLS補助関数3件が `private` にあり、`anon_execute=false`、`authenticated_execute=true` であることを確認済み。
 - 2026-07-13: 実在するオーナー、店長、社労士の各プロフィールを使ったロール別SQLスモークテストで、ロール判定、組織解決、組織・勤怠レコードのRLS付き読み取りがすべて成功することを確認済み。テストはトランザクション内で実施し、結果確認後にロールバックした。
 - 2026-07-13: Security Advisor再実行後はErrors 0、Warnings 1、Info 0。解消可能なDB Warningは0件で、残件はFreeプランでは有効化できない `Leaked Password Protection Disabled` のみ。
+- 2026-07-13: Copilotレビューを受け、`set_updated_at()` の `search_path` を `pg_catalog` のみに固定し、初期スキーマと重複する `line_accounts(staff_id)` 索引の追加を元マイグレーションから削除。適用済みDB向けに `202607130001_supabase_advisor_review_followup.sql` を作成済み。
+- 未完了: 本番SQL Editorで `202607130001_supabase_advisor_review_followup.sql` を適用し、`set_updated_at()` の設定と重複索引の削除を確認する。
 - 残リスク: 漏洩パスワード保護を有効化するにはSupabase Pro以上へのアップグレードが必要。アップグレード時に有効化してSecurity Advisorを再実行する。
 - 完了条件: Security Advisorの解消可能なWarningが0件で、RLS機能確認とプラン制約の記録があること。2026-07-13達成済み。
 
