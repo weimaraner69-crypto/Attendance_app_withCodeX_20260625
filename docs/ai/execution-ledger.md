@@ -17,7 +17,19 @@
 
 ## 記録
 
-### 現在状態（2026-07-14 計画・Issue整合・最新）
+### 現在状態（2026-07-14 A-001スタッフAuth実装・最新）
+
+- 現在の mode: `daily_development`（Issue #13実装）
+- active branch: `feat/issue-13-staff-invitations`
+- 直近完了 PR: PR #14（計画・Issue整合）をCopilotレビュー、CI成功後に `main` へマージ済み
+- 現在タスク: A-001の招待、同一組織・ロール検証、初回設定・再設定、回帰テストを1PRで実装中
+- review baseline: PR作成時のhead SHAを設定する
+- 次タスク: ローカル品質ゲート後、PR作成とCopilotレビューループを実施する
+- レビュー条件: `.github/instructions/review-loop.instructions.md` の最大3ラウンドに従う
+- 安全床: `.env.local` を読まない。秘密情報を表示しない。Supabase本番設定、実メール送信、日報側実接続、本番デプロイ、実店舗データ投入、Go-Liveは対象外
+- 最終更新: 2026-07-14
+
+### 現在状態（2026-07-14 計画・Issue整合・履歴）
 
 - 現在の mode: `daily_development`（計画・Issue整合）
 - active branch: `chore/align-plans-and-issues`

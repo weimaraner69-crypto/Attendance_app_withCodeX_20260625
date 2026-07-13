@@ -5,6 +5,36 @@
 
 ---
 
+## [2026-07-14] A-001 スタッフAuth招待・初回設定・再設定を実装
+
+### 変更
+
+- `/owner/staff` から有効な未紐付けスタッフへSupabase Auth招待メールを送信し、Admin APIの応答IDだけで `user_profiles` と `staff.auth_user_id` を紐付けるようにした。
+- 手動のAuth UUID入力欄を削除し、他組織、他ロール、無効、重複、紐付け済みの招待をサーバー側で拒否するようにした。
+- DB紐付けに失敗した場合は作成直後のAuthユーザーを補償削除し、中途状態を残さないようにした。
+- `/auth/staff-password` を追加し、有効な招待・再設定セッションと本人スタッフ紐付けを確認してからパスワードを設定するようにした。
+- スタッフのログイン後ホームを `/stamp/mobile` へ統一した。
+
+### 確認
+
+- 通常招待、無効、他組織、ロール不一致、メール重複、紐付け済み、不正メール、補償削除、再設定、無効セッションを回帰テストで固定。
+- 本番SupabaseのRedirect URL変更と実メール確認は、本番運用作業として今回は実施していない。
+
+### 影響ファイル
+
+- `src/lib/auth/staff-auth.ts`
+- `src/lib/auth/staff-auth.test.ts`
+- `src/app/(authenticated)/owner/staff/page.tsx`
+- `src/app/auth/staff-password/page.tsx`
+- `src/lib/auth/session.ts`
+- `NEXT.md`
+- `docs/implementation-decisions.md`
+- `docs/operations-maintenance.md`
+- `docs/ai/decision-ledger.md`
+- `docs/ai/execution-ledger.md`
+- `docs/ai/pre-pr-critical-review.md`
+- `FINISHED.md`
+
 ## [2026-07-14] 計画・GitHub Issue・外部API契約を同期
 
 ### 変更

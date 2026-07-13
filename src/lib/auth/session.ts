@@ -42,7 +42,7 @@ export function getRoleHomePath(role: AppRole, managerStoreId?: string | null) {
   if (role === 'owner') return '/owner';
   if (role === 'sr') return '/sr';
   if (role === 'manager') return managerStoreId ? `/manager/${managerStoreId}` : '/manager/login';
-  return '/stamp';
+  return '/stamp/mobile';
 }
 
 export async function getRawAuthContext(): Promise<CurrentAuthContext | null> {

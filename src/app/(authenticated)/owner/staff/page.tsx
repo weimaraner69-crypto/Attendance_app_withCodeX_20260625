@@ -1,6 +1,7 @@
 import { createHash } from 'crypto';
 import Link from 'next/link';
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -16,6 +17,14 @@ import {
 } from '@/components/ui/table';
 import { requireAuthenticatedRole } from '@/lib/auth/session';
 import { hashPin } from '@/lib/auth/pin';
+import {
+  buildStaffPasswordUrl,
+  createStaffAuthOperations,
+  inviteAndLinkStaff,
+  normalizeStaffEmail,
+  requestStaffPasswordReset,
+  type StaffAuthActionCode,
+} from '@/lib/auth/staff-auth';
 import { createSupabaseAdminClient } from '@/lib/supabase';
 import type { Database } from '@/lib/supabase';
 
@@ -56,6 +65,11 @@ const employmentLabels: Record<EmploymentType, string> = {
 function nullableText(value: FormDataEntryValue | null) {
   const text = value?.toString().trim() ?? '';
   return text.length > 0 ? text : null;
+}
+
+function nullableEmail(value: FormDataEntryValue | null) {
+  const email = normalizeStaffEmail(value?.toString());
+  return email || null;
 }
 
 function requiredText(value: FormDataEntryValue | null) {
@@ -117,7 +131,6 @@ async function createStaff(formData: FormData) {
     .from('staff')
     .insert({
       organization_id: context.profile.organization_id,
-      auth_user_id: nullableText(formData.get('auth_user_id')),
       default_store_id: defaultStoreId,
       employee_code: nullableText(formData.get('employee_code')),
       name,
@@ -125,7 +138,7 @@ async function createStaff(formData: FormData) {
       employment_type: nullableEmploymentType(formData.get('employment_type')),
       hourly_wage: nullableNumber(formData.get('hourly_wage')),
       phone: nullableText(formData.get('phone')),
-      email: nullableText(formData.get('email')),
+      email: nullableEmail(formData.get('email')),
       pin_hash: pin ? hashPin(pin) : null,
       pin_updated_at: pin ? new Date().toISOString() : null,
       joined_on: nullableText(formData.get('joined_on')),
@@ -156,7 +169,6 @@ async function updateStaff(formData: FormData) {
   await supabase
     .from('staff')
     .update({
-      auth_user_id: nullableText(formData.get('auth_user_id')),
       default_store_id: defaultStoreId,
       employee_code: nullableText(formData.get('employee_code')),
       name,
@@ -164,7 +176,7 @@ async function updateStaff(formData: FormData) {
       employment_type: nullableEmploymentType(formData.get('employment_type')),
       hourly_wage: nullableNumber(formData.get('hourly_wage')),
       phone: nullableText(formData.get('phone')),
-      email: nullableText(formData.get('email')),
+      email: nullableEmail(formData.get('email')),
       joined_on: nullableText(formData.get('joined_on')),
       retired_on: nullableText(formData.get('retired_on')),
     })
@@ -173,6 +185,60 @@ async function updateStaff(formData: FormData) {
 
   await upsertCurrentStoreAssignment(context.profile.organization_id, staffId, defaultStoreId);
   revalidatePath('/owner/staff');
+}
+
+async function inviteStaffAuthUser(formData: FormData) {
+  'use server';
+
+  const context = await requireAuthenticatedRole(['owner']);
+  const staffId = requiredText(formData.get('staff_id'));
+  const redirectTo = buildStaffPasswordUrl(process.env.NEXT_PUBLIC_APP_URL);
+  if (!staffId) redirect('/owner/staff?auth_status=invalid_staff');
+  if (!redirectTo) redirect('/owner/staff?auth_status=configuration_error');
+
+  const supabase = createSupabaseAdminClient();
+  let result: { code: StaffAuthActionCode };
+  try {
+    result = await inviteAndLinkStaff({
+      organizationId: context.profile.organization_id,
+      actorUserId: context.user.id,
+      staffId,
+      redirectTo,
+      operations: createStaffAuthOperations(supabase),
+    });
+  } catch {
+    result = { code: 'invite_failed' };
+  }
+
+  revalidatePath('/owner/staff');
+  redirect(`/owner/staff?auth_status=${result.code}`);
+}
+
+async function sendStaffPasswordReset(formData: FormData) {
+  'use server';
+
+  const context = await requireAuthenticatedRole(['owner']);
+  const staffId = requiredText(formData.get('staff_id'));
+  const redirectTo = buildStaffPasswordUrl(process.env.NEXT_PUBLIC_APP_URL);
+  if (!staffId) redirect('/owner/staff?auth_status=invalid_staff');
+  if (!redirectTo) redirect('/owner/staff?auth_status=configuration_error');
+
+  const supabase = createSupabaseAdminClient();
+  let result: { code: StaffAuthActionCode };
+  try {
+    result = await requestStaffPasswordReset({
+      organizationId: context.profile.organization_id,
+      actorUserId: context.user.id,
+      staffId,
+      redirectTo,
+      operations: createStaffAuthOperations(supabase),
+    });
+  } catch {
+    result = { code: 'reset_failed' };
+  }
+
+  revalidatePath('/owner/staff');
+  redirect(`/owner/staff?auth_status=${result.code}`);
 }
 
 async function setStaffActive(formData: FormData) {
@@ -260,7 +326,35 @@ function EmploymentSelect({ defaultValue }: { defaultValue?: EmploymentType | nu
   );
 }
 
-export default async function StaffPage() {
+const authStatusMessages: Record<StaffAuthActionCode, { success: boolean; message: string }> = {
+  sent: { success: true, message: '招待メールを送信し、スタッフアカウントを安全に紐づけました。' },
+  reset_sent: { success: true, message: 'パスワード再設定メールを送信しました。' },
+  invalid_staff: { success: false, message: '対象スタッフを確認できません。' },
+  inactive_staff: { success: false, message: '無効なスタッフには招待・再設定メールを送信できません。' },
+  missing_email: { success: false, message: '先にスタッフのメールアドレスを登録してください。' },
+  invalid_email: { success: false, message: 'メールアドレスの形式が正しくありません。' },
+  duplicate_email: { success: false, message: '同じメールアドレスのスタッフが存在します。' },
+  cross_organization: { success: false, message: 'このメールアドレスは招待に利用できません。登録内容を確認してください。' },
+  wrong_role: { success: false, message: 'このメールアドレスは招待に利用できません。登録内容を確認してください。' },
+  already_linked: { success: false, message: 'このスタッフはすでにスマホログイン設定済みです。' },
+  already_registered: { success: false, message: 'このメールアドレスは招待に利用できません。登録内容を確認してください。' },
+  inconsistent_profile: { success: false, message: 'スタッフとAuthプロファイルの情報が一致しません。' },
+  configuration_error: { success: false, message: '公開URL設定を確認できないため、メールを送信できません。' },
+  invite_failed: { success: false, message: '招待メールを送信できませんでした。登録状態を確認してください。' },
+  link_failed: { success: false, message: '招待後のアカウント紐づけに失敗したため、招待を取り消しました。' },
+  cleanup_failed: { success: false, message: 'アカウント紐づけと後処理に失敗しました。Supabase Authの状態を確認してください。' },
+  reset_failed: { success: false, message: 'パスワード再設定メールを送信できませんでした。' },
+};
+
+function getParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] ?? '' : value ?? '';
+}
+
+export default async function StaffPage({
+  searchParams,
+}: {
+  searchParams: Record<string, string | string[] | undefined>;
+}) {
   const context = await requireAuthenticatedRole(['owner']);
   const supabase = createSupabaseAdminClient();
 
@@ -284,6 +378,8 @@ export default async function StaffPage() {
   const staffRows = (staff ?? []) as StaffRow[];
   const storeRows = (stores ?? []) as StoreRow[];
   const storeNameById = new Map(storeRows.map((store) => [store.id, store.name]));
+  const authStatus = getParam(searchParams.auth_status) as StaffAuthActionCode;
+  const authStatusMessage = authStatusMessages[authStatus];
 
   return (
     <div className="space-y-8">
@@ -296,6 +392,18 @@ export default async function StaffPage() {
           <Button variant="outline">戻る</Button>
         </Link>
       </div>
+
+      {authStatusMessage && (
+        <p
+          className={`border p-3 text-sm ${
+            authStatusMessage.success
+              ? 'border-green-200 bg-green-50 text-green-800'
+              : 'border-red-200 bg-red-50 text-red-700'
+          }`}
+        >
+          {authStatusMessage.message}
+        </p>
+      )}
 
       <section className="space-y-4 rounded-lg border bg-white p-4">
         <h3 className="text-lg font-semibold">スタッフを追加</h3>
@@ -340,10 +448,6 @@ export default async function StaffPage() {
             <Label htmlFor="new-staff-pin">PIN</Label>
             <Input id="new-staff-pin" name="pin" type="password" inputMode="numeric" placeholder="任意" />
           </div>
-          <div className="space-y-1 md:col-span-2">
-            <Label htmlFor="new-staff-auth">AuthユーザーID</Label>
-            <Input id="new-staff-auth" name="auth_user_id" placeholder="個人スマホ利用者のみ" />
-          </div>
           <div className="flex items-end">
             <Button type="submit">追加</Button>
           </div>
@@ -373,6 +477,10 @@ export default async function StaffPage() {
                 <TableCell className="min-w-[320px] whitespace-normal align-top">
                   <form action={updateStaff} className="grid gap-2">
                     <input type="hidden" name="staff_id" value={member.id} />
+                    <input type="hidden" name="default_store_id" value={member.default_store_id ?? ''} />
+                    <input type="hidden" name="hourly_wage" value={member.hourly_wage ?? ''} />
+                    <input type="hidden" name="phone" value={member.phone ?? ''} />
+                    <input type="hidden" name="email" value={member.email ?? ''} />
                     <div className="grid grid-cols-2 gap-2">
                       <Input name="name" defaultValue={member.name} required aria-label={`${member.name} 氏名`} />
                       <Input name="name_kana" defaultValue={member.name_kana ?? ''} placeholder="ふりがな" aria-label={`${member.name} ふりがな`} />
@@ -400,7 +508,6 @@ export default async function StaffPage() {
                     <input type="hidden" name="hourly_wage" value={member.hourly_wage ?? ''} />
                     <input type="hidden" name="phone" value={member.phone ?? ''} />
                     <input type="hidden" name="email" value={member.email ?? ''} />
-                    <input type="hidden" name="auth_user_id" value={member.auth_user_id ?? ''} />
                     <input type="hidden" name="joined_on" value={member.joined_on ?? ''} />
                     <input type="hidden" name="retired_on" value={member.retired_on ?? ''} />
                     <StoreSelect stores={storeRows} defaultValue={member.default_store_id} />
@@ -426,9 +533,31 @@ export default async function StaffPage() {
                     <Input name="email" type="email" defaultValue={member.email ?? ''} placeholder="メール" aria-label={`${member.name} メール`} />
                     <Input name="phone" defaultValue={member.phone ?? ''} placeholder="電話番号" aria-label={`${member.name} 電話番号`} />
                     <Input name="hourly_wage" type="number" min="0" defaultValue={member.hourly_wage ?? ''} placeholder="時給" aria-label={`${member.name} 時給`} />
-                    <Input name="auth_user_id" defaultValue={member.auth_user_id ?? ''} placeholder="AuthユーザーID" aria-label={`${member.name} AuthユーザーID`} />
                     <Button type="submit" variant="outline" size="sm">連絡先保存</Button>
                   </form>
+                  <div className="mt-3 space-y-2 border-t pt-3">
+                    <Badge variant={member.auth_user_id ? 'default' : 'outline'}>
+                      {member.auth_user_id ? 'スマホログイン設定済み' : '未招待'}
+                    </Badge>
+                    {!member.auth_user_id && member.is_active && member.email && (
+                      <form action={inviteStaffAuthUser}>
+                        <input type="hidden" name="staff_id" value={member.id} />
+                        <Button type="submit" size="sm">招待メール送信</Button>
+                      </form>
+                    )}
+                    {member.auth_user_id && member.is_active && member.email && (
+                      <form action={sendStaffPasswordReset}>
+                        <input type="hidden" name="staff_id" value={member.id} />
+                        <Button type="submit" variant="outline" size="sm">再設定メール送信</Button>
+                      </form>
+                    )}
+                    {!member.email && (
+                      <p className="text-xs text-amber-700">招待にはメール登録が必要です。</p>
+                    )}
+                    {!member.is_active && (
+                      <p className="text-xs text-gray-500">無効スタッフには送信できません。</p>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell className="min-w-[180px] whitespace-normal align-top">
                   <div className="space-y-2">

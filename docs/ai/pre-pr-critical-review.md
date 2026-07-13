@@ -15,6 +15,19 @@ PR 作成前の spec、security、reliability 観点のレビュー結果を記�
 - 残リスク:
 - 結論:
 
+## 2026-07-14 A-001スタッフAuth招待・初回設定・再設定
+
+- 対象: Issue #13のオーナー起点のAuth招待、安全なスタッフ紐付け、初回パスワード設定、再設定
+- 実施日: 2026-07-14
+- 実施者 / provider: Codex
+- 確認した文書・差分: Issue #13、`NEXT.md`、認証セッション、スタッフ管理画面、Auth操作サービス、初回設定画面、回帰テスト、運用文書
+- 実行した検証: Python 10件、Vitest 33件、policy check、lint、build、`git diff --check`、`/auth/staff-password` のデスクトップ/375px幅runtime smoke
+- Must: 0件。発見した重複確認クエリエラー時のfail-openを修正し、データ取得失敗時は招待を中止するテストを追加済み
+- Should: 0件。手動Auth UUIDを廃止し、他組織・他ロール・無効・重複・紐付け済みを拒否し、部分失敗の補償削除も検証済み
+- Nice: ステージング/本番反映前にSupabase AuthのRedirect URLsを設定し、実メールで初回設定・再設定を確認する
+- 残リスク: 本番運用作業は認可範囲外のため、Supabaseの許可URL設定と実メールのend-to-end確認は未実施。コードは無効・期限切れセッションをfail-closeする
+- 結論: PR作成可。本番Supabase設定、実メール送信、本番デプロイは本PRで行わない
+
 ## 2026-07-13 A-006/A-007
 
 - 対象: Performance Advisor最適化マイグレーション、自動テスト、CIゲート

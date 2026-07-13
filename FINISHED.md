@@ -10,6 +10,45 @@
 
 ---
 
+## A-001 スタッフAuth招待・初回設定・再設定
+
+- 実施日: 2026-07-14
+- 種別: 認証/アカウント運用
+
+### 実施内容
+
+- オーナーのスタッフ管理画面に招待メールとパスワード再設定メールの送信操作を追加。
+- Supabase Admin APIの招待応答IDだけを使い、同一組織の `staff` プロファイルとAuthユーザーを紐付けるサービスを追加。
+- 手動Auth UUID入力を廃止し、他組織・他ロール・無効・重複・紐付け済みを拒否。
+- 紐付け途中の失敗時は作成直後のAuthユーザーを削除する補償処理を追加。
+- `/auth/staff-password` で招待受諾・再設定セッションを検証し、パスワード更新後はローカルセッションを破棄して再ログインさせるようにした。
+- 招待と受け入れ先を別PRにする行き止まりリスクを避けるため、Issue #13の3工程を1PRへ統合。
+
+### 確認内容
+
+- スタッフAuthの通常・拒否・補償処理と、期限切れ/再利用時に有効セッションを要求する回帰テストを追加。
+- `npm test`、`npm run lint`、`npm run build`、policy/Python回帰テスト、`git diff --check` をPR前に実行する。
+- `.env.local` の値は読み取り・表示していない。
+
+### 残作業
+
+- ステージング/本番反映前にSupabase AuthのRedirect URLsへ `/auth/staff-password` を追加し、実メールの初回設定・再設定を確認する。
+
+### 影響ファイル
+
+- `src/lib/auth/staff-auth.ts`
+- `src/lib/auth/staff-auth.test.ts`
+- `src/app/(authenticated)/owner/staff/page.tsx`
+- `src/app/auth/staff-password/page.tsx`
+- `src/lib/auth/session.ts`
+- `NEXT.md`
+- `CHANGELOG.md`
+- `docs/implementation-decisions.md`
+- `docs/operations-maintenance.md`
+- `docs/ai/decision-ledger.md`
+- `docs/ai/execution-ledger.md`
+- `docs/ai/pre-pr-critical-review.md`
+
 ## PLAN-20260714 計画・GitHub Issue・外部API契約の整合
 
 - 実施日: 2026-07-14
