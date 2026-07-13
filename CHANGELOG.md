@@ -5,6 +5,30 @@
 
 ---
 
+## [2026-07-13] Performance Advisor最適化を本番適用
+
+### 変更
+- PR #10とPR #11を `main` へマージし、計画整合、Performance Advisor最適化、自動テスト・CIゲートを反映。
+- `202607130002_performance_advisor_optimization.sql` を本番Supabaseへ適用。
+- A-006とA-007を完了へ更新し、次の着手対象をA-001のスタッフAuth運用へ移行。
+- 外部API Phase 1の受入条件と品質ゲート成功を根拠に、GitHub Issue #2〜#4へ完了コメントを追加してクローズ。
+
+### 確認
+- 未最適化の直接 `auth.uid()` ポリシー0件、追加対象索引の不足0件、`public` ポリシー69件を確認。
+- オーナー、店長、社労士、スタッフの `authenticated` RLS読み取りが成功。スタッフfixtureはトランザクション内だけで作成し、ロールバック後に残存0件を確認。
+- Performance Advisor再実行後はErrors 0、Warnings 0、Info 42。Infoはすべて未使用の非制約インデックスで、30日以上の通常運用後に再評価する。
+- `.env.local` の値は読み取り・表示していない。
+
+### 影響ファイル
+- `NEXT.md`
+- `FINISHED.md`
+- `docs/supabase-setup.md`
+- `docs/supabase-performance-advisor.md`
+- `docs/ai/execution-ledger.md`
+- `docs/ai/decision-ledger.md`
+- `docs/ai/pre-pr-critical-review.md`
+- `CHANGELOG.md`
+
 ## [2026-07-13] Performance Advisor最適化と自動テスト・CIゲートを追加
 
 ### 変更
