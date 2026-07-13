@@ -1,0 +1,101 @@
+schema_version: 1
+purpose: >
+  有効コンテキストを小さく決定的に保つ。エージェントは既定で全履歴文書を読まない。
+  勤怠管理アプリでは、計画・実行キューの正本は NEXT.md ではなく NEXT.md とする。
+
+always_read:
+  - ai/command-router.yml
+  - ai/operation-policy.yml
+  - ai/capability-registry.yml
+  - ai/context-index.yml
+
+modes:
+  revise_and_enqueue:
+    required:
+      - ai/sdd-policy.yml
+      - ai/coherence-workflow.yml
+      - NEXT.md
+      - README.md
+      - SECURITY.md
+      - docs/ai/expectation-ledger.md
+    conditional:
+      - docs/database-design.md
+      - docs/implementation-decisions.md
+      - docs/operations-maintenance.md
+      - docs/integrations/attendance-api-spec.md
+
+  promote_backlog_to_current_queue:
+    required:
+      - ai/sdd-policy.yml
+      - ai/coherence-workflow.yml
+      - NEXT.md
+    conditional:
+      - README.md
+      - SECURITY.md
+      - docs/integrations/attendance-api-spec.md
+
+  execute_current_queue:
+    required:
+      - ai/sdd-policy.yml
+      - ai/coherence-workflow.yml
+      - ai/pre-pr-review-policy.yml
+      - .github/instructions/review-loop.instructions.md
+      - .github/PULL_REQUEST_TEMPLATE.md
+      - NEXT.md
+      - SECURITY.md
+      - docs/ai/execution-ledger.md
+    conditional:
+      - CHANGELOG.md
+      - FINISHED.md
+    task_specific:
+      - docs/database-design.md#<relevant-section>
+      - docs/supabase-setup.md#<relevant-section>
+      - docs/line-setup.md#<relevant-section>
+      - docs/operations-maintenance.md#<relevant-section>
+      - docs/integrations/attendance-api-spec.md#<relevant-section>
+
+  shogun_dispatch:
+    required:
+      - ai/coherence-workflow.yml
+      - NEXT.md
+      - docs/orchestration.md
+      # 入口プロトコル正本と lease 記録は dispatch の挙動を規定するため required（実在済み）
+      - .github/agents/orchestrator.agent.md
+      - docs/ai/decision-ledger.md
+      # Shogun 運用モデルの運用正本・安全境界（required）
+      - SECURITY.md
+      # 実作業を伴う dispatch の SDD 鎖の正本（coherence chain 宣言と読込範囲の整合）
+      - ai/sdd-policy.yml
+    conditional:
+      # 実作業を伴う dispatch は ai/sdd-policy.yml の coherence chain に従い、該当正本の関連節を必読とする
+      - README.md
+      - CHANGELOG.md
+      - FINISHED.md
+      - docs/database-design.md
+      - docs/supabase-setup.md
+      - docs/line-setup.md
+      - docs/operations-maintenance.md
+      - docs/integrations/attendance-api-spec.md
+
+  governance_change:
+    required:
+      - ai/document-governance.yml
+      - ai/sdd-policy.yml
+      - AGENTS.md
+      - SECURITY.md
+      - NEXT.md
+    inventory_targets:
+      - AGENTS.md
+      - CLAUDE.md
+      - .github/**/*.md
+      - .claude/**/*.md
+      - docs/**/*.md
+      - ai/**/*.yml
+
+never_read_by_default:
+  - docs/archive/**
+  - docs/research/**
+  - outputs/**
+  - data/**
+  - operator-only/**
+  - prompts/**

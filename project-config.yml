@@ -1,0 +1,92 @@
+# AI 開発テンプレート導入設定
+# 注意: この既存 Next.js アプリでは scripts/bootstrap.sh をそのまま実行しない。
+# テンプレート更新や harness 設定の参照用として管理する。
+
+project:
+  name: "attendance-app"
+  display_name: "勤怠管理アプリ"
+  description: "店舗スタッフの勤怠、シフト、申請、LINE連携、外部APIを扱う Next.js アプリ"
+  purpose: "店舗スタッフと管理者が安全に勤怠情報を記録・確認し、日報管理アプリへ読み取り専用で出退勤データを連携できる状態を作る"
+  scope_in: |
+    - 店舗iPad打刻
+    - 個人スマホGPS打刻
+    - 店長、オーナー、社労士向け管理画面
+    - シフト、申請、通知、LINE導線
+    - Supabase PostgreSQL を前提にしたDB設計と migration
+    - 日報管理アプリ向け読み取り専用外部API
+  scope_out: |
+    - LINE上での直接打刻
+    - 勤怠アプリ以外を出退勤データの正本にする設計
+    - 秘密情報や実データのリポジトリ管理
+  owner: "weimaraner69-crypto"
+
+toolchain:
+  language: "typescript"
+  version: "20"
+  package_manager: "npm"
+  linter: "npm run lint"
+  formatter: ""
+  type_checker: "npm run build"
+  test_runner: "npm run build"
+  run_prefix: "npm run"
+
+source:
+  src_dir: "src"
+  package_name: "attendance-app"
+  modules:
+    - name: "app"
+      description: "Next.js App Router のページ、レイアウト、API routes"
+    - name: "components"
+      description: "画面部品と UI コンポーネント"
+    - name: "lib"
+      description: "認証、Supabase、勤怠、LINE、外部API、通知、レポート処理"
+    - name: "stores"
+      description: "Zustand store"
+    - name: "types"
+      description: "アプリ全体の型定義"
+    - name: "supabase/migrations"
+      description: "Supabase PostgreSQL migration"
+
+roadmap:
+  phases:
+    - id: 0
+      name: "Foundation"
+      goal: "DB設計、認証、基本画面、秘密情報運用を安定させる"
+      duration: "完了済みの作業は FINISHED.md を参照"
+    - id: 1
+      name: "Operational MVP"
+      goal: "実運用に必要な打刻、管理、LINE導線、外部APIの主要経路を完成させる"
+      duration: "NEXT.md に従う"
+    - id: 2
+      name: "Hardening"
+      goal: "監査、権限、通知、運用保守、復旧手順を強化する"
+      duration: "NEXT.md に従う"
+
+policies:
+  forbidden_imports: []
+  forbidden_patterns: []
+  custom:
+    - "`.env.local` の値を読まない、表示しない、転記しない"
+    - "秘密情報へのアクセスは事前許可制"
+    - "LINEでは直接打刻せず、GPS付きWeb打刻URLへ誘導する"
+    - "勤怠アプリを出退勤データの正本にする"
+    - "意味のある変更は NEXT.md / CHANGELOG.md / FINISHED.md / 関連 docs へ反映する"
+
+github:
+  labels:
+    - { name: "epic", color: "7928a1", description: "Epic" }
+    - { name: "task", color: "e4e669", description: "Task" }
+    - { name: "bug", color: "d73a4a", description: "Bug" }
+    - { name: "security", color: "b60205", description: "Security-sensitive" }
+    - { name: "supabase", color: "3ecf8e", description: "Supabase / database" }
+    - { name: "line", color: "06c755", description: "LINE integration" }
+    - { name: "external-api", color: "0052cc", description: "Daily-report integration API" }
+    - { name: "priority:high", color: "b60205", description: "高優先度" }
+    - { name: "priority:medium", color: "fbca04", description: "中優先度" }
+    - { name: "priority:low", color: "0e8a16", description: "低優先度" }
+  project_name: "勤怠管理アプリ開発ロードマップ"
+
+ai_models:
+  default: ""
+  overrides: {}
+
