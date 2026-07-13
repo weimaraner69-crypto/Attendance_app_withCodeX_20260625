@@ -60,10 +60,12 @@
 - 補足: 2026-06-25時点で、この環境には Supabase CLI は未インストール。
 - 2026-07-09: Supabase Advisor Warning 対応用に `supabase/migrations/202607090001_supabase_advisor_warnings.sql` を作成済み。
 - 2026-07-09: Security Advisor に残ったRLS補助関数の公開Warning対応用に、関数をData API非公開の `private` スキーマへ移す `supabase/migrations/202607090002_security_advisor_function_execute.sql` を作成済み。
-- 未完了: Supabase SQL Editor で `202607090002_security_advisor_function_execute.sql` を適用し、Security Advisor を再実行する。
-- 未完了: 適用後にRLS補助関数3件の配置・権限を確認し、オーナー、店長、社労士の認証済み画面でRLS付き読み取りが成功することを確認する。
-- 未完了: Dashboard の Authentication 設定で、Proプラン以上なら `Leaked Password Protection Disabled` を有効化する。現在のプランで利用できない場合は、アップグレードが必要な残リスクとして記録する。
-- 完了条件: Advisorを再実行し、解消可能なWarningが0件であることを確認する。RLS評価に必要な `authenticated` 権限またはプラン制約によるWarningが残る場合は、安全性・機能確認の証跡と判断理由を記録する。
+- 2026-07-13: 上記2マイグレーションを本番プロジェクトのSQL Editorで適用済み。
+- 2026-07-13: RLS補助関数3件が `private` にあり、`anon_execute=false`、`authenticated_execute=true` であることを確認済み。
+- 2026-07-13: 実在するオーナー、店長、社労士の各プロフィールを使ったロール別SQLスモークテストで、ロール判定、組織解決、組織・勤怠レコードのRLS付き読み取りがすべて成功することを確認済み。テストはトランザクション内で実施し、結果確認後にロールバックした。
+- 2026-07-13: Security Advisor再実行後はErrors 0、Warnings 1、Info 0。解消可能なDB Warningは0件で、残件はFreeプランでは有効化できない `Leaked Password Protection Disabled` のみ。
+- 残リスク: 漏洩パスワード保護を有効化するにはSupabase Pro以上へのアップグレードが必要。アップグレード時に有効化してSecurity Advisorを再実行する。
+- 完了条件: Security Advisorの解消可能なWarningが0件で、RLS機能確認とプラン制約の記録があること。2026-07-13達成済み。
 
 ## A: 実装基盤
 
@@ -154,6 +156,15 @@
 - `POST /api/attendance/stamp` と打刻処理ユーティリティを実装済み。
 - 店舗iPadは `kiosk_device_id` とPINを検証し、個人スマホはログインユーザーとGPS距離を検証する。
 - 画面接続と店舗iPad/個人スマホ別UIは `B-001` で実施する。
+
+### A-006 Supabase Performance Advisor最適化
+
+- 2026-07-13の再実行結果はErrors 0、Warnings 73、Info 45。
+- Warningでは `Auth RLS Initialization Plan` と `Multiple Permissive Policies`、Infoでは未索引外部キーと未使用インデックスが確認されている。
+- AdvisorのExportまたはPostgreSQLカタログクエリで全指摘を一覧化し、テーブル、ポリシー、操作単位で重複を整理する。
+- RLSポリシーの意味と権限境界を変えない形で、`auth.uid()` や補助関数の初期化プラン化、重複permissiveポリシーの統合、必要な外部キー索引の追加を別マイグレーションとして実装する。
+- 未使用インデックスは本番トラフィックの観測期間を設け、外部キー制約、ユニーク制約、主要クエリを確認してから削除可否を判断する。
+- 完了条件: 全73 Warningと45 Infoの対応判断が記録され、採用した変更に回帰確認があり、Performance Advisorを再実行して残件と保留理由を記録する。
 
 ## B: 業務機能
 

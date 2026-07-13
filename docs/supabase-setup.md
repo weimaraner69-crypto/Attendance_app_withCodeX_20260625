@@ -92,6 +92,14 @@ order by procedure.proname;
 
 `Leaked Password Protection Disabled` はSQLではなくDashboard設定です。漏洩パスワード保護はProプラン以上で利用できるため、利用可能な場合はSupabase Dashboard の Authentication 設定で有効化し、Security Advisor を再実行します。現在のプランで利用できない場合は、アップグレードが必要な残リスクとして記録します。
 
+### 2026-07-13 本番適用記録
+
+- 上記2マイグレーションを本番プロジェクトへ適用済み。
+- RLS補助関数3件は `private` にあり、`anon_execute=false`、`authenticated_execute=true` を確認済み。
+- 未所属ユーザーと、実在するオーナー、店長、社労士を模擬したトランザクション内SQLスモークテストで、期待するRLS付き読み取りを確認済み。テストで使用した識別子やデータ件数は記録していない。
+- Security Advisor再実行後はErrors 0、Warnings 1、Info 0。残件はFreeプランでは有効化できない `Leaked Password Protection Disabled` のみ。
+- Performance Advisor再実行後はErrors 0、Warnings 73、Info 45。Security Advisor対応とは分離し、`NEXT.md` の `A-006` で精査する。
+
 ## 4. 接続確認
 
 開発サーバーを起動します。

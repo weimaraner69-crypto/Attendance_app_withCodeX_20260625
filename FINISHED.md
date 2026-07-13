@@ -10,6 +10,42 @@
 
 ---
 
+## S-004-Advisor Supabase本番適用・Security Advisor再検証
+
+- 実装日: 2026-07-13
+- 種別: DB運用/Supabase Security Advisor対応
+
+### 実装内容
+
+- 本番プロジェクトのSQL Editorで `202607090001_supabase_advisor_warnings.sql` と `202607090002_security_advisor_function_execute.sql` を順に適用。
+- RLS補助関数3件をData API非公開の `private` スキーマへ移し、`PUBLIC` / `anon` の実行権限を外した状態を本番DBへ反映。
+- Security AdvisorとPerformance Advisorを再実行し、現在の指摘件数を確認。
+
+### 確認内容
+
+- 2マイグレーションはいずれも `Success. No rows returned` で完了。
+- 権限確認クエリは3行を返し、全関数で `function_schema=private`、`anon_execute=false`、`authenticated_execute=true` を確認。
+- 未所属のダミー認証ユーザーでは組織・勤怠レコードが0件、補助関数が組織/ロールなし、未知店舗へのアクセス不可となり、権限エラーが発生しないことを確認。
+- 実在するオーナー、店長、社労士を個別に模擬したトランザクション内スモークテストで、ロール判定、組織解決、組織・勤怠レコードのRLS付き読み取りがすべて成功。各テストは結果確認後にロールバック。
+- Security Advisor再実行後はErrors 0、Warnings 1、Info 0。残件は `Leaked Password Protection Disabled` のみ。
+- 現在のOrganizationはFreeプランのため、Pro以上で利用できる漏洩パスワード保護は未有効化。アップグレードが必要な残リスクとして記録。
+- Performance Advisor再実行後はErrors 0、Warnings 73、Info 45。Security Advisor対応とは分離し、`NEXT.md` の `A-006` として全件精査を継続する。
+- `.env.local` の値は読み取り・表示していない。
+
+### 残作業
+
+- Supabase Pro以上へアップグレードする場合、漏洩パスワード保護を有効化してSecurity Advisorを再実行する。
+- Performance Advisorの残件は `A-006 Supabase Performance Advisor最適化` で対応判断する。
+
+### 影響ファイル
+
+- `supabase/migrations/202607090001_supabase_advisor_warnings.sql`
+- `supabase/migrations/202607090002_security_advisor_function_execute.sql`
+- `docs/supabase-setup.md`
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+
 ## S-004-Advisor Security Advisor 関数実行権限Warning対応
 
 - 実装日: 2026-07-09

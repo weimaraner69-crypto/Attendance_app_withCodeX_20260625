@@ -5,6 +5,26 @@
 
 ---
 
+## [2026-07-13] Supabase Advisor対応を本番適用・再検証
+
+### 実施
+- `202607090001_supabase_advisor_warnings.sql` と `202607090002_security_advisor_function_execute.sql` を本番Supabaseへ適用。
+- RLS補助関数3件の配置と実行権限を確認し、ロール別のRLS読み取りをトランザクション内で検証。
+- Security AdvisorとPerformance Advisorを再実行し、残件を運用記録へ反映。
+
+### 確認
+- RLS補助関数はすべて `private` にあり、`anon` は実行不可、`authenticated` はRLS評価用に実行可能。
+- オーナー、店長、社労士の各ロールで、ロール判定、組織解決、組織・勤怠レコードのRLS付き読み取りが成功。
+- Security AdvisorはErrors 0、Warnings 1、Info 0。残件はFreeプランでは有効化できない `Leaked Password Protection Disabled` のみ。
+- Performance AdvisorはErrors 0、Warnings 73、Info 45。別作業 `A-006` として精査・最適化する。
+- `.env.local` の値は読み取り・表示していない。
+
+### 影響ファイル
+- `docs/supabase-setup.md`
+- `NEXT.md`
+- `FINISHED.md`
+- `CHANGELOG.md`
+
 ## [2026-07-09] Security Advisor の関数実行権限Warning対応を追加
 
 ### 実施
