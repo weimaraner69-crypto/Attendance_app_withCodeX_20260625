@@ -21,12 +21,23 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 # スキャン対象ディレクトリ（プロジェクトに合わせて変更）
 SCAN_DIRS = [
+    REPO_ROOT / "ai",
+    REPO_ROOT / ".cursor",
     REPO_ROOT / "src",
     REPO_ROOT / "scripts",
     REPO_ROOT / "docs",
     REPO_ROOT / ".github",
     REPO_ROOT / "ci",
     REPO_ROOT / "supabase",
+]
+
+# ルート直下の入口・運用設定。`.env.local` のようなローカル設定は含めない。
+ROOT_SCAN_FILES = [
+    REPO_ROOT / "AGENTS.md",
+    REPO_ROOT / "CLAUDE.md",
+    REPO_ROOT / "README.md",
+    REPO_ROOT / "SECURITY.md",
+    REPO_ROOT / "project-config.yml",
 ]
 
 # コードとして扱う拡張子
@@ -51,7 +62,11 @@ SCAN_EXTENSIONS = CODE_EXTENSIONS | {
     ".md",
     ".json",
     ".sh",
+    ".mdc",
 }
+
+# URL 直書きも検査する拡張子。AI 運用設定と Cursor ルールを含める。
+URL_SCAN_EXTENSIONS = CODE_EXTENSIONS | {".yml", ".yaml", ".mdc"}
 
 # スキップするディレクトリ名
 SKIP_DIR_NAMES = {
@@ -107,7 +122,7 @@ URL_ALLOWLIST_PATTERNS: list[str] = [
     r"json-schema\.org",
     r"astral\.sh",
     r"opentelemetry\.io",
-    # AI レビュー実行体（scripts/run_ai_review.py）が使う公式 API エンドポイント
+    # AI provider の公式 API エンドポイント
     r"api\.openai\.com",
     r"api\.anthropic\.com",
     r"api\.line\.me",
@@ -170,6 +185,11 @@ def is_code_file(path: Path) -> bool:
     return path.suffix.lower() in CODE_EXTENSIONS
 
 
+def is_url_scanned_file(path: Path) -> bool:
+    """URL 直書きの検査対象か判定する。"""
+    return path.suffix.lower() in URL_SCAN_EXTENSIONS
+
+
 def is_comment_line(line: str, suffix: str) -> bool:
     """コメント行か判定する。"""
     stripped = line.lstrip()
@@ -199,8 +219,8 @@ def scan_file(path: Path) -> list[str]:
             if re.search(pat, text, flags=re.MULTILINE):
                 issues.append(f"禁止操作疑い: 禁止import検出 ({pat}) in {rel}")
 
-    # URL 直書き（コードファイルのみ — コメント行は除外）
-    if is_code_file(path):
+    # URL 直書き（コードコメント行は除外）
+    if is_url_scanned_file(path):
         for lineno, line in enumerate(text.splitlines(), start=1):
             if is_comment_line(line, suffix):
                 continue
@@ -254,6 +274,13 @@ def main() -> int:
             if path.suffix.lower() not in SCAN_EXTENSIONS:
                 continue
             issues.extend(scan_file(path))
+
+    for path in ROOT_SCAN_FILES:
+        if not path.is_file():
+            continue
+        if is_skipped_file(path):
+            continue
+        issues.extend(scan_file(path))
 
     if issues:
         print("[policy_check] FAILED")

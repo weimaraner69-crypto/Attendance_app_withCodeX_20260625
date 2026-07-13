@@ -22,7 +22,7 @@ project:
 
 toolchain:
   language: "typescript"
-  version: "20"
+  node_version: "20"
   package_manager: "npm"
   linter: "npm run lint"
   formatter: ""
@@ -89,4 +89,3 @@ github:
 ai_models:
   default: ""
   overrides: {}
-
