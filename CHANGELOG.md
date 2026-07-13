@@ -5,6 +5,25 @@
 
 ---
 
+## [2026-07-13] 日報連携保留後の実行計画を再構成
+
+### 変更
+- 日報管理アプリ側が本番運用準備を優先しているため、APIキー設定、マッピング、勤怠取り込み、実接続確認を日報側 `A-005` のNext昇格まで保留。
+- 勤怠側で単独実行できる作業を、計画整合、Performance Advisor・テスト、スタッフ認証、外部API運用強化、LINE運用の順に再構成。
+- スタッフのメール/パスワードログインと `/stamp/mobile` の認証必須化は実装済みとしてA-001を更新し、残作業を招待、Auth紐付け、パスワード再設定へ限定。
+- `A-007 自動テスト・CI強化` を追加し、既存のAdvisorマイグレーションテスト、TypeScriptテスト、外部API契約、打刻・認証の回帰確認を実行対象にした。
+- 勤怠側の外部API仕様書を契約の正本とし、日報側の初期仕様との差分を接続再開前に同期する方針を明記。
+- 今回の複数PR実行とレビュー反復の認可範囲をdecision/execution ledgerへ記録。
+
+### 影響ファイル
+- `NEXT.md`
+- `README.md`
+- `docs/integrations/attendance-api-spec.md`
+- `docs/ai/decision-ledger.md`
+- `docs/ai/execution-ledger.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+
 ## [2026-07-13] Supabase Advisor対応のCopilotレビュー指摘を修正
 
 ### 修正
