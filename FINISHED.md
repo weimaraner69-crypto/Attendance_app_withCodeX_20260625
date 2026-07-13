@@ -10,6 +10,76 @@
 
 ---
 
+## S-004-Advisor Security Advisor 関数実行権限Warning対応
+
+- 実装日: 2026-07-09
+- 種別: DB運用/Supabase Security Advisor対応
+
+### 実装内容
+
+- Security Advisor に残ったRLS補助関数の直接実行権限Warning 6件へ対応する追加マイグレーションを作成。
+- `current_user_organization_id()`、`current_user_role()`、`can_access_store(uuid)` をData API非公開の `private` スキーマへ移すSQLを追加。
+- RLS評価を壊さないよう、`PUBLIC` / `anon` の実行権限を外し、`authenticated` に必要最小限の `USAGE` / `EXECUTE` を付与する。
+- SQL全体をトランザクション化し、途中失敗時は権限変更をロールバックする。
+- `Leaked Password Protection Disabled` はSQLではなくDashboardのAuthentication設定で対応する項目として、手順書とNEXTへ残作業を記録。
+
+### 確認内容
+
+- スクリーンショットで残WarningがSecurity Advisor 7件であることを確認。
+- `.env.local` の値は読み取り・表示していない。
+
+### 残作業
+
+- Supabase SQL Editor で `supabase/migrations/202607090002_security_advisor_function_execute.sql` を適用する。
+- RLS補助関数3件が `private` にあり、`anon` は実行不可、`authenticated` はRLS評価用に実行可能であることを確認する。
+- オーナー、店長、社労士の認証済み画面でRLS付き読み取りが成功することを確認する。
+- Security Advisor を再実行し、関数のData API公開Warningが解消されたことを確認する。RLS評価に必要な `authenticated` 権限が警告される場合は、安全性・機能確認の証跡と判断理由を記録する。
+- Supabase Dashboard の Authentication 設定で、Proプラン以上なら漏洩パスワード保護を有効化する。利用できない場合はアップグレードが必要な残リスクとして記録する。
+
+### 影響ファイル
+
+- `supabase/migrations/202607090002_security_advisor_function_execute.sql`
+- `docs/supabase-setup.md`
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+
+## S-004-Advisor Supabase Advisor Warning 対応マイグレーション作成
+
+- 実装日: 2026-07-09
+- 種別: DB運用/Supabase Advisor対応
+
+### 実装内容
+
+- Supabase Dashboard で出ている8件のWarning対応として、追加マイグレーションを作成。
+- `public.set_updated_at()` の `search_path` を固定。
+- service role専用の `external_api_keys`、`line_link_tokens`、`user_login_pins` に、ブラウザクライアントへ権限を付与しない明示denyポリシーを追加。対象テーブルやポリシーがすでに存在する場合はスキップする。
+- denyポリシーを `RESTRICTIVE` とし、将来のpermissiveポリシー追加でもクライアントアクセスを許可しないようにした。
+- 外部キー参照列の補助インデックスを追加。
+- `pgcrypto` 拡張を `extensions` スキーマへ移動する処理を追加。
+- SQL全体をトランザクション化し、途中失敗時は全変更をロールバックする。
+- `docs/supabase-setup.md` に適用後のAdvisor再実行手順を追記。
+
+### 確認内容
+
+- SQLは既存データを更新せず、関数定義、ポリシー、インデックス、拡張スキーマだけを変更する内容として確認。
+- `.env.local` の値は読み取り・表示していない。
+- この環境には Supabase CLI がないため、実DBへの適用とAdvisor再実行は未実施。
+
+### 残作業
+
+- Supabase SQL Editor で `supabase/migrations/202607090001_supabase_advisor_warnings.sql` を適用する。
+- Database Advisor / Security Advisor を再実行し、8件のWarningが解消されたことを確認する。
+- Dashboard側にAuth設定系Warningが残る場合は、利用可能な設定を調整する。プラン制約がある場合は残リスクとして記録する。
+
+### 影響ファイル
+
+- `supabase/migrations/202607090001_supabase_advisor_warnings.sql`
+- `docs/supabase-setup.md`
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+
 ## A-001-PIN 管理ユーザーの6時間PIN再ログイン（コード実装）
 
 - 実装日: 2026-07-02

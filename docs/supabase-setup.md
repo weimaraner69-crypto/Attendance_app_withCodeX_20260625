@@ -56,6 +56,42 @@ supabase/migrations/202606250001_initial_attendance_schema.sql
 
 追加マイグレーションもファイルの内容だけを SQL Editor へ貼り付けて実行します。ローカルのファイルパス自体をSQLとして実行しないでください。
 
+Supabase Advisor の Warning 対応は、次のマイグレーションを適用してから Dashboard の Database Advisor / Security Advisor を再実行します。
+
+```text
+supabase/migrations/202607090001_supabase_advisor_warnings.sql
+supabase/migrations/202607090002_security_advisor_function_execute.sql
+```
+
+このマイグレーションは、関数の `search_path` 固定、service role専用テーブルの明示的なクライアント拒否ポリシー、外部キー参照列の補助インデックス、`pgcrypto` 拡張の `extensions` スキーマ配置を扱います。機能別マイグレーションが未適用で対象テーブルが存在しない場合、そのテーブル向けのポリシーだけをスキップします。
+
+`Public Can Execute SECURITY DEFINER Function` と `Signed-In Users Can Execute SECURITY DEFINER Function` が残る場合は、`202607090002_security_advisor_function_execute.sql` を適用します。RLS補助関数をData API非公開の `private` スキーマへ移し、`PUBLIC` / `anon` の実行権限を外します。RLSポリシーの評価に必要なため、`authenticated` には `private` スキーマの `USAGE` と対象関数の `EXECUTE` だけを付与します。
+
+適用後は、次の値を表示しない権限確認クエリで、3関数が `private` にあり、`anon_execute=false`、`authenticated_execute=true` であることを確認します。
+
+```sql
+select
+  namespace.nspname as function_schema,
+  procedure.proname as function_name,
+  has_function_privilege('anon', procedure.oid, 'execute') as anon_execute,
+  has_function_privilege('authenticated', procedure.oid, 'execute') as authenticated_execute
+from pg_proc procedure
+join pg_namespace namespace on namespace.oid = procedure.pronamespace
+where namespace.nspname = 'private'
+  and procedure.proname in (
+    'current_user_organization_id',
+    'current_user_role',
+    'can_access_store'
+  )
+order by procedure.proname;
+```
+
+続けてオーナー、店長、社労士の認証済み画面を開き、既存のRLS付き読み取りが権限エラーにならないことを確認してからAdvisorを再実行します。
+
+`private` への移動後も `authenticated` の実行権限自体が警告される場合、その権限はRLS評価に必要なため削除しません。`private` がData APIのExposed schemasに含まれていないことを確認し、残警告と判断理由を `NEXT.md` / `FINISHED.md` / `CHANGELOG.md` に記録します。
+
+`Leaked Password Protection Disabled` はSQLではなくDashboard設定です。漏洩パスワード保護はProプラン以上で利用できるため、利用可能な場合はSupabase Dashboard の Authentication 設定で有効化し、Security Advisor を再実行します。現在のプランで利用できない場合は、アップグレードが必要な残リスクとして記録します。
+
 ## 4. 接続確認
 
 開発サーバーを起動します。

@@ -5,6 +5,50 @@
 
 ---
 
+## [2026-07-09] Security Advisor の関数実行権限Warning対応を追加
+
+### 実施
+- Security Advisor に残った `Public Can Execute SECURITY DEFINER Function` / `Signed-In Users Can Execute SECURITY DEFINER Function` 6件への対応として、追加マイグレーション `202607090002_security_advisor_function_execute.sql` を作成。
+- RLS補助関数 `current_user_organization_id()`、`current_user_role()`、`can_access_store(uuid)` をData API非公開の `private` スキーマへ移すSQLを追加。
+- `PUBLIC` / `anon` の実行権限を外し、RLS評価に必要な `authenticated` の `USAGE` / `EXECUTE` だけを付与する構成にした。
+- SQL全体をトランザクション化し、途中失敗時に権限変更だけが残らないようにした。
+- `Leaked Password Protection Disabled` はDashboardのAuthentication設定で対応する項目として手順書とNEXTへ記録。Proプラン以上の機能であるため、利用できない場合はアップグレードが必要な残リスクとして扱う。
+
+### 確認
+- スクリーンショットで残WarningがSecurity Advisor 7件であることを確認。
+- `.env.local` の値は読み取り・表示していない。
+
+### 影響ファイル
+- `supabase/migrations/202607090002_security_advisor_function_execute.sql`
+- `docs/supabase-setup.md`
+- `NEXT.md`
+- `FINISHED.md`
+- `CHANGELOG.md`
+
+## [2026-07-09] Supabase Advisor Warning 対応マイグレーションを追加
+
+### 実施
+- Supabase Dashboard 上の8件のWarning対応として、追加マイグレーション `202607090001_supabase_advisor_warnings.sql` を作成。
+- `public.set_updated_at()` に `search_path = public, pg_catalog` を明示。
+- `external_api_keys`、`line_link_tokens`、`user_login_pins` に、ブラウザクライアントへ権限を付与しない明示的なdenyポリシーを追加。対象テーブルやポリシーがすでに存在する場合はスキップする。
+- server-onlyテーブルのdenyポリシーを `RESTRICTIVE` とし、将来permissiveポリシーが追加されてもクライアントアクセスを許可しない構成にした。
+- 外部キー参照列の補助インデックスを追加し、削除・更新時の参照確認と関連JOINを軽くするよう整理。
+- `pgcrypto` 拡張を `extensions` スキーマへ移動する処理を追加。
+- SQL全体をトランザクション化し、途中失敗時に部分適用を残さないようにした。
+- Supabase手順書へAdvisor対応マイグレーションの適用・再確認手順を追加。
+
+### 確認
+- SQLは既存データを更新せず、関数定義、ポリシー、インデックス、拡張スキーマだけを変更する内容として確認。
+- `.env.local` の値は読み取り・表示していない。
+- この環境には Supabase CLI がないため、実DBへの適用とAdvisor再実行は未実施。
+
+### 影響ファイル
+- `supabase/migrations/202607090001_supabase_advisor_warnings.sql`
+- `docs/supabase-setup.md`
+- `NEXT.md`
+- `FINISHED.md`
+- `CHANGELOG.md`
+
 ## [2026-07-02] ロール選択メニューの透過表示を修正
 
 ### 修正

@@ -58,6 +58,12 @@
 - Supabase Secret key / Service role key は 2026-06-27 にローテーション済み。
 - `.env.local` の値は表示せず、必要なアクセスは事前にユーザー確認を行う。詳細は [SECURITY.md](SECURITY.md) を参照する。
 - 補足: 2026-06-25時点で、この環境には Supabase CLI は未インストール。
+- 2026-07-09: Supabase Advisor Warning 対応用に `supabase/migrations/202607090001_supabase_advisor_warnings.sql` を作成済み。
+- 2026-07-09: Security Advisor に残ったRLS補助関数の公開Warning対応用に、関数をData API非公開の `private` スキーマへ移す `supabase/migrations/202607090002_security_advisor_function_execute.sql` を作成済み。
+- 未完了: Supabase SQL Editor で `202607090002_security_advisor_function_execute.sql` を適用し、Security Advisor を再実行する。
+- 未完了: 適用後にRLS補助関数3件の配置・権限を確認し、オーナー、店長、社労士の認証済み画面でRLS付き読み取りが成功することを確認する。
+- 未完了: Dashboard の Authentication 設定で、Proプラン以上なら `Leaked Password Protection Disabled` を有効化する。現在のプランで利用できない場合は、アップグレードが必要な残リスクとして記録する。
+- 完了条件: Advisorを再実行し、解消可能なWarningが0件であることを確認する。RLS評価に必要な `authenticated` 権限またはプラン制約によるWarningが残る場合は、安全性・機能確認の証跡と判断理由を記録する。
 
 ## A: 実装基盤
 
