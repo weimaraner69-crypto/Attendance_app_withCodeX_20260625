@@ -1,0 +1,216 @@
+{
+  "summary": "Round 3 Codex repo-aware fallback review after Copilot quota failure. Fail-close: two blocking authentication findings remain. Non-blocking follow-ups are tracked in GitHub Issue #16.",
+  "provider": "codex",
+  "pull_request": 15,
+  "head_sha": "865e4d84f2e7f0cfc120bb8838db13e7b0fff4b6",
+  "repository_context_mode": "related_context",
+  "diff_only_reason": "",
+  "changed_files": [
+    "CHANGELOG.md",
+    "FINISHED.md",
+    "NEXT.md",
+    "docs/ai/decision-ledger.md",
+    "docs/ai/execution-ledger.md",
+    "docs/ai/pre-pr-critical-review.md",
+    "docs/implementation-decisions.md",
+    "docs/operations-maintenance.md",
+    "src/app/(authenticated)/owner/audit-logs/page.tsx",
+    "src/app/(authenticated)/owner/sr-accounts/page.tsx",
+    "src/app/(authenticated)/owner/staff/page.tsx",
+    "src/app/(authenticated)/owner/stores/page.tsx",
+    "src/app/(manager)/manager/[storeId]/page.tsx",
+    "src/app/(manager)/manager/[storeId]/requests/page.tsx",
+    "src/app/(manager)/manager/[storeId]/shifts/page.tsx",
+    "src/app/(public)/line/link/page.tsx",
+    "src/app/(public)/stamp/[shopId]/page.tsx",
+    "src/app/(public)/stamp/mobile/page.tsx",
+    "src/app/(public)/stamp/page.tsx",
+    "src/app/auth/staff-password/page.tsx",
+    "src/components/auth/PrivilegedLogin.tsx",
+    "src/components/reports/AttendanceReportView.tsx",
+    "src/lib/auth/session.test.ts",
+    "src/lib/auth/session.ts",
+    "src/lib/auth/staff-auth.test.ts",
+    "src/lib/auth/staff-auth.ts"
+  ],
+  "related_files": [
+    {
+      "path": "src/lib/supabase/client.ts",
+      "reason": "Defines the browser client used by the password setup page and delegates to @supabase/ssr PKCE behavior.",
+      "score": 10
+    },
+    {
+      "path": "src/lib/supabase/server.ts",
+      "reason": "Provides the cookie-capable server client required by the documented token_hash and verifyOtp callback flow.",
+      "score": 10
+    },
+    {
+      "path": "src/app/api/auth/session/route.ts",
+      "reason": "Returns the staff session data used by the password page validation.",
+      "score": 9
+    },
+    {
+      "path": "SECURITY.md",
+      "reason": "Defines authentication and secret-handling safety constraints.",
+      "score": 8
+    },
+    {
+      "path": ".github/instructions/review-loop.instructions.md",
+      "reason": "Defines Round 3 fail-close and fallback review handling.",
+      "score": 8
+    },
+    {
+      "path": "ai/pre-pr-review-policy.yml",
+      "reason": "Defines review lenses and the Codex evidence format.",
+      "score": 7
+    },
+    {
+      "path": "docs/ai/review-result.schema.json",
+      "reason": "Validates this machine-readable evidence.",
+      "score": 7
+    }
+  ],
+  "scanned_paths": [
+    "src/app/auth",
+    "src/app/(authenticated)/owner",
+    "src/app/(public)/stamp",
+    "src/lib/auth",
+    "src/lib/supabase",
+    "src/components",
+    "docs/ai",
+    "ai",
+    ".github/instructions",
+    "node_modules/@supabase/ssr/src"
+  ],
+  "commands_run": [
+    {
+      "command": "git diff main...HEAD --stat && git diff --name-only main...HEAD",
+      "exit_code": 0,
+      "summary": "Enumerated 26 changed files and the PR scope."
+    },
+    {
+      "command": "git diff main...HEAD -- <auth and staff paths>",
+      "exit_code": 0,
+      "summary": "Reviewed staff invitation, linking, password setup, session resolution, and tests."
+    },
+    {
+      "command": "rg -n flowType node_modules/@supabase/ssr",
+      "exit_code": 0,
+      "summary": "Confirmed createBrowserClient and createServerClient use PKCE."
+    },
+    {
+      "command": "Supabase official documentation lookup: email templates, SSR confirmation endpoint, password recovery, and PKCE flow",
+      "exit_code": 0,
+      "summary": "Confirmed SSR flows should exchange token_hash with verifyOtp and that recovery intent is represented separately from a generic authenticated session."
+    },
+    {
+      "command": "python3 -m unittest ci.test_policy_check ci.test_supabase_advisor_migrations",
+      "exit_code": 0,
+      "summary": "10 Python regression tests passed."
+    },
+    {
+      "command": "python3 ci/policy_check.py",
+      "exit_code": 0,
+      "summary": "Policy check passed."
+    },
+    {
+      "command": "npm test",
+      "exit_code": 0,
+      "summary": "34 TypeScript tests passed."
+    },
+    {
+      "command": "npm run lint",
+      "exit_code": 0,
+      "summary": "ESLint passed without warnings."
+    },
+    {
+      "command": "npm run build",
+      "exit_code": 0,
+      "summary": "Next.js production build and static generation passed."
+    },
+    {
+      "command": "gh pr checks 15",
+      "exit_code": 0,
+      "summary": "GitHub quality-gate and secret-scan both passed for the reviewed head."
+    }
+  ],
+  "context_fingerprint": "git-tree:a18c4e0578ccc42bc1df6fea2de2872cd55ce958",
+  "context_budget": {
+    "max_related_files": 40,
+    "max_context_chars": 180000,
+    "max_file_excerpt_chars": 12000,
+    "max_context_commands": 12
+  },
+  "context_truncated": false,
+  "context_truncated_reason": "",
+  "issues": [
+    {
+      "severity": "Must",
+      "category": "auth-flow",
+      "file": "src/app/auth/staff-password/page.tsx",
+      "line": 32,
+      "rationale": "The @supabase/ssr browser client uses PKCE, but invite and recovery emails are redirected directly to the client page without a token_hash and verifyOtp server callback. The current implementation has no PKCE verifier for these server-initiated emails and the initial setup or reset link can fail before a valid cookie session is established.",
+      "fix": "Add a cookie-capable server confirmation route that validates invite and recovery token_hash values with verifyOtp, update the corresponding Supabase email templates to target it, and add realistic callback integration tests.",
+      "confidence": 0.98,
+      "blocking": true
+    },
+    {
+      "severity": "Must",
+      "category": "authorization-boundary",
+      "file": "src/lib/auth/session.ts",
+      "line": 85,
+      "rationale": "Staff session resolution filters only by auth_user_id and active state. Because it uses a service-role client, a stale cross-organization staff link can produce a valid context for a profile from another organization and expose or mutate data through downstream service-role queries.",
+      "fix": "Require staff.organization_id to equal profile.organization_id when resolving the context, fail closed on mismatches, audit existing links before rollout, and add a cross-organization regression test.",
+      "confidence": 0.99,
+      "blocking": true
+    },
+    {
+      "severity": "Should",
+      "category": "auth-intent",
+      "file": "src/app/auth/staff-password/page.tsx",
+      "line": 43,
+      "rationale": "The page accepts any authenticated and linked staff session without proving that the current navigation completed a fresh invite or recovery verification. Direct, expired, or reused URLs therefore do not satisfy the documented fail-closed intent.",
+      "fix": "Bind the page to a freshly verified invite or recovery callback and consume or clear the authorization after password update.",
+      "confidence": 0.95
+    },
+    {
+      "severity": "Should",
+      "category": "account-consistency",
+      "file": "src/app/(authenticated)/owner/staff/page.tsx",
+      "line": 176,
+      "rationale": "Owners can edit staff.email after Auth linkage without updating the Auth user or user_profiles.email. Password reset then fails with inconsistent_profile and there is no supported recovery path.",
+      "fix": "Make linked email immutable or implement a coordinated, confirmed email-change workflow with compensation across Auth, user_profiles, and staff.",
+      "confidence": 0.99,
+      "backlog": "#16"
+    },
+    {
+      "severity": "Should",
+      "category": "auditability",
+      "file": "src/lib/auth/staff-auth.ts",
+      "line": 312,
+      "rationale": "writeAuditLog ignores insert errors, so a security-sensitive operation can report success without its audit record.",
+      "fix": "Propagate the audit insert error or record an explicit partial-success state with a retryable audit path, and test audit insertion failure.",
+      "confidence": 0.98,
+      "backlog": "#16"
+    },
+    {
+      "severity": "Should",
+      "category": "accessibility",
+      "file": "src/app/(authenticated)/owner/staff/page.tsx",
+      "line": 545,
+      "rationale": "Repeated invite and reset controls have identical accessible names and the result message has no status or alert semantics, so assistive technology cannot reliably identify the target or announce the outcome.",
+      "fix": "Include the staff name in each action aria-label and expose success or failure through role=status or role=alert.",
+      "confidence": 0.96,
+      "backlog": "#16"
+    },
+    {
+      "severity": "Should",
+      "category": "operational-state",
+      "file": "docs/ai/execution-ledger.md",
+      "line": 25,
+      "rationale": "The ledger still describes Round 2 verification and Round 3 request as future work after both have completed, so a resumed agent can repeat completed actions.",
+      "fix": "Synchronize the ledger with the Round 3 fail-close state when the blocking fix work resumes.",
+      "confidence": 1.0
+    }
+  ]
+}
