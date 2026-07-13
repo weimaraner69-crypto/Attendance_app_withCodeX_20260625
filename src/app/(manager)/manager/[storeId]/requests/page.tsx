@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { revalidatePath } from 'next/cache';
 
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -278,8 +278,11 @@ export default async function ManagerRequestsPage({
       <div className="mx-auto max-w-7xl space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">申請管理</h1>
-          <Link href={`/manager/${params.storeId}`}>
-            <Button variant="outline">戻る</Button>
+          <Link
+            href={`/manager/${params.storeId}`}
+            className={buttonVariants({ variant: 'outline' })}
+          >
+            戻る
           </Link>
         </div>
 

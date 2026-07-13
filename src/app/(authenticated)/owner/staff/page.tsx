@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -388,8 +388,8 @@ export default async function StaffPage({
           <h2 className="text-3xl font-bold">スタッフ管理</h2>
           <p className="mt-1 text-sm text-gray-600">スタッフ台帳、所属店舗、店舗iPad用PIN、スマホログイン紐づけを管理します。</p>
         </div>
-        <Link href="/owner">
-          <Button variant="outline">戻る</Button>
+        <Link href="/owner" className={buttonVariants({ variant: 'outline' })}>
+          戻る
         </Link>
       </div>
 

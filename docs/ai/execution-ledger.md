@@ -17,14 +17,14 @@
 
 ## 記録
 
-### 現在状態（2026-07-14 A-001スタッフAuth実装・最新）
+### 現在状態（2026-07-14 A-001スタッフAuthレビュー対応・最新）
 
 - 現在の mode: `daily_development`（Issue #13実装）
 - active branch: `feat/issue-13-staff-invitations`
 - 直近完了 PR: PR #14（計画・Issue整合）をCopilotレビュー、CI成功後に `main` へマージ済み
-- 現在タスク: PR #15 Copilot Round 1の3指摘を修正・resolve済み。Round 2依頼後に検出したCI静的事前生成失敗を修正し、フル品質ゲートを再実行中
-- review baseline: CI修正コミットをpushし、Copilot Round 2を再依頼した時点のPR head SHAを基準とする
-- 次タスク: CI修正をpushしてRound 2を再依頼し、新規の未解決・非outdated指摘とCI状態を監視する
+- 現在タスク: PR #15 Copilot Round 2の5指摘（LIKE用変数名2件、リンク内ボタン3件）と同種の横断検出箇所を修正し、フル品質ゲートを再実行中
+- review baseline: Round 2修正コミットをpushし、Copilot Round 3を依頼した時点のPR head SHAを基準とする
+- 次タスク: Round 2修正をpush後に5スレッドへ返信・resolveし、最終Round 3レビューとCIを確認する
 - レビュー条件: `.github/instructions/review-loop.instructions.md` の最大3ラウンドに従う
 - 安全床: `.env.local` を読まない。秘密情報を表示しない。Supabase本番設定、実メール送信、日報側実接続、本番デプロイ、実店舗データ投入、Go-Liveは対象外
 - 最終更新: 2026-07-14

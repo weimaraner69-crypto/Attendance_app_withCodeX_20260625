@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 import { AttendancePdfExportButton } from '@/components/reports/AttendancePdfExportButton';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -66,11 +66,14 @@ export function AttendanceReportView({
         </div>
         <div className="flex gap-2">
           <AttendancePdfExportButton title={title} filters={filters} rows={rows} />
-          <a href={`/api/reports/attendance.csv?${csvParams.toString()}`}>
-            <Button variant="outline">CSV出力</Button>
+          <a
+            href={`/api/reports/attendance.csv?${csvParams.toString()}`}
+            className={buttonVariants({ variant: 'outline' })}
+          >
+            CSV出力
           </a>
-          <Link href={backHref}>
-            <Button variant="outline">戻る</Button>
+          <Link href={backHref} className={buttonVariants({ variant: 'outline' })}>
+            戻る
           </Link>
         </div>
       </div>

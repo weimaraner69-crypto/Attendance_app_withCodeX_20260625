@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { KioskStampPanel } from '@/components/stamp/KioskStampPanel';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
 import { createSupabaseAdminClient } from '@/lib/supabase';
 
 type StoreRow = {
@@ -79,8 +79,8 @@ export default async function ShopStampPage({ params }: { params: { shopId: stri
             <h1 className="text-3xl font-bold">店舗iPad打刻</h1>
             <p className="mt-1 text-sm text-gray-600">スタッフを選択し、PINを入力して打刻します。</p>
           </div>
-          <Link href="/stamp">
-            <Button variant="outline">戻る</Button>
+          <Link href="/stamp" className={buttonVariants({ variant: 'outline' })}>
+            戻る
           </Link>
         </div>
 

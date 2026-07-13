@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { CheckCircle2, KeyRound, LoaderCircle } from 'lucide-react';
 
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -135,8 +135,11 @@ export default function StaffPasswordPage() {
               <p className="border border-red-200 bg-red-50 p-3 text-sm text-red-700">
                 リンクが無効か、有効期限が切れています。オーナーに新しい再設定メールを依頼してください。
               </p>
-              <Link href="/login" className="block">
-                <Button variant="outline" className="w-full">ログイン画面へ</Button>
+              <Link
+                href="/login"
+                className={buttonVariants({ variant: 'outline', className: 'w-full' })}
+              >
+                ログイン画面へ
               </Link>
             </div>
           )}
@@ -184,8 +187,8 @@ export default function StaffPasswordPage() {
                 <CheckCircle2 className="size-4 shrink-0" aria-hidden="true" />
                 パスワードを設定しました。新しいパスワードでログインしてください。
               </p>
-              <Link href="/login" className="block">
-                <Button className="w-full">スタッフログインへ</Button>
+              <Link href="/login" className={buttonVariants({ className: 'w-full' })}>
+                スタッフログインへ
               </Link>
             </div>
           )}

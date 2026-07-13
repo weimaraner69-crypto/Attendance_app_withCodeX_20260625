@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -87,8 +87,8 @@ export default async function OwnerAuditLogsPage({
           <h2 className="text-3xl font-bold">監査ログ</h2>
           <p className="mt-1 text-sm text-gray-600">重要操作の実行者、日時、変更前後を確認します。</p>
         </div>
-        <Link href="/owner">
-          <Button variant="outline">戻る</Button>
+        <Link href="/owner" className={buttonVariants({ variant: 'outline' })}>
+          戻る
         </Link>
       </div>
 

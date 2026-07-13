@@ -3,7 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { notFound } from 'next/navigation';
 
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -416,8 +416,11 @@ export default async function ManagerShiftsPage({
             <h1 className="text-3xl font-bold">シフト管理</h1>
             <p className="mt-1 text-sm text-gray-600">{store.name} / 今後31日分</p>
           </div>
-          <Link href={`/manager/${params.storeId}`}>
-            <Button variant="outline">戻る</Button>
+          <Link
+            href={`/manager/${params.storeId}`}
+            className={buttonVariants({ variant: 'outline' })}
+          >
+            戻る
           </Link>
         </div>
 

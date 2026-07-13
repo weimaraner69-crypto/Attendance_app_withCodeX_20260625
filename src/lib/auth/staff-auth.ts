@@ -254,21 +254,21 @@ export function createStaffAuthOperations(
       return data;
     },
     async findProfilesByEmail(email) {
-      const emailPattern = escapePostgrestLikePattern(email);
+      const emailLikePattern = escapePostgrestLikePattern(email);
       const { data, error } = await supabase
         .from('user_profiles')
         .select('id, organization_id, role, email, is_active')
-        .ilike('email', emailPattern);
+        .ilike('email', emailLikePattern);
       if (error) throw error;
       return data ?? [];
     },
     async findStaffByEmail(organizationId, email) {
-      const emailPattern = escapePostgrestLikePattern(email);
+      const emailLikePattern = escapePostgrestLikePattern(email);
       const { data, error } = await supabase
         .from('staff')
         .select('id, auth_user_id')
         .eq('organization_id', organizationId)
-        .ilike('email', emailPattern);
+        .ilike('email', emailLikePattern);
       if (error) throw error;
       return data ?? [];
     },
