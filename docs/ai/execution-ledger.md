@@ -23,7 +23,7 @@
 - active branch: `chore/align-plans-and-issues`
 - 直近完了 PR: PR #12（A-006/A-007完了同期）をCopilotレビュー、CI成功後に `main` へマージ済み
 - 現在タスク: GitHub Issue #1〜#7、外部API契約、`NEXT.md` の実装状態同期とA-001 Issue #13の起票
-- review baseline: 本PR作成時のhead SHAを設定する
+- review baseline: Round 1レビュー依頼時のhead SHA `789f16ec3fed3ebe47cc5b71a1e0a9c31026cd5b`
 - 次タスク: PRレビュー完了後、Issue #13のPR 1「招待と安全な紐付け」へ着手する
 - レビュー条件: PR作成後にCopilotレビューを依頼し、到着確認、対応ラウンド、Round 3後の扱いは `.github/instructions/review-loop.instructions.md` に従う
 - 安全床: `.env.local` を読まない。秘密情報を表示しない。日報側への仕様本文同期、実接続、本番デプロイ、実店舗データ投入、LINE本番設定、Go-Liveは対象外
