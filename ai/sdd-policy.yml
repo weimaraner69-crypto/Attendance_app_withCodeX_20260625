@@ -92,7 +92,7 @@ daily_commands:
     # exit_condition のトークン名は coherence-workflow の step 名
     # （verify_completion_conditions_via_critical_review_and_independent_peer）と対で維持する。
     # green では「independent peer 部分は tier 規定により免除」と読み替える（verifiers_by_risk_tier が正）。
-    exit_condition: completion_conditions_satisfied_per_both_critical_review_and_independent_peer
+    exit_condition: verify_completion_conditions_via_critical_review_and_independent_peer
     completion_conditions_are_not_backloggable: true
     # 当該タスクの完了条件＝spec の Acceptance Criteria / Completion Rules / Verification Commands /
     # Runtime Smoke + 紐づく FR/design の制約。これらは **Backlog 化不可**。批判的レビューと

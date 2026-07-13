@@ -81,12 +81,10 @@ push 後（Round N, N=1..3）:
   2. レビューコメントを取得・分類（Must/Should/Nice）
   3. NEXT.md の AC と照合し、AC と矛盾する指摘は AC 優先で対応不要と判定
   4. Must/Should を修正（AC 準拠）
-  5. 【必須・Hookリマインド】各コメントに GitHub 上で返信する
+  5. 【必須】各コメントに GitHub 上で返信する
      - add_reply_to_pull_request_comment で全スレッドに対し修正内容・見解を返信
-     - 返信なしのまま `task_complete` / セッション終了 / release-manager 呼び出しに
-       進もうとした場合、Hook（pre_task_complete_guard, stop_review_guard）が
-       未返信スレッド数を検出してリマインドする。
-       block は実 CI 失敗と full-plan safety の fail-close 判定に限定する
+     - `task_complete` / セッション終了 / release-manager 呼び出しの前に、
+       未返信スレッドがないことを手動で確認する
      - 「修正済み」「対応不要と判断（理由:〜）」等、簡潔でよいので必ず返信すること
   6. targeted test / lint / typecheck を実行（フル CI は Round 3 後または Must/Should 0 件の最終ゲートへ集約）
   7. コミット・プッシュ（N < 3 かつ Must/Should > 0 の場合のみ）
@@ -122,30 +120,16 @@ Round 3 処理:
 - ❌ 「push したら自動でレビューが来る」→ Copilot は push 自動発火しない。必ず `request_copilot_review` または Codex / Claude repo-aware fallback で明示実行
 - ❌ 「Draft PR にレビューをリクエストした」→ Draft 状態ではレビューが発火しない。`gh pr ready <PR番号>` で Ready に変更してからリクエスト
 - ❌ 「20分待ってもレビューが来ない」→ Draft 状態でないか確認。Draft なら Ready に変更してリクエスト
-- ❌ 「修正だけして返信せずに push」→ 返信は必須。Hook はレビュー儀式をリマインドするが、返信なしを完了扱いにしてよいという意味ではない
+- ❌ 「修正だけして返信せずに push」→ 返信は必須。本手順は返信なしを完了扱いにしてよいという意味ではない
 - ❌ 「Must/Should が残っているので自動修正を停止した」→ Round 3 到達時は非ブロッキング指摘を Backlog 化、即時ブロッカーは fail-close で停止。同一指摘3回繰り返し・再トリガー3回超過・ポリシー違反・認証不能でも停止。Round 4 以降の自動 push/review request は禁止
 - ❌ 「状態が変わらないのに同じ override 文言を3回以上要求」→ 進捗ゼロでの override 要求は **2 回まで**。3 回目は不足作業の自動実施・escalation reason 従順・選択肢提示へ切替える
 
-## 自動 Hooks（`.github/hooks/review-loop-guard.json`）
+## 自動 Hooks
 
-以下の Agent Hooks は、安全床の fail-close とレビュー儀式のリマインドを担当する。レビュー未到着・未返信・Round 予算超過・一時的な lookup 失敗は block せず、追加コンテキストで継続手順を促す。
+このリポジトリには自動 Hook を導入していない。レビューループの fail-close、安全停止、レビュー待機、全プラン実行モードの完了条件は、本 instructions と `ai/operation-policy.yml` を正本として各ハーネスが手動で確認する。
 
-| Hook | イベント | 動作 |
-| ---- | -------- | ---- |
-| `pre_task_complete_guard.py` | **PreToolUse** | `task_complete` / release-manager 呼び出し時に PR 状態をチェック。実 CI 失敗または full-plan safety 未達なら `permissionDecision: "deny"` でブロックし、レビュー未完了はリマインド |
-| `post_push_reminder.py` | **PostToolUse** | `git push` 後に `decision: "allow"` で CI 確認 + レビュー待機をリマインド |
-| `stop_review_guard.py` | **Stop** | 実 CI 失敗または full-plan safety 未達ならセッション終了をブロックし、レビュー未完了はリマインド |
-| `pre_compact_context.py` | **PreCompact** | コンテキスト圧縮前にレビューループルールを systemMessage として注入 |
-
-追加の全プラン実行モード強制:
-
-- `.github/full-plan-execution.flag` が存在し `active=false` でない場合、`pre_task_complete_guard.py` と `stop_review_guard.py` は `full_plan_completion` の安全判定（plan 状態・成果証跡・完了デモ）を fail-close で確認する。OPEN PR のレビュー儀式状態はリマインド扱いとする。
-- 全プラン実行モードでは、未解決・未返信スレッド0件・CI全pass・release-manager 承認だけでは完了ではない。自動マージ、main pull、`NEXT.md` 更新、次タスク遷移までが完了条件である。
-
-> **注意**: Stop hook には `stop_hook_active` による無限ループ防止が組み込まれている。
-> VS Code は Stop hook がブロック → エージェント続行 → 再度 Stop の場合、2回目の入力に
-> `stop_hook_active: true` を **自動付与** する。2回目は必ず終了を許可する。
-> 2回目の Stop では終了が許可される。
+- `.github/full-plan-execution.flag` が存在し `active=false` でない場合は、`ai/operation-policy.yml` の `full_plan_delivery_pipeline` と `compact_survival_contract` に従う。
+- 全プラン実行モードでは、未解決・未返信スレッド0件・CI全pass・release-manager 承認だけでは完了ではない。自動マージ、main pull、`NEXT.md` 更新、次タスク遷移までを完了条件とする。
 
 ## メモリ参照
 

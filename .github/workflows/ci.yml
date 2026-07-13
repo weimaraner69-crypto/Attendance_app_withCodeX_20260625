@@ -56,4 +56,4 @@ jobs:
         uses: ./.github/actions/install-gitleaks
 
       - name: Run gitleaks
-        run: gitleaks git --verbose .
+        run: gitleaks git --verbose

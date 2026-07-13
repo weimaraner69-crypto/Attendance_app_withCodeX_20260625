@@ -44,7 +44,7 @@ review_lenses:
     # P-065: 発覚した lint/bug/型/テスト失敗はその場で修正し持ち越さない。
     checks:
       - static_checks_clean_npm_lint_build
-      - markdown_lint_clean_for_docs_changes  # .markdownlint.json 準拠
+      - markdown_lint_clean_for_docs_changes  # 導入済みの Markdown lint 設定がある場合
       - no_dismissed_or_deferred_warnings_without_backlog_and_residual_risk
       - targeted_and_regression_tests_pass
 

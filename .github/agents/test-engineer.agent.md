@@ -47,7 +47,6 @@ model: "Claude Haiku 4.5 (copilot)"
 - editFiles（テストコードの作成・編集）
 - runInTerminal（テスト実行）
 - search（コードベース検索）
-- {{追加ツール名}} <!-- CUSTOMIZE: プロジェクト固有のツールがあれば追加 -->
 
 ### 不可逆操作の HITL 承認（ASI02・ASI03対応） <!-- REQUIRED -->
 
@@ -59,7 +58,6 @@ model: "Claude Haiku 4.5 (copilot)"
 - Pull Request のマージ
 - 外部サービスへのデータ送信
 - ファイルの削除操作
-- {{プロジェクト固有の高リスク操作}} <!-- CUSTOMIZE: プロジェクトの「不可逆操作」定義に従って追加 -->
 
 ### 外部入力のサニタイズ（ASI06対応） <!-- REQUIRED -->
 
