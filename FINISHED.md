@@ -10,6 +10,51 @@
 
 ---
 
+## A-006/A-007 Performance Advisor実装準備・自動テストCI強化
+
+- 実施日: 2026-07-13
+- 種別: DB性能/テスト基盤
+
+### 実施内容
+
+- Performance AdvisorのWarnings 73件を、`Auth RLS Initialization Plan` 8件と `Multiple Permissive Policies` 65件へ分類。
+- Info 44件を未索引外部キー13件と未使用インデックス31件へ分類し、全件の対応判断を `docs/supabase-performance-advisor.md` に記録。
+- 既存RLSの許可条件を維持した最適化マイグレーションを作成し、未索引外部キー13件の補助索引を追加。
+- 未使用インデックス31件は削除せず、30日以上の本番トラフィック観測後に再評価する方針とした。
+- Vitestと `npm test` を導入し、外部API認証・パラメータ・組織境界・レスポンス、打刻状態遷移、GPS境界、認証ロールを固定する20テストを追加。
+- GitHub ActionsへSupabaseマイグレーション回帰テストとTypeScriptテストを追加。
+
+### 確認内容
+
+- `python3 -m unittest ci.test_policy_check ci.test_supabase_advisor_migrations` は10件成功。
+- `npm test` は6ファイル20件成功。
+- 本番Supabaseへの変更は行わず、カタログクエリによる読み取りだけを実施。
+- `.env.local` の値は読み取り・表示していない。
+
+### 残作業
+
+- PRレビューとCI成功後、別工程でマイグレーションを本番適用する。
+- オーナー、店長、社労士、スタッフのRLSスモークテスト後にPerformance Advisorを再実行し、残件を記録する。
+
+### 影響ファイル
+
+- `supabase/migrations/202607130002_performance_advisor_optimization.sql`
+- `docs/supabase-performance-advisor.md`
+- `ci/test_supabase_advisor_migrations.py`
+- `.github/workflows/ci.yml`
+- `src/lib/external-api/*`
+- `src/lib/attendance/*`
+- `src/lib/utils/gpsUtils.test.ts`
+- `src/lib/auth/session.test.ts`
+- `package.json`
+- `package-lock.json`
+- `vitest.config.ts`
+- `README.md`
+- `NEXT.md`
+- `CHANGELOG.md`
+- `docs/supabase-setup.md`
+- `docs/ai/execution-ledger.md`
+
 ## PLAN-20260713 日報連携保留後の計画整合
 
 - 実施日: 2026-07-13

@@ -48,6 +48,7 @@ Next.jsの主要画面、Supabase PostgreSQLのDB、ロール別認証、打刻�
 
 ```bash
 npm run dev
+npm test
 npm run lint
 npm run build
 ```
@@ -85,6 +86,7 @@ npm run build
 - [SECURITY.md](SECURITY.md): 機密情報と `.env.local` の取り扱いルール
 - `docs/database-design.md`: DB設計メモ
 - `docs/supabase-setup.md`: Supabaseプロジェクト作成・接続手順
+- `docs/supabase-performance-advisor.md`: Performance Advisorの全件分類と対応判断
 - `docs/line-setup.md`: LINE Messaging API・Webhook・実機確認手順
 - `docs/operations-maintenance.md`: 本番環境変数、監視、バックアップ/復旧、権限・個人情報の運用手順
 - `docs/integrations/attendance-api-spec.md`: 日報アプリ向け外部連携API仕様

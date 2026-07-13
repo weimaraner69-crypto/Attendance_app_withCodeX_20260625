@@ -2,6 +2,7 @@ import { getDistance } from '@/lib/utils/gpsUtils';
 import { verifyPin } from '@/lib/auth/pin';
 import { createSupabaseAdminClient, createSupabaseServerClient } from '@/lib/supabase';
 import type { Database } from '@/lib/supabase';
+import { calculateRecordPatch, minutesBetween } from './stamp-state';
 
 type AttendanceEventType = Database['public']['Enums']['attendance_event_type'];
 type AttendanceSource = Database['public']['Enums']['attendance_source'];
@@ -101,77 +102,6 @@ function getTokyoDate(occurredAt: Date) {
     month: '2-digit',
     day: '2-digit',
   }).format(occurredAt);
-}
-
-function minutesBetween(startIso: string, endIso: string) {
-  return Math.max(0, Math.round((Date.parse(endIso) - Date.parse(startIso)) / 60_000));
-}
-
-function calculateRecordPatch(
-  record: AttendanceRecordRow | null,
-  eventType: AttendanceEventType,
-  occurredAt: string,
-  additionalBreakMinutes: number
-) {
-  if (eventType === 'clock_in') {
-    if (record?.clock_in_at) {
-      return stampError(409, 'DUPLICATE_CLOCK_IN', 'すでに出勤打刻済みです');
-    }
-
-    return {
-      status: 'working' as AttendanceStatus,
-      clock_in_at: occurredAt,
-      clock_out_at: null,
-      break_minutes: record?.break_minutes ?? 0,
-      total_work_minutes: 0,
-    };
-  }
-
-  if (!record?.clock_in_at) {
-    return stampError(409, 'CLOCK_IN_REQUIRED', '先に出勤打刻が必要です');
-  }
-
-  if (eventType === 'break_start') {
-    if (record.status === 'on_break') {
-      return stampError(409, 'DUPLICATE_BREAK_START', 'すでに休憩中です');
-    }
-    if (record.status === 'finished') {
-      return stampError(409, 'ALREADY_FINISHED', '退勤済みです');
-    }
-
-    return {
-      status: 'on_break' as AttendanceStatus,
-      break_minutes: record.break_minutes,
-    };
-  }
-
-  if (eventType === 'break_end') {
-    if (record.status !== 'on_break') {
-      return stampError(409, 'BREAK_START_REQUIRED', '先に休憩開始打刻が必要です');
-    }
-
-    return {
-      status: 'working' as AttendanceStatus,
-      break_minutes: record.break_minutes + additionalBreakMinutes,
-    };
-  }
-
-  if (record.status === 'finished' || record.clock_out_at) {
-    return stampError(409, 'DUPLICATE_CLOCK_OUT', 'すでに退勤打刻済みです');
-  }
-  if (record.status === 'on_break') {
-    return stampError(409, 'BREAK_END_REQUIRED', '休憩終了後に退勤してください');
-  }
-
-  const breakMinutes = record.break_minutes;
-  const totalWorkMinutes = Math.max(0, minutesBetween(record.clock_in_at, occurredAt) - breakMinutes);
-
-  return {
-    status: 'finished' as AttendanceStatus,
-    clock_out_at: occurredAt,
-    break_minutes: breakMinutes,
-    total_work_minutes: totalWorkMinutes,
-  };
 }
 
 async function getCurrentAuthUserId() {
@@ -326,7 +256,7 @@ export async function stampAttendance(payload: StampPayload): Promise<StampResul
   }
 
   const patch = calculateRecordPatch(existingRecord, payload.event_type, occurredAt, additionalBreakMinutes);
-  if ('ok' in patch && patch.ok === false) return patch;
+  if ('ok' in patch) return patch;
 
   let record: AttendanceRecordRow | null = null;
   if (existingRecord) {

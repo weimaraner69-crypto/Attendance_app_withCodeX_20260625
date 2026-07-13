@@ -14,3 +14,16 @@ PR 作成前の spec、security、reliability 観点のレビュー結果を記�
 - Nice:
 - 残リスク:
 - 結論:
+
+## 2026-07-13 A-006/A-007
+
+- 対象: Performance Advisor最適化マイグレーション、自動テスト、CIゲート
+- 実施日: 2026-07-13
+- 実施者 / provider: Codex
+- 確認した文書・差分: `NEXT.md`、Advisor全件判断、RLSマイグレーション、外部API・打刻・GPS・認証テスト、CI workflow
+- 実行した検証: Python 10件、Vitest 20件、policy check、lint、build、`git diff --cached --check`
+- Must: 0件
+- Should: 0件
+- Nice: 本番適用後のロール別スモークテストとAdvisor再実行を別工程で実施する
+- 残リスク: SQLは本番未適用。未使用インデックス統計は運用量と統計リセット時刻で変動するため、30日以上観測して再評価する
+- 結論: PR作成可。本番DB変更と未使用インデックス削除は本PRで行わない

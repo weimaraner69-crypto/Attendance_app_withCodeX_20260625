@@ -5,6 +5,39 @@
 
 ---
 
+## [2026-07-13] Performance Advisor最適化と自動テスト・CIゲートを追加
+
+### 変更
+- 本番Performance Advisorの73 Warningsと44 Infoを読み取り専用カタログクエリで全件分類。
+- RLSの許可条件を維持したまま、`auth.uid()` の初期化プラン化、重複SELECTポリシーの統合、管理用 `FOR ALL` のコマンド別分割を行うマイグレーションを追加。
+- 未索引外部キー13件の補助索引を追加し、未使用インデックス31件は30日以上の運用観測まで削除しない判断を記録。
+- Vitestと `npm test` を導入し、外部API、Phase 1レスポンス、打刻状態遷移、GPS、認証ロールの20テストを追加。
+- 存在しないカレンダー日付を外部APIが受理しないよう日付検証を厳密化。
+- GitHub ActionsへSupabaseマイグレーションテストとTypeScriptテストを追加。
+
+### 確認
+- 本番Supabaseではカタログの読み取りだけを行い、マイグレーションは未適用。
+- Python回帰テスト10件とTypeScriptテスト20件がローカルで成功。
+- `.env.local` の値は読み取り・表示していない。
+
+### 影響ファイル
+- `supabase/migrations/202607130002_performance_advisor_optimization.sql`
+- `docs/supabase-performance-advisor.md`
+- `ci/test_supabase_advisor_migrations.py`
+- `.github/workflows/ci.yml`
+- `src/lib/external-api/*`
+- `src/lib/attendance/*`
+- `src/lib/utils/gpsUtils.test.ts`
+- `src/lib/auth/session.test.ts`
+- `package.json`
+- `package-lock.json`
+- `vitest.config.ts`
+- `README.md`
+- `NEXT.md`
+- `FINISHED.md`
+- `docs/supabase-setup.md`
+- `docs/ai/execution-ledger.md`
+
 ## [2026-07-13] 日報連携保留後の実行計画を再構成
 
 ### 変更
