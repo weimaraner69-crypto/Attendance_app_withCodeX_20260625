@@ -68,6 +68,9 @@ SCAN_EXTENSIONS = CODE_EXTENSIONS | {
 # URL 直書きも検査する拡張子。AI 運用設定と Cursor ルールを含める。
 URL_SCAN_EXTENSIONS = CODE_EXTENSIONS | {".yml", ".yaml", ".mdc"}
 
+# C 系のブロックコメントを持つ拡張子
+BLOCK_COMMENT_EXTENSIONS = {".ts", ".tsx", ".js", ".jsx", ".mjs", ".go", ".rs"}
+
 # スキップするディレクトリ名
 SKIP_DIR_NAMES = {
     "__pycache__",
@@ -198,6 +201,53 @@ def is_comment_line(line: str, suffix: str) -> bool:
     )
 
 
+def strip_block_comments(line: str, in_block_comment: bool) -> tuple[str, bool]:
+    """文字列リテラルを保ちつつ C 系ブロックコメントを行から除去する。"""
+    result: list[str] = []
+    quote: str | None = None
+    escaped = False
+    index = 0
+
+    while index < len(line):
+        if in_block_comment:
+            end = line.find("*/", index)
+            if end == -1:
+                return "".join(result), True
+            in_block_comment = False
+            index = end + 2
+            continue
+
+        char = line[index]
+        if quote is not None:
+            result.append(char)
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == quote:
+                quote = None
+            index += 1
+            continue
+
+        if line.startswith("/*", index):
+            in_block_comment = True
+            index += 2
+            continue
+
+        result.append(char)
+        if char in {"'", '"', "`"}:
+            quote = char
+        index += 1
+
+    return "".join(result), in_block_comment
+
+
+def is_forbidden_env_file(relative_path: str) -> bool:
+    """tracked file が禁止対象の .env* か判定する。"""
+    name = Path(relative_path).name
+    return name.startswith(".env") and name != ".env.example"
+
+
 # ---------------------------------------------------------------------------
 # スキャン
 # ---------------------------------------------------------------------------
@@ -221,10 +271,16 @@ def scan_file(path: Path) -> list[str]:
 
     # URL 直書き（コードコメント行は除外）
     if is_url_scanned_file(path):
+        in_block_comment = False
         for lineno, line in enumerate(text.splitlines(), start=1):
-            if is_comment_line(line, suffix):
+            candidate = line
+            if suffix in BLOCK_COMMENT_EXTENSIONS:
+                candidate, in_block_comment = strip_block_comments(
+                    line, in_block_comment
+                )
+            if is_comment_line(candidate, suffix):
                 continue
-            if re.search(URL_PATTERN, line) and not is_url_allowlisted(line):
+            if re.search(URL_PATTERN, candidate) and not is_url_allowlisted(candidate):
                 issues.append(f"外部接続疑い: URL直書き検出 in {rel}:{lineno}")
 
     # 秘密情報（全ファイル種別）
@@ -249,19 +305,18 @@ def main() -> int:
     """ポリシーチェックを実行し、違反があれば非ゼロで終了する。"""
     issues: list[str] = []
 
-    # .env が git 管理されていないことを確認
+    # .env*（雛形を除く）が git 管理されていないことを確認
     try:
         tracked_files = {p.relative_to(REPO_ROOT).as_posix() for p in git_ls_files()}
     except RuntimeError as error:
         print(f"[policy_check] FAILED\n  1. {error}")
         return 1
-    if ".env" in tracked_files:
+    for relative_path in sorted(tracked_files):
+        if not is_forbidden_env_file(relative_path):
+            continue
         issues.append(
-            "禁止: .env がリポジトリにコミットされています。削除し、gitignore 対象にしてください。"
-        )
-    if ".env.local" in tracked_files:
-        issues.append(
-            "禁止: .env.local がリポジトリにコミットされています。削除し、gitignore 対象にしてください。"
+            f"禁止: {relative_path} がリポジトリにコミットされています。"
+            "削除し、gitignore 対象にしてください。"
         )
 
     # 対象ファイルのスキャン
