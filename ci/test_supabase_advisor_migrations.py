@@ -38,6 +38,35 @@ class SupabaseAdvisorMigrationTest(TestCase):
             followup,
         )
 
+    def test_private_function_changes_are_guarded(self) -> None:
+        migration = (
+            MIGRATIONS / "202607090002_security_advisor_function_execute.sql"
+        ).read_text(encoding="utf-8")
+
+        signatures = [
+            "private.current_user_organization_id()",
+            "private.current_user_role()",
+            "private.can_access_store(uuid)",
+        ]
+
+        for signature in signatures:
+            self.assertIn(
+                f"if to_regprocedure('{signature}') is not null then",
+                migration,
+            )
+            self.assertIn(
+                f"execute 'alter function {signature} set search_path = ''''';",
+                migration,
+            )
+            self.assertIn(
+                f"execute 'revoke execute on function {signature} from public, anon';",
+                migration,
+            )
+            self.assertIn(
+                f"execute 'grant execute on function {signature} to authenticated';",
+                migration,
+            )
+
 
 if __name__ == "__main__":
     main()

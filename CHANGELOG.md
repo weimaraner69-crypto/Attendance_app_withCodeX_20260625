@@ -13,6 +13,8 @@
 - 修正前のSQLを適用済みのDB向けに、関数設定の更新と重複索引の削除を行う追補マイグレーションを追加。
 - 他の追加索引について全マイグレーションの既存索引と照合し、同一キーの追加重複がないことを確認。
 - `search_path` と重複索引の安全条件を固定する回帰テストを追加。
+- `private` 側のRLS補助関数が存在しない環境でも、設定・権限変更をスキップしてマイグレーションを完了できるようにした。
+- 2026-07-09の履歴に残っていた `set_updated_at()` の旧 `search_path` 記述を現在の実装へ合わせた。
 
 ### 影響ファイル
 - `supabase/migrations/202607090001_supabase_advisor_warnings.sql`
@@ -67,7 +69,7 @@
 
 ### 実施
 - Supabase Dashboard 上の8件のWarning対応として、追加マイグレーション `202607090001_supabase_advisor_warnings.sql` を作成。
-- `public.set_updated_at()` に `search_path = public, pg_catalog` を明示。
+- `public.set_updated_at()` に `search_path = pg_catalog` を明示。
 - `external_api_keys`、`line_link_tokens`、`user_login_pins` に、ブラウザクライアントへ権限を付与しない明示的なdenyポリシーを追加。対象テーブルやポリシーがすでに存在する場合はスキップする。
 - server-onlyテーブルのdenyポリシーを `RESTRICTIVE` とし、将来permissiveポリシーが追加されてもクライアントアクセスを許可しない構成にした。
 - 外部キー参照列の補助インデックスを追加し、削除・更新時の参照確認と関連JOINを軽くするよう整理。
