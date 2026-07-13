@@ -178,6 +178,8 @@ implementer の実装完了後、CI 実行前に変更の影響範囲を分析�
 
 ### Step 4: ローカル CI 実行
 
+fresh checkout、`ci/requirements.txt` 変更後、または依存導入状況が不明な場合は、最初に `python3 -m pip install --requirement ci/requirements.txt` を1回実行する。
+
 7. CI を自ら実行し結果を確認する（具体的コマンドは `docs/operations-maintenance.md` を参照）
   **重要**: 型チェックのスコープにはテストファイルも必ず含める（例: `npm run build`）。
    テストファイルの型エラーを見逃さないためである。

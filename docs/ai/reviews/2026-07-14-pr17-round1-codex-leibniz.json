@@ -19,27 +19,32 @@
       {
         "command": "python3 -m unittest ci.test_policy_check ci.test_supabase_advisor_migrations",
         "exit_code": 0,
-        "summary": "28 tests passed"
+        "summary": "28 tests passed",
+        "covered_paths": ["**"]
       },
       {
         "command": "python3 ci/policy_check.py",
         "exit_code": 0,
-        "summary": "Policy check passed"
+        "summary": "Policy check passed",
+        "covered_paths": ["**"]
       },
       {
         "command": "npm test",
         "exit_code": 0,
-        "summary": "20 tests passed"
+        "summary": "20 tests passed",
+        "covered_paths": ["**"]
       },
       {
         "command": "npm run lint",
         "exit_code": 0,
-        "summary": "No ESLint warnings or errors"
+        "summary": "No ESLint warnings or errors",
+        "covered_paths": ["**"]
       },
       {
         "command": "npm run build",
         "exit_code": 0,
-        "summary": "Production build completed"
+        "summary": "Production build completed",
+        "covered_paths": ["**"]
       }
     ]
   },

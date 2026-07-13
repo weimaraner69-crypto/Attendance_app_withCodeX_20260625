@@ -279,10 +279,14 @@ class PolicyCheckTest(TestCase):
         self.assertEqual("yellow", policy_check.risk_tier_for_paths(["src/ui/page.tsx"]))
         for path in (
             ".github/actions/install-gitleaks/action.yml",
+            "SECURITY.md",
             "docs/ai/review-result.schema.json",
             "project-config.yml",
             "src/auth/session.ts",
+            "src/app/(authenticated)/layout.tsx",
+            "src/lib/supabase/admin.ts",
             "src/migrations/001.sql",
+            "src/stores/authStore.ts",
             "src/modules/time/migrations/001.sql",
             "pyproject.toml",
             "uv.lock",
@@ -300,6 +304,41 @@ class PolicyCheckTest(TestCase):
             [".github/workflows/ci.yml", "docs/ci.yml", "src/page.tsx"],
             paths,
         )
+
+    def test_changed_paths_detects_real_git_copy(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            temp_root = Path(temp_dir)
+            with patch.object(policy_check, "REPO_ROOT", temp_root):
+                self.assertEqual(0, policy_check.run_git("init").returncode)
+                self.assertEqual(
+                    0,
+                    policy_check.run_git(
+                        "config", "user.email", "policy-test@example.com"
+                    ).returncode,
+                )
+                self.assertEqual(
+                    0,
+                    policy_check.run_git("config", "user.name", "Policy Test").returncode,
+                )
+                source = temp_root / "ci" / "source.txt"
+                source.parent.mkdir(parents=True)
+                source.write_text("copy detection\n", encoding="utf-8")
+                self.assertEqual(0, policy_check.run_git("add", ".").returncode)
+                self.assertEqual(
+                    0, policy_check.run_git("commit", "-m", "source").returncode
+                )
+                base_sha = policy_check.run_git("rev-parse", "HEAD").stdout.strip()
+                target = temp_root / "docs" / "copied.txt"
+                target.parent.mkdir(parents=True)
+                target.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+                self.assertEqual(0, policy_check.run_git("add", ".").returncode)
+                self.assertEqual(
+                    0, policy_check.run_git("commit", "-m", "copy").returncode
+                )
+                head_sha = policy_check.run_git("rev-parse", "HEAD").stdout.strip()
+                paths = policy_check.changed_paths_between(base_sha, head_sha)
+
+        self.assertEqual(["ci/source.txt", "docs/copied.txt"], paths)
 
     def test_yellow_requires_successful_targeted_test_evidence(self) -> None:
         evidence = self.review_evidence()
@@ -331,6 +370,7 @@ class PolicyCheckTest(TestCase):
                     "command": "python3 -m unittest ci.test_policy_check",
                     "exit_code": 0,
                     "summary": "passed",
+                    "covered_paths": ["ai/operation-policy.yml"],
                 }
             ],
         }
@@ -341,6 +381,33 @@ class PolicyCheckTest(TestCase):
         )
 
         self.assertEqual([], issues)
+
+    def test_yellow_rejects_noop_as_targeted_test(self) -> None:
+        evidence = self.review_evidence()
+        evidence["risk_tier"] = "yellow"
+        evidence["repository_context_mode"] = "related_context"
+        evidence["secondary_verification"] = {
+            "required": True,
+            "method": "dedicated_tests",
+            "status": "passed",
+            "evidence": "no-op",
+            "commands": [
+                {
+                    "command": "true",
+                    "exit_code": 0,
+                    "summary": "no-op",
+                    "covered_paths": ["ai/operation-policy.yml"],
+                }
+            ],
+        }
+
+        issues = policy_check.validate_review_evidence_data(
+            evidence,
+            "docs/ai/reviews/2026-07-14-pr16-round1-codex-reviewer-a.json",
+            head_compatible=True,
+        )
+
+        self.assertTrue(any("targeted test証跡不正" in issue for issue in issues))
 
     def test_required_evidence_fails_when_directory_is_missing(self) -> None:
         with TemporaryDirectory() as temp_dir:

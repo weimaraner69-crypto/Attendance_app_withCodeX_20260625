@@ -79,6 +79,12 @@ REVIEW_EVIDENCE_REQUIRED_FIELDS = {
     "context_truncated_reason",
     "issues",
 }
+TEST_RUNNER_COMMAND = re.compile(
+    r"^(?:[A-Za-z_][A-Za-z0-9_]*=\S+\s+)*"
+    r"(?:python3?\s+-m\s+(?:unittest|pytest)\b|pytest\b|"
+    r"npm(?:\s+run)?\s+test(?:\s|$)|npx\s+(?:vitest|jest|playwright)\b|"
+    r"vitest\b|jest\b|playwright\b|cargo\s+test\b|go\s+test\b)"
+)
 
 # コードとして扱う拡張子
 CODE_EXTENSIONS = {
@@ -336,20 +342,29 @@ def review_diff_facts(head_sha: str) -> tuple[str, list[str], str] | None:
         ".",
         ":(exclude)docs/ai/reviews/**",
     )
+    paths = changed_paths_between(base_sha, head_sha)
+    if diff.returncode != 0 or paths is None:
+        return None
+    fingerprint = "sha256:" + hashlib.sha256(diff.stdout.encode("utf-8")).hexdigest()
+    return fingerprint, paths, risk_tier_for_paths(paths)
+
+
+def changed_paths_between(base_sha: str, head_sha: str) -> list[str] | None:
+    """rename/copyの旧・新pathを含む変更pathをGitから取得する。"""
     changed = run_git(
         "diff",
         "--name-status",
         "-M",
+        "-C",
+        "--find-copies-harder",
         f"{base_sha}..{head_sha}",
         "--",
         ".",
         ":(exclude)docs/ai/reviews/**",
     )
-    if diff.returncode != 0 or changed.returncode != 0:
+    if changed.returncode != 0:
         return None
-    paths = parse_name_status_paths(changed.stdout)
-    fingerprint = "sha256:" + hashlib.sha256(diff.stdout.encode("utf-8")).hexdigest()
-    return fingerprint, paths, risk_tier_for_paths(paths)
+    return parse_name_status_paths(changed.stdout)
 
 
 def parse_name_status_paths(output: str) -> list[str]:
@@ -396,6 +411,44 @@ def risk_tier_for_paths(paths: list[str]) -> str:
         ):
             return tier
     return str(config["default_tier"])
+
+
+def valid_dedicated_test_commands(
+    commands: object, changed_files: object
+) -> bool:
+    """成功したtest runnerと変更path coverageを検証する。"""
+    if not isinstance(commands, list) or not commands:
+        return False
+    if not isinstance(changed_files, list) or not all(
+        isinstance(path, str) and path for path in changed_files
+    ):
+        return False
+
+    coverage_patterns: list[str] = []
+    has_test_runner = False
+    for command in commands:
+        if not isinstance(command, dict):
+            return False
+        command_text = command.get("command")
+        covered_paths = command.get("covered_paths")
+        if (
+            not isinstance(command_text, str)
+            or not command_text
+            or command.get("exit_code") != 0
+            or not isinstance(command.get("summary"), str)
+            or not command.get("summary")
+            or not isinstance(covered_paths, list)
+            or not covered_paths
+            or not all(isinstance(pattern, str) and pattern for pattern in covered_paths)
+        ):
+            return False
+        has_test_runner = has_test_runner or bool(TEST_RUNNER_COMMAND.match(command_text))
+        coverage_patterns.extend(covered_paths)
+
+    return has_test_runner and all(
+        any(path_matches_risk_pattern(path, pattern) for pattern in coverage_patterns)
+        for path in changed_files
+    )
 
 
 def validate_current_review_target(
@@ -583,36 +636,20 @@ def validate_review_evidence_data(
         if not str(secondary.get("evidence", "")).strip():
             issues.append(f"red riskの第2確認証跡が空 in {relative_path}")
         if secondary.get("method") == "dedicated_tests":
-            commands = secondary.get("commands")
-            if not isinstance(commands, list) or not commands or not all(
-                isinstance(command, dict)
-                and isinstance(command.get("command"), str)
-                and bool(command.get("command"))
-                and command.get("exit_code") == 0
-                and isinstance(command.get("summary"), str)
-                and bool(command.get("summary"))
-                for command in commands
+            if not valid_dedicated_test_commands(
+                secondary.get("commands"), data.get("changed_files")
             ):
                 issues.append(f"red riskの専用回帰テスト証跡不正 in {relative_path}")
         if data["repository_context_mode"] != "full_repo_agentic":
             issues.append(f"red riskはfull_repo_agenticが必須 in {relative_path}")
     if isinstance(secondary, dict) and data["risk_tier"] == "yellow":
-        commands = secondary.get("commands")
         if (
             secondary.get("required") is not True
             or secondary.get("method") != "dedicated_tests"
             or secondary.get("status") != "passed"
             or not str(secondary.get("evidence", "")).strip()
-            or not isinstance(commands, list)
-            or not commands
-            or not all(
-                isinstance(command, dict)
-                and isinstance(command.get("command"), str)
-                and bool(command.get("command"))
-                and command.get("exit_code") == 0
-                and isinstance(command.get("summary"), str)
-                and bool(command.get("summary"))
-                for command in commands
+            or not valid_dedicated_test_commands(
+                secondary.get("commands"), data.get("changed_files")
             )
         ):
             issues.append(f"yellow riskのtargeted test証跡不正 in {relative_path}")

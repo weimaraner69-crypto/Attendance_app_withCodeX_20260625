@@ -33,7 +33,7 @@ model: "GPT-5.5 (copilot)"
 - 情報不足で判断できない
 
 ### Round 3 ルール
-- AIレビュー（Copilot / Codex / Claude fallback）は最大 3 ラウンドまで対応する
+- 実装担当から独立した Codex / Claude repo-aware review はprovider横断で最大3ラウンドまで対応する。Copilotは任意の追加レビューとする
 - Round 3 後も Must が残れば fail-close。非ブロッキング Should のみ Backlog に記録し、PR コメントに Backlog ID と残リスクを返信して承認可能
 - Round 3 後の即時ブロッカーは fail-close で修正要求する
 

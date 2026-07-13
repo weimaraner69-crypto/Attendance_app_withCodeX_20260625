@@ -1,0 +1,223 @@
+{
+  "schema_version": 2,
+  "phase": "post_push",
+  "provider": "codex",
+  "reviewer_id": "codex-faraday-019f5cad",
+  "review_session_id": "019f5cad-4d64-74b1-9b30-ecc277915d35",
+  "implementation_session_id": "codex-main-20260714-review-policy",
+  "head_sha": "523402f32393d46b32f665de8c2bb99a1784df0f",
+  "diff_fingerprint": "sha256:3add0db89e9aba91c70409971d46e4e888c9c120e8ca272b94ca9fb97764cc0a",
+  "risk_tier": "red",
+  "round": 2,
+  "review_status": "completed",
+  "secondary_verification": {
+    "required": true,
+    "method": "dedicated_tests",
+    "status": "passed",
+    "evidence": "Policy, migration, TypeScript, lint, production build, JSON, YAML, and diff checks passed after Round 2 fixes.",
+    "commands": [
+      {
+        "command": "python3 -m unittest ci.test_policy_check ci.test_supabase_advisor_migrations",
+        "exit_code": 0,
+        "summary": "30 tests passed",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "python3 ci/policy_check.py",
+        "exit_code": 0,
+        "summary": "Policy check passed",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "npm test",
+        "exit_code": 0,
+        "summary": "20 tests passed",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "npm run lint",
+        "exit_code": 0,
+        "summary": "No ESLint warnings or errors",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "npm run build",
+        "exit_code": 0,
+        "summary": "Production build completed",
+        "covered_paths": ["**"]
+      }
+    ]
+  },
+  "summary": "Round 2 confirmed the Round 1 fixes and found two Must, three Should, and one Nice issue. All six findings were fixed and regression-tested.",
+  "repository_context_mode": "full_repo_agentic",
+  "diff_only_reason": "",
+  "changed_files": [
+    ".github/PULL_REQUEST_TEMPLATE.md",
+    ".github/agents/auditor-reliability.agent.md",
+    ".github/agents/auditor-security.agent.md",
+    ".github/agents/auditor-spec.agent.md",
+    ".github/agents/implementer-single-file.agent.md",
+    ".github/agents/implementer.agent.md",
+    ".github/agents/orchestrator.agent.md",
+    ".github/agents/pre-pr-critical-reviewer.agent.md",
+    ".github/agents/release-manager.agent.md",
+    ".github/agents/test-engineer.agent.md",
+    ".github/instructions/review-loop.instructions.md",
+    ".github/instructions/security.instructions.md",
+    ".github/prompts/FINAL_REVIEW.prompt.md",
+    ".github/workflows/ci.yml",
+    "CHANGELOG.md",
+    "NEXT.md",
+    "ai/coherence-workflow.yml",
+    "ai/operation-policy.yml",
+    "ai/pre-pr-review-policy.yml",
+    "ai/review-risk-paths.json",
+    "ci/README.md",
+    "ci/policy_check.py",
+    "ci/requirements.txt",
+    "ci/test_policy_check.py",
+    "docs/ai/decision-ledger.md",
+    "docs/ai/execution-ledger.md",
+    "docs/ai/pre-pr-reviews/README.md",
+    "docs/ai/review-result.schema.json",
+    "docs/orchestration.md"
+  ],
+  "related_files": [
+    {
+      "path": "ai/review-risk-paths.json",
+      "reason": "Canonical security-sensitive paths"
+    },
+    {
+      "path": "ci/policy_check.py",
+      "reason": "Evidence and risk gate implementation"
+    },
+    {
+      "path": "ci/test_policy_check.py",
+      "reason": "Boundary regression tests"
+    },
+    {
+      "path": ".github/prompts/EXECUTE.prompt.md",
+      "reason": "Execution entrypoint consistency"
+    },
+    {
+      "path": ".github/agents/orchestrator.agent.md",
+      "reason": "Local bootstrap workflow"
+    }
+  ],
+  "scanned_paths": [
+    ".github",
+    "ai",
+    "ci",
+    "docs",
+    "src"
+  ],
+  "commands_run": [
+    {
+      "command": "git diff --name-status origin/main...523402f",
+      "exit_code": 0,
+      "summary": "Reviewed changed paths and rename behavior"
+    },
+    {
+      "command": "python3 -m unittest ci.test_policy_check ci.test_supabase_advisor_migrations",
+      "exit_code": 0,
+      "summary": "28 pre-fix tests passed in the independent review session"
+    },
+    {
+      "command": "python3 ci/policy_check.py",
+      "exit_code": 0,
+      "summary": "Normal policy gate passed"
+    },
+    {
+      "command": "python3 ci/policy_check.py --require-review-evidence --pr-number 17",
+      "exit_code": 1,
+      "summary": "Expected failure because Round 1 targeted the previous head"
+    },
+    {
+      "command": "rg --hidden -n Copilot .github ai docs",
+      "exit_code": 0,
+      "summary": "Located one stale execution-policy phrase"
+    },
+    {
+      "command": "git diff --check origin/main...523402f",
+      "exit_code": 0,
+      "summary": "No whitespace errors"
+    }
+  ],
+  "context_fingerprint": "sha256:2513de187d0fcd7b6ee9e08a4f7a9f2b06c931b1fe9d829d6c6b2a8339aa5b63",
+  "context_budget": {
+    "max_related_files": 40,
+    "max_context_chars": 180000,
+    "max_file_excerpt_chars": 12000,
+    "max_context_commands": 12
+  },
+  "context_truncated": false,
+  "context_truncated_reason": "",
+  "issues": [
+    {
+      "severity": "Must",
+      "category": "targeted-test fail-open",
+      "file": "ci/policy_check.py",
+      "line": 599,
+      "rationale": "A yellow review could claim true as its targeted test command.",
+      "fix": "Require a recognized test runner and structured changed-path coverage.",
+      "confidence": 0.99,
+      "disposition": "fixed",
+      "disposition_reason": "Dedicated test commands now require covered_paths, a recognized test runner, successful exit, and coverage of every changed path; no-op regression coverage was added."
+    },
+    {
+      "severity": "Must",
+      "category": "risk classification",
+      "file": "ai/review-risk-paths.json",
+      "line": 9,
+      "rationale": "Several repository-specific security boundaries were below red risk.",
+      "fix": "Add security policy, Supabase, auth store, validation, layout, role, and permission boundaries to red paths.",
+      "confidence": 0.99,
+      "disposition": "fixed",
+      "disposition_reason": "The canonical red list now covers the observed security boundaries and tests assert representative paths."
+    },
+    {
+      "severity": "Should",
+      "category": "policy consistency",
+      "file": ".github/prompts/EXECUTE.prompt.md",
+      "line": 62,
+      "rationale": "The execution prompt still described Codex and Claude as Copilot fallbacks.",
+      "fix": "Require independent Codex or Claude review and make Copilot optional.",
+      "confidence": 0.99,
+      "disposition": "fixed",
+      "disposition_reason": "The execution prompt and a matching release-manager phrase now use the provider-independent policy."
+    },
+    {
+      "severity": "Should",
+      "category": "rename/copy evidence consistency",
+      "file": "ci/policy_check.py",
+      "line": 339,
+      "rationale": "Copy parsing existed but the Git command did not enable copy detection.",
+      "fix": "Enable copy detection and verify it in a real temporary Git repository.",
+      "confidence": 1.0,
+      "disposition": "fixed",
+      "disposition_reason": "The diff uses -C and --find-copies-harder; a real Git copy regression test confirms both paths."
+    },
+    {
+      "severity": "Should",
+      "category": "local execution reproducibility",
+      "file": ".github/agents/orchestrator.agent.md",
+      "line": 190,
+      "rationale": "The orchestrator could invoke policy_check before installing its Python dependency.",
+      "fix": "Add a one-time bootstrap prerequisite for fresh or unknown environments.",
+      "confidence": 0.96,
+      "disposition": "fixed",
+      "disposition_reason": "The local CI step now explicitly installs ci/requirements.txt when needed."
+    },
+    {
+      "severity": "Nice",
+      "category": "documentation consistency",
+      "file": "docs/orchestration.md",
+      "line": 150,
+      "rationale": "One paragraph still attributed red paths to the tier policy file.",
+      "fix": "Separate the risk-path and tier-requirement sources of truth.",
+      "confidence": 1.0,
+      "disposition": "fixed",
+      "disposition_reason": "The paragraph now points paths to ai/review-risk-paths.json and tier requirements to ai/operation-policy.yml."
+    }
+  ]
+}

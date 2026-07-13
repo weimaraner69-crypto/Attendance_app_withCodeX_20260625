@@ -147,7 +147,7 @@ main 一本化運用では feature/fix → main の PR がそのままリリー�
 - yellow: 追加の AI review、targeted test、release summary を求める。
 - red: full CI、rollback、release manifest を必須にする。
 
-red 判定対象は workflow、依存・lockfile、DB migration、設定、秘密情報関連など `ai/operation-policy.yml` に従う（プロジェクト固有の重要操作は `project-config.yml` で追加定義する）。
+red判定対象pathは `ai/review-risk-paths.json` に従う。workflow、依存・lockfile、DB migration、認証・権限、Supabase境界、設定、秘密情報関連を含み、tierごとの追加要件は `ai/operation-policy.yml` に従う。
 
 ## 文書統治
 
