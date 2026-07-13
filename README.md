@@ -2,7 +2,7 @@
 
 店舗スタッフの出退勤、休憩、シフト、打刻修正申請、管理者確認を扱う勤怠管理アプリです。
 
-Next.jsの主要画面、Supabase PostgreSQLのDB、ロール別認証、打刻・申請・シフト・レポート、LINE連携コード、日報アプリ向け外部APIまで実装済みです。
+Next.jsの主要画面、Supabase PostgreSQLのDB、ロール別認証、打刻・申請・シフト・レポート、LINE連携コード、日報アプリ向け外部APIのPhase 1まで実装済みです。
 現在は `NEXT.md` の優先順位に沿って、Performance Advisor最適化、自動テスト・CI強化、スタッフAuthアカウント運用、外部APIの運用強化を進めています。
 
 ## 目的

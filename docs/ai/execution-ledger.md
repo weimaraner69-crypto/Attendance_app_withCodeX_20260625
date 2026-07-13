@@ -25,7 +25,7 @@
 - 現在タスク: PR #10（計画、連携仕様、README、GitHub Issueの状態整合）のCopilotレビュー待ち
 - review baseline: `70cc2b1408d028681c65b7210f96c16bef8338ce` 以降のPR #10 reviewThreads
 - 次タスク: 計画整合PRのレビュー完了後、A-006 Performance AdvisorとA-007テスト・CI強化
-- レビュー条件: PR作成後にCopilotレビューを依頼し、5分間隔で最大5回確認。actionableな指摘がなくなるまで修正・push・再レビューを反復する
+- レビュー条件: PR作成後にCopilotレビューを依頼し、到着確認、対応ラウンド、Round 3後の扱いは `.github/instructions/review-loop.instructions.md` に従う
 - 安全床: `.env.local` を読まない。秘密情報を表示しない。破壊的DB操作、本番運用準備、自動マージは対象外
 - 最終更新: 2026-07-13
 
