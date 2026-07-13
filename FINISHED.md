@@ -17,7 +17,7 @@
 
 ### 実施内容
 
-- GitHub親Issue #1から旧日報リポジトリ名を除き、現行リポジトリ、Phase 1完了状態、Phase 2順序、実接続再開条件へ更新。
+- GitHub親Issue #1から旧日報リポジトリ名を除き、連携先 `weimaraner69-crypto/kashio-nippou-app_20260611Start`、Phase 1完了状態、Phase 2順序、実接続再開条件へ更新。
 - 完了済みIssue #2〜#4の受け入れチェックを完了へ揃え、Issue #5〜#7に保留理由と着手順を追記。
 - A-001の実装範囲、受け入れ条件、PR分割をGitHub Issue #13へ固定。
 - 勤怠側の外部API仕様を契約スナップショット `attendance-external-v1-2026-07-14` として固定し、日報側初期仕様との差分を記録。

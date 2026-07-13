@@ -9,7 +9,7 @@
 
 ### 変更
 
-- GitHub親Issue #1を現行の日報リポジトリ、Phase 1完了状態、Phase 2の順序、実接続再開条件へ更新。
+- GitHub親Issue #1を連携先 `weimaraner69-crypto/kashio-nippou-app_20260611Start`、Phase 1完了状態、Phase 2の順序、実接続再開条件へ更新。
 - 完了済みIssue #2〜#4の受け入れチェックを検証実績に合わせて完了へ更新し、Issue #5〜#7へ保留・着手順を追記。
 - A-001スタッフAuth運用をIssue #13として起票し、招待・安全な紐付け、初回設定・再設定、回帰テストのPR順序を確定。
 - 外部API契約スナップショットを `attendance-external-v1-2026-07-14` とし、日報側の初期仕様との差分と同期条件を明文化。
