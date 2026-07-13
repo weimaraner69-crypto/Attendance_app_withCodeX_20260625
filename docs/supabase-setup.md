@@ -102,7 +102,7 @@ order by procedure.proname;
 - 未所属ユーザーと、実在するオーナー、店長、社労士を模擬したトランザクション内SQLスモークテストで、期待するRLS付き読み取りを確認済み。テストで使用した識別子やデータ件数は記録していない。
 - Security Advisor再実行後はErrors 0、Warnings 1、Info 0。残件はFreeプランでは有効化できない `Leaked Password Protection Disabled` のみ。
 - Performance Advisor再実行後はErrors 0、Warnings 73、Info 45。Security Advisor対応とは分離し、`NEXT.md` の `A-006` で精査する。
-- 2026-07-13のCopilotレビューを受け、`set_updated_at()` の `search_path` 最小化と重複索引の解消を反映。既に本番適用済みの差分は `202607130001_supabase_advisor_review_followup.sql` の適用後に再確認する。
+- 2026-07-13のCopilotレビューを受け、`set_updated_at()` の `search_path` 最小化と重複索引の解消を反映。`202607130001_supabase_advisor_review_followup.sql` を本番適用し、`search_path` が `pg_catalog` のみ、既存索引が存在、重複索引が削除済みの3条件すべてを `true` と確認済み。
 
 ## 4. 接続確認
 

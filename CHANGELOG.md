@@ -16,6 +16,11 @@
 - `private` 側のRLS補助関数が存在しない環境でも、設定・権限変更をスキップしてマイグレーションを完了できるようにした。
 - 2026-07-09の履歴に残っていた `set_updated_at()` の旧 `search_path` 記述を現在の実装へ合わせた。
 
+### 本番確認
+- `202607130001_supabase_advisor_review_followup.sql` を本番Supabaseへ適用。
+- `set_updated_at()` の `search_path` 最小化、既存索引の保持、重複索引の削除を示す3条件がすべて `true` であることを確認。
+- `.env.local` の値は読み取り・表示していない。
+
 ### 影響ファイル
 - `supabase/migrations/202607090001_supabase_advisor_warnings.sql`
 - `supabase/migrations/202607130001_supabase_advisor_review_followup.sql`

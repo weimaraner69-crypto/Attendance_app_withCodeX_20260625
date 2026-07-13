@@ -25,9 +25,11 @@
 - `private` 側のRLS補助関数が存在しない環境では、関数ごとの設定・権限変更を安全にスキップするよう修正。
 - CHANGELOGの旧 `search_path` 記述を現在の実装へ同期。
 
-### 残作業
+### 確認内容
 
-- 本番SQL Editorで追補マイグレーションを適用し、関数設定と索引を再確認する。
+- 本番SQL Editorで追補マイグレーションを適用し、`Success. No rows returned` を確認。
+- 真偽値だけを返す確認クエリで、`set_updated_at()` の `search_path` が `pg_catalog` のみ、既存索引が存在、重複索引が削除済みの3条件すべてが `true` であることを確認。
+- `.env.local` の値は読み取り・表示していない。
 
 ### 影響ファイル
 
