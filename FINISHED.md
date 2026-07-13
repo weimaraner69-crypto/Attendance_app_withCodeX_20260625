@@ -10,6 +10,143 @@
 
 ---
 
+## S-004-Advisor Copilotレビュー指摘対応
+
+- 実装日: 2026-07-13
+- 種別: DB運用/レビュー対応
+
+### 実装内容
+
+- `set_updated_at()` は組み込み関数以外を参照しないため、`search_path` を `pg_catalog` のみに縮小。
+- 初期スキーマにある `idx_line_accounts_staff` と同じキーの `idx_line_accounts_staff_id` を元マイグレーションから削除。
+- 既にレビュー修正前のSQLを適用した本番DB向けに、関数設定を更新して重複索引を削除する追補マイグレーション `202607130001_supabase_advisor_review_followup.sql` を追加。
+- 全マイグレーションの明示的な索引定義を横断確認し、今回追加分に同一キーの追加重複がないことを確認。
+- `search_path` と重複索引の安全条件を固定する回帰テストを追加。
+- `private` 側のRLS補助関数が存在しない環境では、関数ごとの設定・権限変更を安全にスキップするよう修正。
+- CHANGELOGの旧 `search_path` 記述を現在の実装へ同期。
+
+### 確認内容
+
+- 本番SQL Editorで追補マイグレーションを適用し、`Success. No rows returned` を確認。
+- 真偽値だけを返す確認クエリで、`set_updated_at()` の `search_path` が `pg_catalog` のみ、既存索引が存在、重複索引が削除済みの3条件すべてが `true` であることを確認。
+- `.env.local` の値は読み取り・表示していない。
+
+### 影響ファイル
+
+- `supabase/migrations/202607090001_supabase_advisor_warnings.sql`
+- `supabase/migrations/202607130001_supabase_advisor_review_followup.sql`
+- `ci/test_supabase_advisor_migrations.py`
+- `docs/supabase-setup.md`
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+
+## S-004-Advisor Supabase本番適用・Security Advisor再検証
+
+- 実装日: 2026-07-13
+- 種別: DB運用/Supabase Security Advisor対応
+
+### 実装内容
+
+- 本番プロジェクトのSQL Editorで `202607090001_supabase_advisor_warnings.sql` と `202607090002_security_advisor_function_execute.sql` を順に適用。
+- RLS補助関数3件をData API非公開の `private` スキーマへ移し、`PUBLIC` / `anon` の実行権限を外した状態を本番DBへ反映。
+- Security AdvisorとPerformance Advisorを再実行し、現在の指摘件数を確認。
+
+### 確認内容
+
+- 2マイグレーションはいずれも `Success. No rows returned` で完了。
+- 権限確認クエリは3行を返し、全関数で `function_schema=private`、`anon_execute=false`、`authenticated_execute=true` を確認。
+- 未所属のダミー認証ユーザーでは組織・勤怠レコードが0件、補助関数が組織/ロールなし、未知店舗へのアクセス不可となり、権限エラーが発生しないことを確認。
+- 実在するオーナー、店長、社労士を個別に模擬したトランザクション内スモークテストで、ロール判定、組織解決、組織・勤怠レコードのRLS付き読み取りがすべて成功。各テストは結果確認後にロールバック。
+- Security Advisor再実行後はErrors 0、Warnings 1、Info 0。残件は `Leaked Password Protection Disabled` のみ。
+- 現在のOrganizationはFreeプランのため、Pro以上で利用できる漏洩パスワード保護は未有効化。アップグレードが必要な残リスクとして記録。
+- Performance Advisor再実行後はErrors 0、Warnings 73、Info 45。Security Advisor対応とは分離し、`NEXT.md` の `A-006` として全件精査を継続する。
+- `.env.local` の値は読み取り・表示していない。
+
+### 残作業
+
+- Supabase Pro以上へアップグレードする場合、漏洩パスワード保護を有効化してSecurity Advisorを再実行する。
+- Performance Advisorの残件は `A-006 Supabase Performance Advisor最適化` で対応判断する。
+
+### 影響ファイル
+
+- `supabase/migrations/202607090001_supabase_advisor_warnings.sql`
+- `supabase/migrations/202607090002_security_advisor_function_execute.sql`
+- `docs/supabase-setup.md`
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+
+## S-004-Advisor Security Advisor 関数実行権限Warning対応
+
+- 実装日: 2026-07-09
+- 種別: DB運用/Supabase Security Advisor対応
+
+### 実装内容
+
+- Security Advisor に残ったRLS補助関数の直接実行権限Warning 6件へ対応する追加マイグレーションを作成。
+- `current_user_organization_id()`、`current_user_role()`、`can_access_store(uuid)` をData API非公開の `private` スキーマへ移すSQLを追加。
+- RLS評価を壊さないよう、`PUBLIC` / `anon` の実行権限を外し、`authenticated` に必要最小限の `USAGE` / `EXECUTE` を付与する。
+- SQL全体をトランザクション化し、途中失敗時は権限変更をロールバックする。
+- `Leaked Password Protection Disabled` はSQLではなくDashboardのAuthentication設定で対応する項目として、手順書とNEXTへ残作業を記録。
+
+### 確認内容
+
+- スクリーンショットで残WarningがSecurity Advisor 7件であることを確認。
+- `.env.local` の値は読み取り・表示していない。
+
+### 残作業
+
+- Supabase SQL Editor で `supabase/migrations/202607090002_security_advisor_function_execute.sql` を適用する。
+- RLS補助関数3件が `private` にあり、`anon` は実行不可、`authenticated` はRLS評価用に実行可能であることを確認する。
+- オーナー、店長、社労士の認証済み画面でRLS付き読み取りが成功することを確認する。
+- Security Advisor を再実行し、関数のData API公開Warningが解消されたことを確認する。RLS評価に必要な `authenticated` 権限が警告される場合は、安全性・機能確認の証跡と判断理由を記録する。
+- Supabase Dashboard の Authentication 設定で、Proプラン以上なら漏洩パスワード保護を有効化する。利用できない場合はアップグレードが必要な残リスクとして記録する。
+
+### 影響ファイル
+
+- `supabase/migrations/202607090002_security_advisor_function_execute.sql`
+- `docs/supabase-setup.md`
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+
+## S-004-Advisor Supabase Advisor Warning 対応マイグレーション作成
+
+- 実装日: 2026-07-09
+- 種別: DB運用/Supabase Advisor対応
+
+### 実装内容
+
+- Supabase Dashboard で出ている8件のWarning対応として、追加マイグレーションを作成。
+- `public.set_updated_at()` の `search_path` を固定。
+- service role専用の `external_api_keys`、`line_link_tokens`、`user_login_pins` に、ブラウザクライアントへ権限を付与しない明示denyポリシーを追加。対象テーブルやポリシーがすでに存在する場合はスキップする。
+- denyポリシーを `RESTRICTIVE` とし、将来のpermissiveポリシー追加でもクライアントアクセスを許可しないようにした。
+- 外部キー参照列の補助インデックスを追加。
+- `pgcrypto` 拡張を `extensions` スキーマへ移動する処理を追加。
+- SQL全体をトランザクション化し、途中失敗時は全変更をロールバックする。
+- `docs/supabase-setup.md` に適用後のAdvisor再実行手順を追記。
+
+### 確認内容
+
+- SQLは既存データを更新せず、関数定義、ポリシー、インデックス、拡張スキーマだけを変更する内容として確認。
+- `.env.local` の値は読み取り・表示していない。
+- この環境には Supabase CLI がないため、実DBへの適用とAdvisor再実行は未実施。
+
+### 残作業
+
+- Supabase SQL Editor で `supabase/migrations/202607090001_supabase_advisor_warnings.sql` を適用する。
+- Database Advisor / Security Advisor を再実行し、8件のWarningが解消されたことを確認する。
+- Dashboard側にAuth設定系Warningが残る場合は、利用可能な設定を調整する。プラン制約がある場合は残リスクとして記録する。
+
+### 影響ファイル
+
+- `supabase/migrations/202607090001_supabase_advisor_warnings.sql`
+- `docs/supabase-setup.md`
+- `NEXT.md`
+- `CHANGELOG.md`
+- `FINISHED.md`
+
 ## A-001-PIN 管理ユーザーの6時間PIN再ログイン（コード実装）
 
 - 実装日: 2026-07-02
