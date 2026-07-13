@@ -149,9 +149,7 @@ red 判定対象は workflow、依存・lockfile、DB migration、設定、秘�
 AI Operating Model 関連の基本検証は次を使う。
 
 ```bash
-python ci/policy_check.py
-python ci/policy_check.py
-python ci/policy_check.py
-python ci/policy_check.py
-python ci/policy_check.py
+python3 ci/policy_check.py
+npm run lint
+npm run build
 ```

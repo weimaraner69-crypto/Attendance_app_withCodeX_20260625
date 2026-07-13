@@ -82,7 +82,6 @@
 
    ```bash
    npm run lint
-   npm run lint
    npm run build
    python ci/policy_check.py
    ```

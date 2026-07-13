@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -58,4 +57,3 @@ jobs:
 
       - name: Run gitleaks
         run: gitleaks git --verbose --report-format=sarif --report-path=gitleaks-report.sarif .
-

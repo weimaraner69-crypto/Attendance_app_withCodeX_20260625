@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/KosGit-Dev/dev-orchestration-template/docs/ai/review-result.schema.json",
+  "$id": "./review-result.schema.json",
   "title": "Repo-aware AI review result",
   "type": "object",
   "required": [

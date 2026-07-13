@@ -1,7 +1,7 @@
 """汎用ポリシーチェッカー。
 
 プロジェクト固有の禁止パターンと秘密情報パターンをチェックする。
-project-config.yml の policies セクション、または本ファイル内の定数で設定する。
+検査対象と許可パターンは本ファイル内の定数で設定する。
 
 使い方:
     python ci/policy_check.py
@@ -29,15 +29,20 @@ SCAN_DIRS = [
     REPO_ROOT / "supabase",
 ]
 
-# スキャン対象の拡張子
-SCAN_EXTENSIONS = {
+# コードとして扱う拡張子
+CODE_EXTENSIONS = {
     ".py",
     ".ts",
     ".tsx",
     ".js",
     ".jsx",
+    ".mjs",
     ".go",
     ".rs",
+}
+
+# スキャン対象の拡張子
+SCAN_EXTENSIONS = CODE_EXTENSIONS | {
     ".sql",
     ".toml",
     ".txt",
@@ -45,7 +50,6 @@ SCAN_EXTENSIONS = {
     ".yaml",
     ".md",
     ".json",
-    ".mjs",
     ".sh",
 }
 
@@ -107,6 +111,7 @@ URL_ALLOWLIST_PATTERNS: list[str] = [
     r"api\.openai\.com",
     r"api\.anthropic\.com",
     r"api\.line\.me",
+    r"localhost|127\.0\.0\.1|\[::1\]",
 ]
 
 # 禁止操作パターン（言語非依存、全ファイルに適用）
@@ -162,13 +167,13 @@ def is_url_allowlisted(line: str) -> bool:
 
 def is_code_file(path: Path) -> bool:
     """コード系ファイルか判定する（コメント行の判定に使用）。"""
-    return path.suffix.lower() in {".py", ".ts", ".js", ".go", ".rs"}
+    return path.suffix.lower() in CODE_EXTENSIONS
 
 
 def is_comment_line(line: str, suffix: str) -> bool:
     """コメント行か判定する。"""
     stripped = line.lstrip()
-    return suffix in {".py", ".ts", ".js", ".go", ".rs"} and (
+    return suffix in CODE_EXTENSIONS and (
         stripped.startswith("#") or stripped.startswith("//")
     )
 

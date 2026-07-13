@@ -1,7 +1,8 @@
 schema_version: 1
 purpose: >
   有効コンテキストを小さく決定的に保つ。エージェントは既定で全履歴文書を読まない。
-  勤怠管理アプリでは、計画・実行キューの正本は NEXT.md ではなく NEXT.md とする。
+  勤怠管理アプリでは、テンプレート標準の docs/NEXT.md ではなく、既存の NEXT.md を
+  計画・実行キューの正本とする。
 
 always_read:
   - ai/command-router.yml
