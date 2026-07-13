@@ -103,7 +103,7 @@ Orchestrator はこの要約をさらに圧縮し、メイン会話には「実�
   "status": "done",
   "summary": ["端的報告契約を追加", "roster 検証を実装"],
   "changed_files": ["ci/policy_check.py"],
-  "evidence": [{"command": "python ci/policy_check.py", "result": "pass"}],
+  "evidence": [{"command": "python3 ci/policy_check.py", "result": "pass"}],
   "next_actions": ["auditor-spec に仕様監査を委譲"],
   "risks": []
 }
@@ -122,7 +122,7 @@ push 後の AI レビューループは `.github/instructions/review-loop.instru
 PR 作成前に policy check、差分確認、関連文書の整合確認を行い、`docs/ai/pre-pr-critical-review.md` を更新する。
 
 ```bash
-python ci/policy_check.py
+python3 ci/policy_check.py
 ```
 
 このレビューは Copilot レビューループの代替ではない。Copilot レビューは push 後に `.github/instructions/review-loop.instructions.md` に従って完了まで追跡する。

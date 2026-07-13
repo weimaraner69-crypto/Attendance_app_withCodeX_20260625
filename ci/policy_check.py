@@ -4,7 +4,7 @@
 検査対象と許可パターンは本ファイル内の定数で設定する。
 
 使い方:
-    python ci/policy_check.py
+    python3 ci/policy_check.py
 """
 
 from __future__ import annotations
@@ -151,8 +151,8 @@ def git_ls_files() -> list[Path]:
             check=True,
         )
         return [REPO_ROOT / line for line in result.stdout.splitlines() if line.strip()]
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return []
+    except (subprocess.CalledProcessError, FileNotFoundError) as error:
+        raise RuntimeError("git 管理対象ファイルの取得に失敗しました") from error
 
 
 def should_skip(path: Path) -> bool:
@@ -250,7 +250,11 @@ def main() -> int:
     issues: list[str] = []
 
     # .env が git 管理されていないことを確認
-    tracked_files = {p.relative_to(REPO_ROOT).as_posix() for p in git_ls_files()}
+    try:
+        tracked_files = {p.relative_to(REPO_ROOT).as_posix() for p in git_ls_files()}
+    except RuntimeError as error:
+        print(f"[policy_check] FAILED\n  1. {error}")
+        return 1
     if ".env" in tracked_files:
         issues.append(
             "禁止: .env がリポジトリにコミットされています。削除し、gitignore 対象にしてください。"

@@ -30,7 +30,7 @@ PR 前批判レビューは push 後の AI レビューループの代替では�
 
 1. 変更差分を確認する。
 2. `ai/pre-pr-review-policy.yml` の lens に沿って Must / Should / Nice を分類する。
-3. `python ci/policy_check.py` の結果と矛盾がないか確認する。
+3. `python3 ci/policy_check.py` の結果と矛盾がないか確認する。
 4. Must-equivalent があれば PR 作成前に修正対象として返す。
 5. Should-equivalent は、即時修正または理由付き残リスクとして記録する。
 

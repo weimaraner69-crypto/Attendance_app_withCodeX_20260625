@@ -81,7 +81,7 @@ daily_commands:
     # 該当 tier の verifier 全てが「完了条件を満たした」と判断するまで PR へ進めない。
     verifiers_by_risk_tier:
       green:
-        - critical_review       # python ci/policy_check.py（ai/pre-pr-review-policy.yml）+ 独立 auditor サブエージェント
+        - critical_review       # python3 ci/policy_check.py（ai/pre-pr-review-policy.yml）+ 独立 auditor サブエージェント
       yellow_and_red:
         - critical_review
         - independent_peer_review   # 独立 peer 監査。担い手は下記 independent_peer_fallback_ladder

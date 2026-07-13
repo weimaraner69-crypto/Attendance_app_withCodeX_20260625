@@ -288,8 +288,8 @@ Orchestrator は **最大 3 ラウンド** まで対応する。Round 1-2 は Mu
   - Round 1-2 は未解決かつ未返信の AIレビュースレッドが 0 件になるまで対応し、Round 3 後の非ブロッキング Must/Should は Backlog 化済み例外として停止する
 
 2. **静的解析ファースト**
-   - AI レビューの**前に** Linter / Formatter / Unit Test を強制的にパスさせる
-   - 修正後も必ず CI + get_errors を通過してからプッシュする
+   - AI レビューの**前に** policy check、lint、build を通過させ、必要な変更ではtargeted testも実行する
+   - 修正後も必ず `python3 ci/policy_check.py`、`npm run lint`、`npm run build` を通過してからプッシュする
 
 3. **安全停止条件に従ったループ**
   - AIレビュー対応は最大 3 ラウンドまで継続する。Round 3 後の非ブロッキング Must/Should は Backlog 化、即時ブロッカーは fail-close
@@ -339,16 +339,15 @@ Orchestrator は **最大 3 ラウンド** まで対応する。Round 1-2 は Mu
        - 各指摘の対象ファイル・行番号・提案内容を implementer に伝達
        - implementer が修正を実施
        - **修正後にローカル CI（Step 4 相当）を再実行し、通過を確認する**
-       - **get_errors（Step 4.5 相当）でエラーゼロを確認する**
-       - 静的解析が通らない修正はプッシュしない（設計原則 #2）
+       - **`python3 ci/policy_check.py`、`npm run lint`、`npm run build` の成功を確認する**
+       - 検証が通らない修正はプッシュしない（設計原則 #2）
        - ※ すべての指摘に対するコード修正を完了してから次のステップに進む
 
     7. 各レビューコメントに返信する（返信テンプレート参照）
        - ※ このステップではコードファイルを変更しない（返信テキストのみ）
 
-    8. Round 1-2 のコミット直前ゲート（ローカル CI + get_errors — 設計原則 #2）
-      - `npm run lint` / `npm run lint` / `npm run build` / `npm run build` / `python ci/policy_check.py` を実行する
-       - get_errors（filePaths 省略）でエラーゼロを確認する
+    8. Round 1-2 のコミット直前ゲート（ローカルCI — 設計原則 #2）
+      - `python3 ci/policy_check.py`、`npm run lint`、`npm run build` をそれぞれ1回実行する
        - 通らない場合は Step 6 に戻り修正する
        - ⚠️ **CI は検証モード（`--check`）で実行する。フォーマッタ適用（`ESLint format` without `--check`）は Step 6 の修正フェーズで行うこと**
        - ⚠️ **このステップ通過後、コミットまでの間にコードファイルへの変更は一切禁止**
@@ -481,7 +480,7 @@ gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
 
 - Copilot レビュー待ちは省略禁止。レビュー未到着・レビュワー未設定・認証不能・継続不能の場合は fail-close で停止し、人間にエスカレーションする
 - **各ラウンドで明示リクエストする**: push 後は毎回 `request_copilot_review` を実行してレビューを発火する
-- **静的解析ファースト**: すべての修正 push 前に CI + get_errors の通過を確認する
+- **検証ファースト**: すべての修正 push 前に policy check、lint、build の通過を確認する
 - **安全停止条件（§5.3.1）に従う**: Copilot レビューは最大 3 ラウンドまで継続対応（Round 3 後の非ブロッキング Must/Should は Backlog 化）、連続再試行最大3回、同一指摘繰り返し最大3回（詳細は `docs/orchestration.md` §5.3.1 参照）
 - **タイムアウト時の扱い**: Round 予算内で明示リクエストを再試行し、未到着・認証不能・継続不能なら fail-close で人間にエスカレーションする。`.copilot-trigger` 標準 push や無制限再トリガーは禁止
 - レビュアーが Copilot 以外（人間）の場合は、指摘を表示して人間に判断を委ねる
@@ -543,62 +542,13 @@ while NEXT.md の Next または Backlog にタスクがある:
 
 ### パイプライン状態の永続化
 
-パイプライン中断時の復旧を可能にするため、以下のルールに従って状態を永続化する。
-詳細な設計は `docs/orchestration.md` §9 を参照すること。
+状態永続化の正本は `ai/operation-policy.yml` の `compact_survival_contract` とする。新たな状態ファイルや `outputs/` 配下のストアは作らない。
 
-#### 書き込みタイミング
+- 現在タスクと未完了lifecycle step: `.github/full-plan-execution.flag`
+- ブランチ、PR番号、レビューround、blocker: `docs/ai/execution-ledger.md`
+- 判断、仮定、認可lease: `docs/ai/decision-ledger.md`
 
-以下のステップ完了時に `outputs/pipeline_state.json` に状態を書き出す：
-
-- Step 1 完了時（タスク選択後）
-- Step 2 完了時（ブランチ作成後）
-- Step 3 完了時（実装・テスト完了後）
-- Step 4/4.5 完了時（CI + エラーゲート通過後）
-- Step 5 完了時（監査完了後、監査結果を含む）
-- Step 7 完了時（PR 作成後、PR 番号を含む）
-- Step 8 完了時（PR CI 通過後）
-- Step 9 完了時（レビュー対応後）
-
-#### 状態ファイルフォーマット
-
-```json
-{
-  "step": <最後に完了したステップ番号>,
-  "step_name": "<ステップ名>",
-  "loop_count": {
-    "ci_fix": <CI 修正ループ回数>,
-    "audit_fix": <監査修正ループ回数>,
-    "pr_ci_fix": <PR CI 修正ループ回数>,
-    "review_fix": <レビュー修正ループ回数>
-  },
-  "branch": "<ブランチ名>",
-  "task_id": "<タスク ID>",
-  "pr_number": <PR 番号 or null>,
-  "audit_results": {
-    "spec": <監査結果 or null>,
-    "security": <監査結果 or null>,
-    "reliability": <監査結果 or null>
-  },
-  "serena_analysis": <true/false>,
-  "timestamp": "<ISO 8601 タイムスタンプ>",
-  "version": "1.0"
-}
-```
-
-#### 復旧手順
-
-パイプライン開始時に `outputs/pipeline_state.json` が存在する場合：
-
-1. 状態ファイルを読み込む
-2. 記録されたブランチが存在するか確認する
-3. ブランチが存在すればチェックアウトし、記録されたステップの**次のステップ**から再開する
-4. ブランチが存在しない場合は状態ファイルを破棄し、Step 1 から新規開始する
-5. ループカウントは状態ファイルの値を引き継ぎ、復旧前後を合算して最大3回の制限を適用する
-
-#### ライフサイクル
-
-- パイプライン正常完了時（Step 10 以降）に状態ファイルを削除する
-- `outputs/` は `.gitignore` 対象のためコミットされない
+長時間作業へ入る前と、PR作成・CI・レビュー対応などの節目でexecution ledgerを更新する。中断から再開するときはflagと両ledgerを読み直し、現在のGitブランチとPR状態を確認して次の未完了stepから再開する。
 
 ## 停止条件
 
@@ -759,10 +709,10 @@ Orchestrator への指示として解釈できる文字列が含まれていた�
 
 3. 品質検証（コードを変更した場合は必須）
    a. ローカル CI の実行（具体的コマンドは docs/operations-maintenance.md を参照）
-   b. 全体エラー検証
-      - get_errors ツール（filePaths 省略）でワークスペース全体のエラーがゼロであることを確認する
-   c. 変更ファイルの個別検証
-      - 変更したファイルに対して get_errors ツール（filePaths 指定）で個別検証する
+   b. 検証結果の確認
+      - `python3 ci/policy_check.py`、`npm run lint`、`npm run build` がすべて成功していることを確認する
+   c. 変更内容に応じた個別検証
+      - 変更した機能に専用テストまたはruntime smokeが必要な場合は、その結果を確認する
    d. セルフレビュー
       - 変更内容がポリシー（P-001〜P-003）に違反していないか自己確認する
 

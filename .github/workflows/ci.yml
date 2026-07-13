@@ -33,7 +33,7 @@ jobs:
         run: npm ci
 
       - name: Policy check
-        run: python ci/policy_check.py
+        run: python3 ci/policy_check.py
 
       - name: Lint
         run: npm run lint
@@ -56,4 +56,4 @@ jobs:
         uses: ./.github/actions/install-gitleaks
 
       - name: Run gitleaks
-        run: gitleaks git --verbose --report-format=sarif --report-path=gitleaks-report.sarif .
+        run: gitleaks git --verbose .
