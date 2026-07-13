@@ -94,6 +94,11 @@ Orchestrator はこの要約をさらに圧縮し、メイン会話には「実�
 - `next_actions[]`: Orchestrator が次に行うべき操作
 - `risks[]`: 残リスク、未確認事項、ブロッカー
 
+監査エージェント（`auditor-spec` / `auditor-security` / `auditor-reliability`）は、
+上記の共通必須フィールドに加えて次の監査拡張フィールドを必須とする。
+
+- `findings[]`: Must / Should / Nice、根拠、対象箇所、推奨対応を含む指摘一覧。指摘なしの場合も空配列を返す
+
 最小例:
 
 ```json

@@ -210,7 +210,8 @@ Step 4 通過後、監査に入る前にこのNext.jsリポジトリの検証結
 - **auditor-security**（次）: セキュリティ監査（P-001/P-002 違反の有無）
 - **auditor-reliability**（最後）: 信頼性監査（再現性/テスト品質/エラーハンドリング）
 - **報告形式**: 各監査エージェントの報告は `docs/orchestration.md` §4 の **エージェント応答スキーマ** に従うこと。
-  必須フィールド: `status`, `summary`, `findings`。
+  共通必須フィールド: `role`, `task_id`, `status`, `summary`, `changed_files`, `evidence`, `next_actions`, `risks`。
+  監査拡張の必須フィールド: `findings`（指摘なしの場合も空配列）。
   Orchestrator はスキーマに準拠しない応答を受け取った場合、エージェントに再報告を依頼する。
 - **重要**: Step 3.5 のセマンティック影響分析レポートがある場合は、各監査エージェントに渡す。
   これにより auditor-reliability の Serena Stage 3 の重複分析を回避する。

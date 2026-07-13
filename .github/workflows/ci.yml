@@ -32,6 +32,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Policy check tests
+        run: python3 -m unittest ci.test_policy_check
+
       - name: Policy check
         run: python3 ci/policy_check.py
 
@@ -56,4 +59,4 @@ jobs:
         uses: ./.github/actions/install-gitleaks
 
       - name: Run gitleaks
-        run: gitleaks git --verbose
+        run: gitleaks git --verbose --redact
