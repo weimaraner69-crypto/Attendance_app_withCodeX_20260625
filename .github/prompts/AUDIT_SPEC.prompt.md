@@ -1,4 +1,3 @@
-````prompt
 # AUDIT_SPEC — 仕様監査プロンプト
 
 ## 目的
@@ -48,4 +47,3 @@ PR の変更が仕様（requirements/policies/constraints）に整合してい�
 ### 判定
 - [ ] 承認 / [ ] 修正要求
 ```
-````

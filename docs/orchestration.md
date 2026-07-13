@@ -102,7 +102,7 @@ Orchestrator はこの要約をさらに圧縮し、メイン会話には「実�
   "task_id": "TASK-001",
   "status": "done",
   "summary": ["端的報告契約を追加", "roster 検証を実装"],
-  "changed_files": ["scripts/ai/validate_harness_ready.py"],
+  "changed_files": ["ci/policy_check.py"],
   "evidence": [{"command": "python ci/policy_check.py", "result": "pass"}],
   "next_actions": ["auditor-spec に仕様監査を委譲"],
   "risks": []

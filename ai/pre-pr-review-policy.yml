@@ -77,9 +77,9 @@ outputs:
       自動検証を有効化する場合は、多プロバイダ証跡ゲートのスクリプトを取り込み、
       変更差分に対して required provider の証跡が揃っているか検査する（既定では未同梱・任意）。
     claude_provider_policy: >
-      Claude Code の claude provider は CLAUDE_REVIEW_COMMAND（scripts/ai/claude_review_command.py
-      = claude CLI headless / Claude Code セッション自体）で実行し、Anthropic API 課金を要しない
-      非課金経路を既定とする。これは codex / copilot と同等の first-class provider である。
+      Claude Code の claude provider は Claude Code セッション自体、または利用者が明示的に設定した
+      CLAUDE_REVIEW_COMMAND で実行し、Anthropic API 課金を要しない経路を既定とする。これは codex /
+      copilot と同等の first-class provider である。
       Claude Code セッション内ではエージェント自身が同等レビューを実施し review-result 証跡を
       生成してもよい。ANTHROPIC_API_KEY による Claude API review は別課金になり得るため、
       AI_REVIEW_ALLOW_CLAUDE_API_BILLING=true を明示した場合だけの opt-in 補助に限る。

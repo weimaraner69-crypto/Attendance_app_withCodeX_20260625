@@ -1,4 +1,3 @@
-````instructions
 # Test Instructions
 
 ## 適用範囲
@@ -41,29 +40,26 @@
 - テストには必ずダミーデータを使用する。実データをテストに含めない。
 - フィクスチャは共通定義ファイルに集約する。
 
-## テストの書き方（Python の例）
+## テストの書き方（TypeScript の例）
 
-```python
-"""○○のテスト。"""
-import build
+テストランナー導入後は、選定したランナーのAPIで次のように意図と境界条件を記述する。
 
-class TestConstraint:
-    """制約 C-001 のテスト。"""
+```ts
+describe("constraint", () => {
+  it("accepts a value within the limit", () => {
+    expect(evaluateConstraint(withinLimit)).toEqual({ allowed: true });
+  });
 
-    def test_within_limit(self) -> None:
-        """しきい値内は許可される。"""
-        ...
+  it("handles the boundary value", () => {
+    expect(evaluateConstraint(atBoundary)).toEqual({ allowed: true });
+  });
 
-    def test_at_boundary(self) -> None:
-        """しきい値ちょうどの場合の挙動。"""
-        ...
-
-    def test_exceeds_limit(self) -> None:
-        """しきい値超過は拒否され、理由コードが返る。"""
-        ...
+  it("rejects a value beyond the limit", () => {
+    expect(evaluateConstraint(exceedsLimit)).toEqual({ allowed: false, reason: "limit" });
+  });
+});
 ```
 
 ## CI での実行
 
 テストが失敗した場合、PR はマージできない（AC-020）。
-````
