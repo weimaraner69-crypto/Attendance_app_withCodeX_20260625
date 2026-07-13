@@ -1,0 +1,26 @@
+{
+  "default_tier": "green",
+  "yellow_if_touches": [
+    "src/**",
+    "scripts/**",
+    "ci/**",
+    ".github/agents/**"
+  ],
+  "red_if_touches": [
+    "src/**/migrations/**",
+    "supabase/migrations/**",
+    "src/**/auth/**",
+    "src/lib/auth/**",
+    "src/lib/external-api/**",
+    "src/app/api/**",
+    ".github/workflows/**",
+    ".github/instructions/**",
+    "ai/**",
+    "package.json",
+    "package-lock.json",
+    "pyproject.toml",
+    "uv.lock",
+    ".env*",
+    "configs/**"
+  ]
+}

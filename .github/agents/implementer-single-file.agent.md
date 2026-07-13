@@ -47,4 +47,4 @@ model: "GPT-5.4 (copilot)"
 - P-001（禁止操作）/ P-002（秘密情報禁止）を厳守する
 - 変更範囲が単ファイルを超えそうな場合は、実装を続けず Orchestrator に `implementer` への切替を報告する
 - 不要なリファクタやフォーマット変更を混ぜない
-- **PR レビュー対応は最大 3 ラウンド**。Round 3 後の非ブロッキング Must/Should は Backlog 化、即時ブロッカーは fail-close
+- **PR レビュー対応は最大 3 ラウンド**。Round 3 後も Must は fail-close、非ブロッキング Should のみ Backlog 化

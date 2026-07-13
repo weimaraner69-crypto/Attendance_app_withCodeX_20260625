@@ -17,7 +17,19 @@
 
 ## 記録
 
-### 現在状態（2026-07-14 計画・Issue整合・最新）
+### 現在状態（2026-07-14 独立AIレビュー運用改定・最新）
+
+- 現在の mode: `governance_change`
+- active branch: `chore/independent-ai-review-policy`
+- 直近完了 PR: PR #14（計画・Issue整合）をレビュー・CI成功後に `main` へマージ済み
+- 現在タスク: Copilot 契約上限に依存しない独立AIレビュー運用への改定
+- review baseline: PR作成後の `head_sha`、diff fingerprint、独立 reviewer/session を証跡JSONに記録する
+- 次タスク: 独立 Codex / Claude repo-aware review、CI、release-manager判定の完了後にマージ判断へ進む
+- レビュー条件: Copilotは任意。実装担当から独立した Codex / Claude repo-aware review と機械可読証跡を必須とする
+- 安全床: `.env.local` を読まない。秘密情報を表示しない。アプリ機能、本番DB、外部サービスは変更しない
+- 最終更新: 2026-07-14
+
+### 現在状態（2026-07-14 計画・Issue整合・履歴）
 
 - 現在の mode: `daily_development`（計画・Issue整合）
 - active branch: `chore/align-plans-and-issues`

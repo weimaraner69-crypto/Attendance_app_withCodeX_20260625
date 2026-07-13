@@ -20,7 +20,7 @@ model: "GPT-5.5 (copilot)"
 
 ### 承認（Approve）
 - すべての AC を満たしている
-- 全監査の Must 指摘がゼロ、または Round 3 到達時の非ブロッキング Must/Should が Backlog 化されている
+- 全監査の Must 指摘がゼロで、Round 3 到達時の非ブロッキング Should は Backlog 化されている
 - CI が成功している
 
 ### 修正要求（Request Changes）
@@ -34,7 +34,7 @@ model: "GPT-5.5 (copilot)"
 
 ### Round 3 ルール
 - AIレビュー（Copilot / Codex / Claude fallback）は最大 3 ラウンドまで対応する
-- Round 3 後の非ブロッキング Must/Should は Backlog に記録し、PR コメントに Backlog ID と残リスクを返信して承認可能
+- Round 3 後も Must が残れば fail-close。非ブロッキング Should のみ Backlog に記録し、PR コメントに Backlog ID と残リスクを返信して承認可能
 - Round 3 後の即時ブロッカーは fail-close で修正要求する
 
 ## 制約

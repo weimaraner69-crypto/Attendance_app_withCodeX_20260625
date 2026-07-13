@@ -28,6 +28,16 @@ Capability Lease（ユーザーが明示的に一時的な自律実行範囲を�
 
 ## 記録
 
+### DEC-20260714-002
+
+- 論点: GitHub Copilot レビューの契約上限に依存せず、PR 品質ゲートをどう維持するか
+- 判断: 実装担当から独立した Codex または Claude の repo-aware review を必須ゲートとし、Copilot は利用可能時の任意の追加レビューとする。provider をまたいだラウンド上限3回は維持し、高リスク変更は第2レビューまたは専用回帰テストで二重確認する。
+- 仮定: Codex または Claude で、実装時と別の reviewer/session と repo-aware context を確保できる。
+- 理由: 品質を単一プロバイダーの契約・quota・到着待ちに依存させず、CI、独立レビュー、リスク別回帰検証で再現可能なゲートにするため。
+- 影響ファイル: `.github/instructions/review-loop.instructions.md`、`ai/operation-policy.yml`、`.github/agents/orchestrator.agent.md`、`.github/PULL_REQUEST_TEMPLATE.md`、`.github/workflows/ci.yml`、`ci/policy_check.py`、`ci/test_policy_check.py`、`docs/ai/review-result.schema.json`、`docs/ai/reviews/`、`docs/ai/pre-pr-reviews/`、`docs/orchestration.md`、`NEXT.md`
+- リスク: レビューの独立性や context mode を証跡化しないと、同一会話のセルフレビューが必須ゲートとして誤算入される。
+- ロールバック: 該当変更を revert し、Copilot 必須＋Codex / Claude fallback の旧手順に戻す。
+
 ### DEC-20260714-001
 
 - 論点: 勤怠側と日報側で異なる外部API仕様、GitHub Issue、次タスクをどの状態へ揃えるか

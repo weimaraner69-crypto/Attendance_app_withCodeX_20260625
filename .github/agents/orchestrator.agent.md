@@ -271,70 +271,64 @@ Step 4 通過後、監査に入る前にこのNext.jsリポジトリの検証結
 
 ### Step 9: AI コードレビュー対応（再帰的レビューループ）
 
-AI レビューは push 自動発火に依存しない。各 push 後に `request_copilot_review` を明示実行し、Copilot が 422 / quota / timeout / 未到着の場合は Codex / Claude fallback を同じラウンドの代替レビューとして実行する。
-Orchestrator は **最大 3 ラウンド** まで対応する。Round 1-2 は Must/Should 修正→targeted validation→返信→commit/push→次レビュー待機へ進む。Round 3 は非ブロッキング Must/Should を Backlog 化して返信し、即時ブロッカーは fail-close で停止する。
+AI レビューは push 自動発火に依存しない。各 push 後に別 reviewer/session の Codex または Claude repo-aware review を必ず実行する。Copilot は利用可能時の任意の追加レビューとし、422 / quota / timeout / 未到着で必須ゲートをブロックしない。
+Orchestrator は **最大 3 ラウンド** まで対応する。Round 1-2 は Must/Should 修正→targeted validation→返信→commit/push→次レビュー待機へ進む。Round 3 は Must が残れば fail-close で停止し、非ブロッキング Should のみ Backlog 化して返信する。
 
 > **停止条件**: Round 3 到達、同一指摘への修正試行最大3回、連続再トリガー最大3回、ポリシー違反または認証不能（詳細は `docs/orchestration.md` §5.3.1 参照）
 > Round 4 以降の自動 push/review request は禁止。
 
 #### 前提
 
-- push 後は必ず `request_copilot_review` または Codex / Claude fallback で AIレビューを明示リクエストする
-- 修正 push 後も同様に、各ラウンドで明示リクエストまたは fallback を実行する
+- push 後は、実装担当と別 reviewer/session の Codex または Claude repo-aware review を必ず実行する
+- Copilot は利用可能時の任意の追加レビューとし、quota、422、timeout を必須ゲートの blocker にしない
+- 修正 push 後も、同じ独立性と証跡要件を満たす次ラウンドを実行する
 
 #### 設計原則（4つ）
 
-1. **明示リクエスト発火を前提とする**
-  - PR 作成時および修正 push 後に `request_copilot_review` または fallback AIレビューを実行してレビューを発火する
-  - Round 1-2 は未解決かつ未返信の AIレビュースレッドが 0 件になるまで対応し、Round 3 後の非ブロッキング Must/Should は Backlog 化済み例外として停止する
+1. **独立 repo-aware review を前提とする**
+  - PR 作成時および修正 push 後に、別 reviewer/session の Codex または Claude レビューを実行する
+  - provider、reviewer/session、`head_sha`、diff fingerprint、context mode を `docs/ai/reviews/**` に記録する
+  - Round 1-2 は未解決かつ未返信の AIレビュースレッドが 0 件になるまで対応し、Round 3 後も Must は fail-close、非ブロッキング Should のみ Backlog 化済み例外として停止する
 
 2. **静的解析ファースト**
    - AI レビューの**前に** policy check、lint、build を通過させ、必要な変更ではtargeted testも実行する
    - 修正後も必ず `python3 ci/policy_check.py`、`npm run lint`、`npm run build` を通過してからプッシュする
 
 3. **安全停止条件に従ったループ**
-  - AIレビュー対応は最大 3 ラウンドまで継続する。Round 3 後の非ブロッキング Must/Should は Backlog 化、即時ブロッカーは fail-close
+  - AIレビュー対応は最大 3 ラウンドまで継続する。Round 3 後も Must は fail-close、非ブロッキング Should のみ Backlog 化
   - `docs/orchestration.md` §5.3.1 に定義された安全停止条件（Round 3 到達・連続再試行最大3回・同一指摘繰り返し最大3回・ポリシー違反・認証不能）を厳守し、Round 3 後は自動 push/review request を停止して人間にエスカレーションまたは release-manager 判定へ進む
 
-4. **タイムアウト時の扱い**
-  - レビュー待ちは省略禁止。Round 予算内で明示リクエストを再試行し、未到着・認証不能・継続不能なら fail-close で人間にエスカレーションする
-  - `.copilot-trigger` 等の標準 push による代替発火や、無制限の再トリガーは行わない
+4. **外部レビュー不可時の扱い**
+  - Copilot の quota、422、timeout、未到着は fail-soft とし、Codex / Claude の独立 repo-aware review を継続する
+  - 必須 repo-aware reviewer 自体を確保できない場合だけ fail-close で人間にエスカレーションする
 
 ```
-1. CI 通過を確認する
-  - `gh pr checks <PR_NUMBER>` を1回実行して CI ステータスを確認する（watchモード等のブロッキング待機は禁止）
-   - pending/in_progress の場合はエージェント進行管理で次のポーリングへ進む（同期 sleep ループ禁止）
-   - CI が失敗した場合は Step 8 の修正フローに戻る
+1. レビュー前の決定的チェックを確認する
+   - policy check、test、lint、build の対象項目をローカルで通す
+   - GitHub CI の最終 policy check は push 後レビュー証跡を必須とするため、証跡push前の未通過だけでレビュー実行を停めない
+   - 証跡push後の最終ゲートで `gh pr checks <PR_NUMBER>` の全passを必須とする
 
-2. AIレビューの到着を待機する
-   - 【必須・初回】レビュワー設定確認: PR の requested_reviewers に `copilot-pull-request-reviewer[bot]` が
-     含まれるか確認。未設定なら `request_copilot_review` でリクエストする
-   - 【検出方法】2段階で検出する（`commit_id` によるフィルタリングは禁止）:
-     1. `get_reviews`（perPage=100）で AIレビュー総数（Copilot / Codex / Claude fallback）の変化を確認
-     2. `get_review_comments`（スレッドベース）で未解決・未アウトデート・未返信の AIレビューコメントの有無を確認
-   - レビューカウント増加 OR 未対応コメントスレッド存在 のいずれかで検出と判定
-  - 最大20回、最大20分相当で確認する。ただし同期 `sleep` ループは禁止し、各回は短い状態確認コマンドとして実行する
-   - **ポーリング初回（1回目）と以降5回ごと（5, 10, 15, 20回目）で未到着の場合**: レビュワー設定を再確認し、未設定なら再リクエスト
-   - レビュー検出後、コメント安定化フェーズを実行する（後述）
-   - **20分以内にレビューが届かない場合**:
-     1. まずレビュワー設定を確認し、未設定なら `request_copilot_review` で再リクエスト
-     2. それでも来ない場合は、20分待機→再リクエストを最大3回繰り返す（Round予算内の再試行）
-     3. 3回試行しても届かない場合は人間にエスカレーション
+2. 独立 AIレビューを実行する
+   - 実装担当と別 reviewer/session の Codex または Claude を選定する
+   - Codex は harness-native subagent、Claude Code は Agent/Task の別 context を使う。別 context を起動できないハーネスは手動ハンドオフまたは fail-close とする
+   - green は1件、yellow は1件＋targeted test、red/高リスクは `full_repo_agentic` ＋第2レビューまたは専用回帰テストを実行する
+   - 証跡 JSON を `docs/ai/reviews/**` に記録し、schema と head/diff 互換性を確認する
+   - Copilot は利用可能時だけ追加依頼してよい。不可時は待機しない
 
 3. レビューコメントを取得する
    - `gh api repos/{owner}/{repo}/pulls/{pr}/reviews` で全レビューを取得
-   - `gh api repos/{owner}/{repo}/pulls/{pr}/comments` でインラインコメントを取得
-   - 自分の返信済みコメントを除外し、未対応コメントのみ抽出する
+   - GitHub GraphQL `pullRequest.reviewThreads` をページネーションし、`isResolved=false && isOutdated=false` のactive threadだけを取得する
+   - `comments.nodes` と返信authorを確認し、自分が返信済みのthreadを除外する
 
 4. 指摘を分類する
    - Must: マージ前に修正必須 → 修正対象
    - Should: 強く推奨 → 修正対象（時間が許せば）
    - Nice: 改善提案 → 今回はスキップ可
 
-5. Must / Should の指摘がゼロなら → ループ終了（Step 10 へ）
-   Round 3 で非ブロッキング Must/Should が残る場合は Backlog 化して返信し、即時ブロッカーは fail-close する。Round 4 相当の自動 push/review request は実行しない。
+5. Must / Should の指摘がゼロなら → 証跡JSONを専用commitでpushし、最終CIへ進む
+   Round 3 で Must が残る場合は fail-close し、非ブロッキング Should のみ Backlog 化して返信する。Round 4 相当の自動 push/review request は実行しない。
 
---- Round 1-2 は未解決かつ未返信の Copilot スレッドが 0 件になるまで修正→検証→push→次レビューを繰り返す。Round 3 は Backlog 化または fail-close で停止する ---
+--- Round 1-2 は未解決かつ未返信の AI レビュースレッドが 0 件になるまで修正→検証→push→次レビューを繰り返す。Round 3 は Backlog 化または fail-close で停止する ---
 
     6. Round 1-2 の Must/Should 修正を実施する（静的解析ファースト — 設計原則 #2）
        - 各指摘の対象ファイル・行番号・提案内容を implementer に伝達
@@ -354,20 +348,21 @@ Orchestrator は **最大 3 ラウンド** まで対応する。Round 1-2 は Mu
        - ⚠️ **このステップ通過後、コミットまでの間にコードファイルへの変更は一切禁止**
        - ⚠️ CI 実行後にいかなるコード変更（フォーマッタ適用含む）が発生した場合は、このステップを再実行すること
 
-    9. Round 1-2 の修正をコミット・プッシュする
-       - `git add -A && git commit -m "fix: Copilot レビュー指摘対応 (iteration N)"`
+    9. Round 1-2 の修正と証跡をコミット・プッシュする
+       - `git add -A && git commit -m "fix: AI レビュー指摘対応 (iteration N)"`
+       - 指摘が0件でも証跡JSONは `docs: record independent AI review round N` の専用commitでpushする
+       - コード修正をpushしたラ、旧証跡gateの不通過は想定内とし、次ラウンドで新headをレビューする
        - `git status --porcelain` で出力が空であることを確認する
        - ⚠️ 出力が空でない場合（未コミットの変更が残っている場合）は **Step 8 に戻る**（直接コミットしない）
        - `git push`
 
     9.5. プッシュ後 GitHub CI 再確認（必須）
-       - `gh pr checks <PR番号>` でチェック結果を確認する（最大20回。同期 `sleep` ループは禁止）
-       - CI が通過しない・無応答の場合は PR 状態診断フローに従い原因を調査・解消する
-       - 解消後に次のステップに進む
+       - 次ラウンド前は `quality-gate` と `secret-scan` の成功を確認する
+       - `review-evidence-gate` は最新headの証跡専用pushまで不通過でよく、それだけで次レビューを停めない
+       - ループ終了時は `gh pr checks <PR番号>` の全check成功を必須とする
 
-    10. Round 1-2 のみ、`request_copilot_review` 実行後に新たな Copilot レビュー到着を待機する
-      - Step 2 と同じ待機手順を省略せず実行する。未到着・認証不能・継続不能なら fail-close で人間にエスカレーションする
-       - レビュー到着後、コメント安定化フェーズを実行する
+    10. Round 1-2 のみ、別 reviewer/session で次の独立 repo-aware review を実行する
+       - Step 2 と同じ独立性、context mode、証跡要件を満たす
        - 新レビューのコメントを取得し、未対応の Must/Should 指摘を確認する
        - 未対応指摘がゼロ → ループ終了
        - 未対応指摘あり → Step 6 に戻る
@@ -387,65 +382,14 @@ Orchestrator は **最大 3 ラウンド** まで対応する。Round 1-2 は Mu
     - **対応完了後は完了宣言ゲート（G-1〜G-6）を必ず通過してから、人間の次の指示を待つ**
 ```
 
-#### レビュー到着待機手順
+#### 任意の非同期レビュー確認手順
 
-push 後の AIレビュー到着を待機する手順。push ごとに毎回実行する。
+Copilot 等の非同期レビューを追加依頼した場合にのみ実行する。必須の Codex / Claude repo-aware review はこの到着待機に依存しない。
 
-> **⚠️ 必須ルーチン（文脈を失っても必ず実行すること）**
-> 1. push 直後にレビュワー設定確認を行う
-> 2. レビュー検出は2段階（`get_reviews` 総数 + `get_review_comments` スレッド）で行う
-> 3. `commit_id` によるフィルタリングは禁止
-> 4. ポーリング初回（1回目）と以降5回ごと（5, 10, 15, 20回目）で未到着ならレビュワー設定を再確認する
-
-```bash
-# (a) 現在のAIレビュー数を記録する（perPage=100 必須）
-BEFORE_COUNT=$(gh api "repos/{owner}/{repo}/pulls/{pr_number}/reviews?per_page=100" \
-  --jq '[.[] | select(.user.login == "copilot-pull-request-reviewer[bot]" or .user.login == "chatgpt-codex-connector" or (.body // "" | contains("## AI レビュー結果")))] | length')
-
-# (a-2) 【必須】レビュワー設定確認
-# PR の requested_reviewers に copilot-pull-request-reviewer[bot] が含まれるか確認
-REVIEWER_SET=$(gh api "repos/{owner}/{repo}/pulls/{pr_number}" \
-  --jq '[.requested_reviewers[]? | select(.login == "copilot-pull-request-reviewer[bot]")] | length')
-if [ "$REVIEWER_SET" = "0" ]; then
-  echo "⚠️ Copilot AI がレビュワーに設定されていません。request_copilot_review でリクエストします..."
-  # gh api repos/{owner}/{repo}/pulls/{pr_number}/requested_reviewers -X POST -f 'reviewers[]=copilot-pull-request-reviewer[bot]'
-fi
-
-# (b) 各回で実行する単発チェック（同期 sleep ループは禁止）
-# Orchestrator はこの確認を最大20回まで進行管理し、各回を短い端末実行として扱う。
-CURRENT_COUNT=$(gh api "repos/{owner}/{repo}/pulls/{pr_number}/reviews?per_page=100" \
-  --jq '[.[] | select(.user.login == "copilot-pull-request-reviewer[bot]" or .user.login == "chatgpt-codex-connector" or (.body // "" | contains("## AI レビュー結果")))] | length')
-echo "レビュー確認: $BEFORE_COUNT → $CURRENT_COUNT"
-if [ "$CURRENT_COUNT" -gt "$BEFORE_COUNT" ]; then
-  echo "✅ AIレビューを検出しました（レビュー総数増加）"
-fi
-
-# 段階2: get_review_comments（スレッドベース）で未対応コメントを確認
-# 条件: isResolved=false, isOutdated=false, AIレビューコメントあり, 自分の返信なし
-ACTIVE_THREADS=$(get_active_ai_review_threads)  # gh api pulls/{pr_number}/comments で取得・フィルタ
-if [ "$ACTIVE_THREADS" -gt "0" ]; then
-  echo "✅ 未対応の AIレビューコメントスレッドを検出しました（$ACTIVE_THREADS 件）"
-fi
-
-# 初回（1回目）と以降5回ごと（5, 10, 15, 20回目）でレビュワー設定を確認する。
-# これも同期ループ内ではなく、該当回の単発チェックとして実行する。
-REVIEWER_SET=$(gh api "repos/{owner}/{repo}/pulls/{pr_number}" \
-  --jq '[.requested_reviewers[]? | select(.login == "copilot-pull-request-reviewer[bot]")] | length')
-if [ "$REVIEWER_SET" = "0" ]; then
-  echo "⚠️ Copilot AI がレビュワーに設定されていません。再リクエストします..."
-  # gh api repos/{owner}/{repo}/pulls/{pr_number}/requested_reviewers -X POST -f 'reviewers[]=copilot-pull-request-reviewer[bot]'
-fi
-
-# (c) 20分相当の確認後もレビューが届かない場合
-# まずレビュワー設定を確認し、未設定なら request_copilot_review でリクエストする。
-# それでも来ない場合は、20分待機→再リクエストを最大3回繰り返して人間へエスカレーション。
-
-# (e) コメント安定化フェーズ（レビュー検出後に実行）
-# 未対応スレッド数を単発確認し、3回連続で同数なら安定と判断する。
-# 各確認の間にシェルを sleep させず、エージェント側の進行管理で次回確認へ進む。
-CURRENT_THREAD_COUNT=$(get_active_copilot_threads)
-echo "コメント安定化確認: 未対応スレッド数=$CURRENT_THREAD_COUNT"
-```
+- `get_reviews`（perPage=100）と `get_review_comments`（thread-aware）の2段階で確認し、`commit_id` でフィルタリングしない。
+- quota、422、timeout、未到着は fail-soft とし、再試行待ちで PR をブロックしない。
+- 到着した場合は明確な actionable 指摘を同じ最大3ラウンド予算内で扱う。
+- 未解決・非 outdated のスレッドには必ず返信する。
 
 #### レビューコメント取得コマンド
 
@@ -454,13 +398,29 @@ echo "コメント安定化確認: 未対応スレッド数=$CURRENT_THREAD_COUN
 gh api repos/{owner}/{repo}/pulls/{pr_number}/reviews \
   --jq '.[] | {author: .user.login, state: .state, body: .body}'
 
-# インラインコメント（ファイル・行番号・提案）を取得
-gh api repos/{owner}/{repo}/pulls/{pr_number}/comments \
-  --jq '.[] | {author: .user.login, path: .path, line: .line, body: .body, id: .id, in_reply_to_id: .in_reply_to_id}'
-
-# 未返信のコメントのみ抽出する（in_reply_to_id がないトップレベルコメント）
-gh api repos/{owner}/{repo}/pulls/{pr_number}/comments \
-  --jq '[.[] | select(.in_reply_to_id == null)] | map({id, author: .user.login, path, line, body})'
+# active thread は GitHub GraphQL reviewThreads を正本とする。
+gh api graphql --paginate \
+  -F owner='{owner}' -F name='{repo}' -F number={pr_number} \
+  -f query='
+query($owner: String!, $name: String!, $number: Int!, $endCursor: String) {
+  repository(owner: $owner, name: $name) {
+    pullRequest(number: $number) {
+      reviewThreads(first: 100, after: $endCursor) {
+        nodes {
+          id
+          isResolved
+          isOutdated
+          comments(first: 100) {
+            nodes { id body url author { login } }
+          }
+        }
+        pageInfo { hasNextPage endCursor }
+      }
+    }
+  }
+}'
+# nodesから isResolved=false AND isOutdated=false だけを抽出し、
+# comments.nodes.author.login に自分の返信があるthreadを除外する。
 ```
 
 #### レビューコメント返信コマンド
@@ -479,13 +439,13 @@ gh api repos/{owner}/{repo}/pulls/{pr_number}/comments/{comment_id}/replies \
 
 #### 注意事項
 
-- Copilot レビュー待ちは省略禁止。レビュー未到着・レビュワー未設定・認証不能・継続不能の場合は fail-close で停止し、人間にエスカレーションする
-- **各ラウンドで明示リクエストする**: push 後は毎回 `request_copilot_review` を実行してレビューを発火する
+- 独立 Codex / Claude repo-aware review の省略は禁止。必須 reviewer/session を確保できない場合は fail-close で停止し、人間にエスカレーションする
+- **各ラウンドで独立レビューを実行する**: push 後は毎回、別 reviewer/session と機械可読証跡を必須とする
 - **検証ファースト**: すべての修正 push 前に policy check、lint、build の通過を確認する
-- **安全停止条件（§5.3.1）に従う**: Copilot レビューは最大 3 ラウンドまで継続対応（Round 3 後の非ブロッキング Must/Should は Backlog 化）、連続再試行最大3回、同一指摘繰り返し最大3回（詳細は `docs/orchestration.md` §5.3.1 参照）
-- **タイムアウト時の扱い**: Round 予算内で明示リクエストを再試行し、未到着・認証不能・継続不能なら fail-close で人間にエスカレーションする。`.copilot-trigger` 標準 push や無制限再トリガーは禁止
+- **安全停止条件（§5.3.1）に従う**: provider をまたいだ合計で最大 3 ラウンドまで継続対応（Round 3 後も Must は fail-close、非ブロッキング Should のみ Backlog 化）、同一指摘繰り返し最大3回（詳細は `docs/orchestration.md` §5.3.1 参照）
+- **Copilot 不可時の扱い**: quota、422、timeout、未到着は fail-soft。待機・再トリガーせず独立 repo-aware review を継続する
 - レビュアーが Copilot 以外（人間）の場合は、指摘を表示して人間に判断を委ねる
-- 全てのレビューコメントには必ず返信する（未返信のコメントを残さない）
+- 全てのactive reviewThreadには必ず返信する（`isResolved=false && isOutdated=false` で未返信のスレッドを残さない）
 
 ### Step 10: リリース判定
 
@@ -512,7 +472,7 @@ while NEXT.md の Next または Backlog にタスクがある:
        - Next が空で Backlog にタスクがある場合は Backlog → Next に昇格する
        - Next も Backlog も空 → ループ終了（全タスク完了）
        - 依存関係・前提条件を確認
-    2. 自動実行パイプラインを release-manager 判定まで実行する（Copilot レビュー対応完了を含む）
+    2. 自動実行パイプラインを release-manager 判定まで実行する（独立 repo-aware AI レビュー対応完了を含む）
     3. release-manager が承認したら、自動マージを実行する:
        a. gh pr merge <PR_NUMBER> --rebase --delete-branch
        b. マージ成功を確認（gh pr view <PR_NUMBER> --json state → MERGED）
@@ -557,7 +517,7 @@ while NEXT.md の Next または Backlog にタスクがある:
 
 - ポリシー違反（P-001〜P-003）が検出された
 - 修正ループが3回を超えた（Step 6 / Step 8）
-- Copilot レビュー対応で同一指摘への修正試行が3回を超えた（人間へエスカレーション）
+- AI レビュー対応で同一指摘への修正試行が3回を超えた（人間へエスカレーション）
 - サブエージェントから解決不能なエラーが報告された
 - `NEXT.md` の Next が空である。全プラン実行モードでは Next と Backlog の両方が空の場合に停止する（Backlog → Next への昇格を先に試みる）
 

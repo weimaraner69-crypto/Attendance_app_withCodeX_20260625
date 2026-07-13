@@ -36,7 +36,7 @@ model: "Claude Haiku 4.5 (copilot)"
 - テストは決定的（deterministic）に書く
 - 境界値テストはパラメータ化する
 - テストの独立性を保つ
-- **PR レビュー対応は最大 3 ラウンド**。Round 3 後の非ブロッキング Must/Should は Backlog 化、即時ブロッカーは fail-close
+- **PR レビュー対応は最大 3 ラウンド**。Round 3 後も Must は fail-close、非ブロッキング Should のみ Backlog 化
 
 ## セキュリティ制約 <!-- REQUIRED: このセクションは削除しないこと -->
 

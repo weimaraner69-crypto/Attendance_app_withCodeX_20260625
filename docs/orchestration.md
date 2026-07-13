@@ -13,7 +13,7 @@
 | 文書読込範囲 | `ai/context-index.yml` |
 | 文書統治 | `ai/document-governance.yml` |
 | PR 前批判レビュー | `ai/pre-pr-review-policy.yml` |
-| Copilot レビューループ | `.github/instructions/review-loop.instructions.md` |
+| 独立 AI レビューループ | `.github/instructions/review-loop.instructions.md` |
 | full-plan delivery loop | `ai/coherence-workflow.yml` / `ai/operation-policy.yml` |
 
 ## 動作コンテキスト
@@ -116,7 +116,13 @@ Orchestrator はこの要約をさらに圧縮し、メイン会話には「実�
 
 ## レビューループ上限
 
-push 後の AI レビューループは `.github/instructions/review-loop.instructions.md` を正本とし、最大 3 ラウンドで扱う。Round 3 後の非ブロッキング Must / Should は Backlog 化し、即時ブロッカーだけ fail-close とする。オーケストレーション文書側で Round 4 以降の自動 push / review request を許可する別ルールを定義しない。
+push 後の AI レビューループは `.github/instructions/review-loop.instructions.md` を正本とし、最大 3 ラウンドで扱う。Round 3 後も Must は fail-close とし、非ブロッキング Should のみ Backlog 化する。オーケストレーション文書側で Round 4 以降の自動 push / review request を許可する別ルールを定義しない。
+
+### 独立レビュワーの起動境界
+
+- Codex は harness-native subagent、Claude Code は Agent/Task の別 context を使い、実装会話と異なる session ID を証跡化する。
+- Cursor 等で別 context を起動できない場合は、Codex / Claude へ手動ハンドオフする。どちらも確保できなければ fail-close とし、全プラン自動実行でもマージしない。
+- 自動 hook を導入していないことはレビュー省略を意味しない。Orchestrator がハーネス標準の別 context 起動または手動ハンドオフを実行する。
 
 ## full-plan delivery loop
 
@@ -130,7 +136,7 @@ PR 作成前に policy check、差分確認、関連文書の整合確認を行�
 python3 ci/policy_check.py
 ```
 
-このレビューは Copilot レビューループの代替ではない。Copilot レビューは push 後に `.github/instructions/review-loop.instructions.md` に従って完了まで追跡する。
+このレビューは push 後の独立 repo-aware AI レビューの代替ではない。push 後は実装担当と別 reviewer/session の Codex または Claude レビューを `.github/instructions/review-loop.instructions.md` に従って完了させる。Copilot は利用可能時の任意の追加レビューとする。
 
 ## release_to_main
 
