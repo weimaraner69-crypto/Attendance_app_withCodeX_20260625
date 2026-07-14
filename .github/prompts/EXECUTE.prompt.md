@@ -59,7 +59,7 @@
 17. 失敗時は修正→再プッシュ→再確認（最大3回）
 
 ### 8. PR 後レビューループ / CI 全チェック確認
-18. `.github/instructions/review-loop.instructions.md` に従い、push 後 AI レビュー（Copilot または Codex / Claude repo-aware fallback）を最大 3 ラウンドまで完了させる
+18. `.github/instructions/review-loop.instructions.md` に従い、実装担当から独立した Codex / Claude repo-aware review を必須で最大3ラウンドまで完了させる。Copilotは利用可能時の任意の追加レビューとする
 19. `gh pr checks` で全チェックを確認し、実 failure は修正して再 push する
 
 ### 9. リリース判定 / マージ

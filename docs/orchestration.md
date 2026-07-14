@@ -13,7 +13,7 @@
 | 文書読込範囲 | `ai/context-index.yml` |
 | 文書統治 | `ai/document-governance.yml` |
 | PR 前批判レビュー | `ai/pre-pr-review-policy.yml` |
-| Copilot レビューループ | `.github/instructions/review-loop.instructions.md` |
+| 独立 AI レビューループ | `.github/instructions/review-loop.instructions.md` |
 | full-plan delivery loop | `ai/coherence-workflow.yml` / `ai/operation-policy.yml` |
 
 ## 動作コンテキスト
@@ -116,7 +116,13 @@ Orchestrator はこの要約をさらに圧縮し、メイン会話には「実�
 
 ## レビューループ上限
 
-push 後の AI レビューループは `.github/instructions/review-loop.instructions.md` を正本とし、最大 3 ラウンドで扱う。Round 3 後の非ブロッキング Must / Should は Backlog 化し、即時ブロッカーだけ fail-close とする。オーケストレーション文書側で Round 4 以降の自動 push / review request を許可する別ルールを定義しない。
+push 後の AI レビューループは `.github/instructions/review-loop.instructions.md` を正本とし、最大 3 ラウンドで扱う。Round 3 後も Must は fail-close とし、非ブロッキング Should のみ Backlog 化する。オーケストレーション文書側で Round 4 以降の自動 push / review request を許可する別ルールを定義しない。
+
+### 独立レビュワーの起動境界
+
+- Codex は harness-native subagent、Claude Code は Agent/Task の別 context を使い、実装会話と異なる session ID を証跡化する。
+- Cursor 等で別 context を起動できない場合は、Codex / Claude へ手動ハンドオフする。どちらも確保できなければ fail-close とし、全プラン自動実行でもマージしない。
+- 自動 hook を導入していないことはレビュー省略を意味しない。Orchestrator がハーネス標準の別 context 起動または手動ハンドオフを実行する。
 
 ## full-plan delivery loop
 
@@ -127,20 +133,21 @@ push 後の AI レビューループは `.github/instructions/review-loop.instru
 PR 作成前に policy check、差分確認、関連文書の整合確認を行い、`docs/ai/pre-pr-critical-review.md` を更新する。
 
 ```bash
+python3 -m pip install --requirement ci/requirements.txt
 python3 ci/policy_check.py
 ```
 
-このレビューは Copilot レビューループの代替ではない。Copilot レビューは push 後に `.github/instructions/review-loop.instructions.md` に従って完了まで追跡する。
+このレビューは push 後の独立 repo-aware AI レビューの代替ではない。push 後は実装担当と別 reviewer/session の Codex または Claude レビューを `.github/instructions/review-loop.instructions.md` に従って完了させる。Copilot は利用可能時の任意の追加レビューとする。
 
 ## release_to_main
 
-main 一本化運用では feature/fix → main の PR がそのままリリースであり、別個の develop→main 昇格工程は存在しない。`release_to_main` の risk tier（green/yellow/red）は「変更リスクに応じた main 直 PR のレビュー軽量化」として適用する（green=低リスク変更の軽量レビュー、yellow/red=高リスク変更のフルレビュー）。閾値・red_if_touches パスは `ai/operation-policy.yml` を正本として現状維持とする。
+main 一本化運用では feature/fix → main の PR がそのままリリースであり、別個の develop→main 昇格工程は存在しない。`release_to_main` の risk tier（green/yellow/red）は「変更リスクに応じた main 直 PR のレビュー軽量化」として適用する（green=低リスク変更の軽量レビュー、yellow/red=高リスク変更のフルレビュー）。tier要件は `ai/operation-policy.yml`、risk pathは `ai/review-risk-paths.json` を正本とする。
 
 - green: 軽量確認。policy check、差分確認、変更箇所 smoke を中心にする。
 - yellow: 追加の AI review、targeted test、release summary を求める。
 - red: full CI、rollback、release manifest を必須にする。
 
-red 判定対象は workflow、依存・lockfile、DB migration、設定、秘密情報関連など `ai/operation-policy.yml` に従う（プロジェクト固有の重要操作は `project-config.yml` で追加定義する）。
+red判定対象pathは `ai/review-risk-paths.json` に従う。workflow、依存・lockfile、DB migration、認証・権限、Supabase境界、設定、秘密情報関連を含み、tierごとの追加要件は `ai/operation-policy.yml` に従う。
 
 ## 文書統治
 
@@ -154,6 +161,7 @@ red 判定対象は workflow、依存・lockfile、DB migration、設定、秘�
 AI Operating Model 関連の基本検証は次を使う。
 
 ```bash
+python3 -m pip install --requirement ci/requirements.txt
 python3 ci/policy_check.py
 npm run lint
 npm run build

@@ -5,6 +5,38 @@
 
 ---
 
+## [2026-07-14] PRレビューをプロバイダー非依存に変更
+
+### 変更
+
+- push後の必須ゲートを、実装担当から独立した Codex / Claude repo-aware review へ変更。
+- Copilotレビューは利用可能時の任意の追加レビューとし、quota、422、timeout、未到着をブロッカーから除外。
+- 認証、権限、Supabase / RLS、SQL / migration、外部API、秘密情報、workflow / release 変更に二重確認を必須化。
+- レビューラウンド上限3回をprovider横断の合計とし、独立性と機械可読証跡をPR完了条件に追加。
+- 証跡schema v2、Git差分fingerprint・変更path・riskの再計算、Round別disposition、独立reviewer検査をpolicy checkと回帰テストで必須化。
+- GitHub Actionsを通常の `quality-gate` と最終 `review-evidence-gate` に分離し、証跡作成前でも独立レビューへ進める順序に変更。
+
+### 影響ファイル
+
+- `.github/instructions/review-loop.instructions.md`
+- `.github/agents/orchestrator.agent.md`
+- `.github/agents/pre-pr-critical-reviewer.agent.md`
+- `.github/PULL_REQUEST_TEMPLATE.md`
+- `.github/workflows/ci.yml`
+- `ai/operation-policy.yml`
+- `ai/coherence-workflow.yml`
+- `ai/pre-pr-review-policy.yml`
+- `ci/policy_check.py`
+- `ci/test_policy_check.py`
+- `docs/orchestration.md`
+- `docs/ai/review-result.schema.json`
+- `docs/ai/reviews/README.md`
+- `docs/ai/pre-pr-reviews/README.md`
+- `docs/ai/decision-ledger.md`
+- `docs/ai/execution-ledger.md`
+- `NEXT.md`
+- `CHANGELOG.md`
+
 ## [2026-07-14] 計画・GitHub Issue・外部API契約を同期
 
 ### 変更

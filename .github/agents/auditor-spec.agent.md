@@ -29,7 +29,7 @@ model: "Claude Sonnet 4.6 (copilot)"
 
 - 独立監査として行い、実装者の意図を鵜呑みにしない
 - Must 指摘には必ず根拠を添える
-- **PR レビュー対応は最大 3 ラウンド**。Round 3 後の非ブロッキング Must/Should は Backlog 化、即時ブロッカーは fail-close
+- **PR レビュー対応は最大 3 ラウンド**。Round 3 後も Must は fail-close、非ブロッキング Should のみ Backlog 化
 
 ## セキュリティ制約 <!-- REQUIRED: このセクションは削除しないこと -->
 

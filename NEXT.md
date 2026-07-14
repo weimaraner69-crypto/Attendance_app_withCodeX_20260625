@@ -23,7 +23,7 @@
   3. `A-001` のスタッフAuthユーザー招待、紐付け、パスワード再設定をIssue #13の順序で実装する。次の着手対象。
   4. `A-000` のうち日報側の画面実装を必要としない #7 レート制限・アクセスログ、#6 APIキー管理の順で進める。
   5. `C-004` LINE連携の運用設定と実機確認は、本番運用作業として明示的な再開指示まで保留する。
-- 各PRはfeature/choreブランチから作成し、Copilotレビューを明示的に依頼する。到着確認、対応ラウンド、Round 3後の扱いは `.github/instructions/review-loop.instructions.md` の正本手順に従う。
+- 各PRはfeature/choreブランチから作成し、実装担当から独立した Codex または Claude の repo-aware review を必須とする。Copilotは利用可能時の任意の追加レビューとし、対応ラウンド、高リスク変更の二重確認、Round 3後の扱いは `.github/instructions/review-loop.instructions.md` の正本手順に従う。
 - `.env.local` の読み取り、秘密情報の表示、破壊的DB操作、本番運用準備、PRの自動マージは認可範囲に含めない。
 
 ## S: 最重要

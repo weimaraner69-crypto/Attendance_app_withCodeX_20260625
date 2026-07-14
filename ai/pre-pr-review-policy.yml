@@ -1,11 +1,11 @@
 schema_version: 1
 purpose: >
-  PR 作成前にリポジトリ横断の批判レビューを行い、Copilot の Must/Should 相当の指摘を
+  PR 作成前にリポジトリ横断の批判レビューを行い、AI レビューの Must/Should 相当の指摘を
   できるだけ事前に解消する。
 
 review_goals:
-  target_copilot_must: 0
-  target_copilot_should: 0_or_documented_reason
+  target_ai_must: 0
+  target_ai_should: 0_or_documented_reason
 
 review_lenses:
   spec_consistency:
@@ -36,7 +36,7 @@ review_lenses:
   runtime_smoke:
     checks:
       - runtime_smoke_present_for_user_visible_change
-  copilot_preemptive:
+  ai_review_preemptive:
     checks:
       - likely_must_should_findings_identified
       - review_comment_response_plan_if_needed
@@ -50,7 +50,7 @@ review_lenses:
 
 outputs:
   report: docs/ai/pre-pr-critical-review.md
-  machine_readable_optional: docs/ai/reviews/YYYY-MM-DD-prNNN-pre-pr-critical-review.json
+  machine_readable_optional: docs/ai/pre-pr-reviews/YYYY-MM-DD-prNNN-<provider>.json
   review_report_gate_json:
     # 個人開発の既定では opt-in。多プロバイダのレビュー証跡ゲートを自動化する
     # スクリプト（review_report_gate.py 等）はテンプレート既定には同梱せず、必要な
@@ -60,9 +60,9 @@ outputs:
     # harness-symmetric: アクティブなハーネスが自前で実施した同等の包括レビュー
     # 証跡を 1 つ置けば review-report-gate を満たす。特定 provider を一律必須にしない。
     accepted_paths:
-      - docs/ai/reviews/YYYY-MM-DD-prNNN-codex.json
-      - docs/ai/reviews/YYYY-MM-DD-prNNN-claude.json
-      - docs/ai/reviews/YYYY-MM-DD-prNNN-copilot.json
+      - docs/ai/pre-pr-reviews/YYYY-MM-DD-prNNN-codex.json
+      - docs/ai/pre-pr-reviews/YYYY-MM-DD-prNNN-claude.json
+      - docs/ai/pre-pr-reviews/YYYY-MM-DD-prNNN-copilot.json
     rule: >
       Claude Code で作業しているときは Claude（claude provider）、Copilot のときは copilot、
       Codex のときは codex の自前レビュー証跡 1 つで充足する（Copilot AI レビュー + CI レビューに
@@ -72,7 +72,10 @@ outputs:
       本表の codex / claude / copilot は provider ID（実在ツールの識別子）であり役割名ではない。
       独立 peer 監査の役割定義と担い手の解決は ai/capability-registry.yml の
       independent_peer_auditor と ai/sdd-policy.yml の independent_peer_fallback_ladder を正本とする。
-    generator: 手動で repo-aware AI review を実施し、該当する provider の JSON 証跡を docs/ai/reviews/ に保存する
+    generator: 手動で PR 前 critical review を実施し、該当する provider の JSON 証跡を docs/ai/pre-pr-reviews/ に保存する
+    post_push_gate_separation: >
+      この PR 前証跡は push 後の独立 repo-aware review を充足しない。
+      push 後証跡は docs/ai/reviews/ に phase=post_push と独立 session 情報を持って別途作成する。
     validation_optional: >
       自動検証を有効化する場合は、多プロバイダ証跡ゲートのスクリプトを取り込み、
       変更差分に対して required provider の証跡が揃っているか検査する（既定では未同梱・任意）。
