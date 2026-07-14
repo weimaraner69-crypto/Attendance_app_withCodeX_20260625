@@ -446,6 +446,40 @@ class PolicyCheckTest(TestCase):
 
         self.assertTrue(any("targeted test証跡不正" in issue for issue in issues))
 
+    def test_yellow_rejects_test_commands_with_shell_control_operators(self) -> None:
+        for suffix in (" || true", "; true", " | true", " && true", "\ntrue"):
+            with self.subTest(suffix=suffix):
+                evidence = self.review_evidence()
+                evidence["risk_tier"] = "yellow"
+                evidence["repository_context_mode"] = "related_context"
+                evidence["secondary_verification"] = {
+                    "required": True,
+                    "method": "dedicated_tests",
+                    "status": "passed",
+                    "evidence": "masked test result",
+                    "commands": [
+                        {
+                            "command": (
+                                "python3 -m unittest ci.module_that_does_not_exist"
+                                + suffix
+                            ),
+                            "exit_code": 0,
+                            "summary": "shell operator masked the result",
+                            "covered_paths": ["ai/operation-policy.yml"],
+                        }
+                    ],
+                }
+
+                issues = policy_check.validate_review_evidence_data(
+                    evidence,
+                    "docs/ai/reviews/2026-07-14-pr16-round1-codex-reviewer-a.json",
+                    head_compatible=True,
+                )
+
+                self.assertTrue(
+                    any("targeted test証跡不正" in issue for issue in issues)
+                )
+
     def test_required_evidence_fails_when_directory_is_missing(self) -> None:
         with TemporaryDirectory() as temp_dir:
             missing_dir = Path(temp_dir) / "missing"

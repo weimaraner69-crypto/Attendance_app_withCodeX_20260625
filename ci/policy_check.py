@@ -13,6 +13,7 @@ import argparse
 import hashlib
 import json
 import re
+import shlex
 import subprocess
 from fnmatch import fnmatch
 from pathlib import Path
@@ -441,6 +442,8 @@ def valid_dedicated_test_commands(
             or not all(isinstance(pattern, str) and pattern for pattern in covered_paths)
         ):
             return False
+        if contains_shell_control_operator(command_text):
+            return False
         if TEST_RUNNER_COMMAND.match(command_text):
             coverage_patterns.extend(covered_paths)
 
@@ -448,6 +451,20 @@ def valid_dedicated_test_commands(
         any(path_matches_risk_pattern(path, pattern) for pattern in coverage_patterns)
         for path in changed_files
     )
+
+
+def contains_shell_control_operator(command: str) -> bool:
+    """終了codeを隠せる未quoteのshell制御演算子を検出する。"""
+    if "\n" in command or "\r" in command:
+        return True
+    lexer = shlex.shlex(command, posix=True, punctuation_chars=";&|")
+    lexer.whitespace_split = True
+    lexer.commenters = ""
+    try:
+        tokens = list(lexer)
+    except ValueError:
+        return True
+    return any(token in {"&&", "||", ";", "|", "&"} for token in tokens)
 
 
 def validate_current_review_target(
