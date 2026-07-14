@@ -284,7 +284,11 @@ class PolicyCheckTest(TestCase):
             "project-config.yml",
             "src/auth/session.ts",
             "src/app/(authenticated)/layout.tsx",
+            "src/app/(public)/line/link/page.tsx",
+            "src/lib/attendance/stamp.ts",
+            "src/lib/line/messaging.ts",
             "src/lib/supabase/admin.ts",
+            "src/lib/utils/gpsUtils.ts",
             "src/migrations/001.sql",
             "src/stores/authStore.ts",
             "src/modules/time/migrations/001.sql",
@@ -398,6 +402,39 @@ class PolicyCheckTest(TestCase):
                     "summary": "no-op",
                     "covered_paths": ["ai/operation-policy.yml"],
                 }
+            ],
+        }
+
+        issues = policy_check.validate_review_evidence_data(
+            evidence,
+            "docs/ai/reviews/2026-07-14-pr16-round1-codex-reviewer-a.json",
+            head_compatible=True,
+        )
+
+        self.assertTrue(any("targeted test証跡不正" in issue for issue in issues))
+
+    def test_yellow_ignores_noop_coverage_beside_unrelated_test(self) -> None:
+        evidence = self.review_evidence()
+        evidence["risk_tier"] = "yellow"
+        evidence["repository_context_mode"] = "related_context"
+        evidence["secondary_verification"] = {
+            "required": True,
+            "method": "dedicated_tests",
+            "status": "passed",
+            "evidence": "unrelated test plus no-op coverage",
+            "commands": [
+                {
+                    "command": "python3 -m unittest ci.test_policy_check",
+                    "exit_code": 0,
+                    "summary": "unrelated test passed",
+                    "covered_paths": ["README.md"],
+                },
+                {
+                    "command": "true",
+                    "exit_code": 0,
+                    "summary": "no-op claims target coverage",
+                    "covered_paths": ["ai/operation-policy.yml"],
+                },
             ],
         }
 

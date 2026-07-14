@@ -425,7 +425,6 @@ def valid_dedicated_test_commands(
         return False
 
     coverage_patterns: list[str] = []
-    has_test_runner = False
     for command in commands:
         if not isinstance(command, dict):
             return False
@@ -442,10 +441,10 @@ def valid_dedicated_test_commands(
             or not all(isinstance(pattern, str) and pattern for pattern in covered_paths)
         ):
             return False
-        has_test_runner = has_test_runner or bool(TEST_RUNNER_COMMAND.match(command_text))
-        coverage_patterns.extend(covered_paths)
+        if TEST_RUNNER_COMMAND.match(command_text):
+            coverage_patterns.extend(covered_paths)
 
-    return has_test_runner and all(
+    return bool(coverage_patterns) and all(
         any(path_matches_risk_pattern(path, pattern) for pattern in coverage_patterns)
         for path in changed_files
     )
