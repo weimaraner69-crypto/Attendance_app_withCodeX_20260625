@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   hasValidIdentity: vi.fn(),
   generateToken: vi.fn(),
   hashToken: vi.fn(),
+  clearIntentCookie: vi.fn(),
   setIntentCookie: vi.fn(),
   issueIntent: vi.fn(),
 }));
@@ -13,6 +14,7 @@ vi.mock('@/lib/auth/staff-auth-identity', () => ({
   hasValidStaffAuthIdentity: mocks.hasValidIdentity,
 }));
 vi.mock('@/lib/auth/staff-password-intent', () => ({
+  clearStaffPasswordIntent: mocks.clearIntentCookie,
   generateStaffPasswordIntentToken: mocks.generateToken,
   hashStaffPasswordIntentToken: mocks.hashToken,
   setStaffPasswordIntentCookie: mocks.setIntentCookie,
@@ -58,6 +60,7 @@ describe('staff Auth confirmation route', () => {
 
     expect(response.status).toBe(303);
     expect(response.headers.get('location')).toBe(`${appOrigin}/auth/staff-password`);
+    expect(mocks.clearIntentCookie).toHaveBeenCalledOnce();
     expect(mocks.verifyOtp).toHaveBeenCalledWith({ token_hash: 'token-hash', type: 'invite' });
     expect(mocks.issueIntent).toHaveBeenCalledWith('issue_staff_password_intent', {
       p_user_id: 'auth-user-1',
@@ -77,6 +80,29 @@ describe('staff Auth confirmation route', () => {
     expect(response.headers.get('location')).toBe(
       `${appOrigin}/auth/staff-password?invalid=1`
     );
+    expect(mocks.clearIntentCookie).toHaveBeenCalledOnce();
+    expect(mocks.setIntentCookie).not.toHaveBeenCalled();
+  });
+
+  it('clears an old intent when OTP verification fails', async () => {
+    mocks.verifyOtp.mockResolvedValue({ data: { user: null }, error: new Error('invalid OTP') });
+
+    const response = await POST(confirmationRequest());
+
+    expect(response.status).toBe(303);
+    expect(mocks.clearIntentCookie).toHaveBeenCalledOnce();
+    expect(mocks.issueIntent).not.toHaveBeenCalled();
+    expect(mocks.setIntentCookie).not.toHaveBeenCalled();
+  });
+
+  it('clears an old intent when the staff identity is invalid', async () => {
+    mocks.hasValidIdentity.mockResolvedValue(false);
+
+    const response = await POST(confirmationRequest());
+
+    expect(response.status).toBe(303);
+    expect(mocks.clearIntentCookie).toHaveBeenCalledOnce();
+    expect(mocks.issueIntent).not.toHaveBeenCalled();
     expect(mocks.setIntentCookie).not.toHaveBeenCalled();
   });
 
@@ -94,6 +120,7 @@ describe('staff Auth confirmation route', () => {
     expect(response.headers.get('location')).toBe(
       `${appOrigin}/auth/staff-password?invalid=1`
     );
+    expect(mocks.clearIntentCookie).toHaveBeenCalledOnce();
     expect(mocks.verifyOtp).not.toHaveBeenCalled();
   });
 });

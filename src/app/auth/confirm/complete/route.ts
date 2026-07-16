@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { confirmStaffAuthLink } from '@/lib/auth/staff-auth-confirmation';
 import { hasValidStaffAuthIdentity } from '@/lib/auth/staff-auth-identity';
 import {
+  clearStaffPasswordIntent,
   generateStaffPasswordIntentToken,
   hashStaffPasswordIntentToken,
   setStaffPasswordIntentCookie,
@@ -16,6 +17,7 @@ import {
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
+  clearStaffPasswordIntent();
   const requestOrigin = request.headers.get('origin');
   if (requestOrigin && requestOrigin !== new URL(request.url).origin) {
     return NextResponse.redirect(

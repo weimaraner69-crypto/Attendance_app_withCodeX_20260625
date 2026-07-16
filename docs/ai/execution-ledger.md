@@ -22,9 +22,9 @@
 - 現在の mode: `daily_development`（Issue #13レビュー再開）
 - active branch: `feat/issue-13-staff-invitations`
 - 直近完了 PR: PR #17（独立AIレビュー運用改定）を独立レビュー・CI成功後に `main` へマージ済み
-- 現在タスク: PR #15へ最新`main`を取り込み、2回目の独立セキュリティレビューが検出したMust 1件、Should 2件、Nice 1件（一時AuthセッションCookie迂回、intent発行競合、実Postgres検証不足、tokenヘッダー）を修正し、最終検証中
+- 現在タスク: PR #15へ最新`main`を取り込み、Round 1・2とRound 3のMust（一時AuthセッションCookie迂回、intent発行競合、実Postgres検証不足、303 PRG、旧intent残留）を修正。変更したRLS全7群の実DB組織分離も追加検証済み
 - review baseline: レビュー修正のpush後に、別の独立reviewer/session、`head_sha`、diff fingerprint、context modeを新しい証跡JSONへ固定する
-- 次タスク: フル品質ゲートと実Postgres検証後に新しい独立`full_repo_agentic`レビューを完了し、Must/Should 0件とCI成功を確認する
+- 次タスク: Round 3 Must修正後の現headに限定したpost-cap独立確認を行い、証跡JSONとCIを完了する
 - レビュー条件: Copilotは任意。実装担当から独立したCodex / Claudeの`full_repo_agentic`レビューと、専用認証回帰テストによる二重確認を必須とする
 - 安全床: `.env.local`を読まない。秘密情報を表示しない。本番Supabase設定、実メール送信、日報側実接続、本番デプロイ、実店舗データ投入、Go-Live、PRマージは対象外
 - 最終更新: 2026-07-16

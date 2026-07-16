@@ -35,7 +35,16 @@ $$;
 \ir ../supabase/migrations/202607130002_performance_advisor_optimization.sql
 \ir ../supabase/migrations/20260716034432_secure_staff_password_intents.sql
 
-grant select on public.staff to authenticated;
+grant select on
+  public.staff,
+  public.attendance_records,
+  public.attendance_events,
+  public.attendance_requests,
+  public.shifts,
+  public.shift_submissions,
+  public.shift_submission_items,
+  public.notifications
+to authenticated;
 
 insert into public.organizations (id, name) values
   ('00000000-0000-0000-0000-000000000001', 'Organization 1'),
@@ -96,6 +105,161 @@ insert into public.staff (id, organization_id, auth_user_id, name) values
     '00000000-0000-0000-0000-000000000003',
     '10000000-0000-0000-0000-000000000004',
     'Delete Org'
+  );
+
+insert into public.stores (id, organization_id, name) values
+  (
+    '30000000-0000-0000-0000-000000000001',
+    '00000000-0000-0000-0000-000000000001',
+    'Store 1'
+  ),
+  (
+    '30000000-0000-0000-0000-000000000002',
+    '00000000-0000-0000-0000-000000000002',
+    'Store 2'
+  );
+
+insert into public.attendance_records (
+  id, organization_id, store_id, staff_id, work_date
+) values
+  (
+    '40000000-0000-0000-0000-000000000001',
+    '00000000-0000-0000-0000-000000000001',
+    '30000000-0000-0000-0000-000000000001',
+    '20000000-0000-0000-0000-000000000001',
+    '2026-07-16'
+  ),
+  (
+    '40000000-0000-0000-0000-000000000002',
+    '00000000-0000-0000-0000-000000000002',
+    '30000000-0000-0000-0000-000000000002',
+    '20000000-0000-0000-0000-000000000002',
+    '2026-07-16'
+  );
+
+insert into public.attendance_events (
+  id, organization_id, attendance_record_id, store_id, staff_id,
+  event_type, occurred_at, source
+) values
+  (
+    '41000000-0000-0000-0000-000000000001',
+    '00000000-0000-0000-0000-000000000001',
+    '40000000-0000-0000-0000-000000000001',
+    '30000000-0000-0000-0000-000000000001',
+    '20000000-0000-0000-0000-000000000001',
+    'clock_in', now(), 'system'
+  ),
+  (
+    '41000000-0000-0000-0000-000000000002',
+    '00000000-0000-0000-0000-000000000002',
+    '40000000-0000-0000-0000-000000000002',
+    '30000000-0000-0000-0000-000000000002',
+    '20000000-0000-0000-0000-000000000002',
+    'clock_in', now(), 'system'
+  );
+
+insert into public.attendance_requests (
+  id, organization_id, store_id, staff_id, attendance_record_id,
+  request_type, target_date, reason
+) values
+  (
+    '42000000-0000-0000-0000-000000000001',
+    '00000000-0000-0000-0000-000000000001',
+    '30000000-0000-0000-0000-000000000001',
+    '20000000-0000-0000-0000-000000000001',
+    '40000000-0000-0000-0000-000000000001',
+    'attendance_correction', '2026-07-16', 'test'
+  ),
+  (
+    '42000000-0000-0000-0000-000000000002',
+    '00000000-0000-0000-0000-000000000002',
+    '30000000-0000-0000-0000-000000000002',
+    '20000000-0000-0000-0000-000000000002',
+    '40000000-0000-0000-0000-000000000002',
+    'attendance_correction', '2026-07-16', 'test'
+  );
+
+insert into public.shifts (
+  id, organization_id, store_id, staff_id, work_date, start_at, end_at
+) values
+  (
+    '43000000-0000-0000-0000-000000000001',
+    '00000000-0000-0000-0000-000000000001',
+    '30000000-0000-0000-0000-000000000001',
+    '20000000-0000-0000-0000-000000000001',
+    '2026-07-17', now(), now() + interval '8 hours'
+  ),
+  (
+    '43000000-0000-0000-0000-000000000002',
+    '00000000-0000-0000-0000-000000000002',
+    '30000000-0000-0000-0000-000000000002',
+    '20000000-0000-0000-0000-000000000002',
+    '2026-07-17', now(), now() + interval '8 hours'
+  );
+
+insert into public.shift_submission_windows (
+  id, organization_id, store_id, title, period_start, period_end, due_at
+) values
+  (
+    '44000000-0000-0000-0000-000000000001',
+    '00000000-0000-0000-0000-000000000001',
+    '30000000-0000-0000-0000-000000000001',
+    'Window 1', '2026-07-20', '2026-07-26', now() + interval '1 day'
+  ),
+  (
+    '44000000-0000-0000-0000-000000000002',
+    '00000000-0000-0000-0000-000000000002',
+    '30000000-0000-0000-0000-000000000002',
+    'Window 2', '2026-07-20', '2026-07-26', now() + interval '1 day'
+  );
+
+insert into public.shift_submissions (
+  id, organization_id, window_id, staff_id
+) values
+  (
+    '45000000-0000-0000-0000-000000000001',
+    '00000000-0000-0000-0000-000000000001',
+    '44000000-0000-0000-0000-000000000001',
+    '20000000-0000-0000-0000-000000000001'
+  ),
+  (
+    '45000000-0000-0000-0000-000000000002',
+    '00000000-0000-0000-0000-000000000002',
+    '44000000-0000-0000-0000-000000000002',
+    '20000000-0000-0000-0000-000000000002'
+  );
+
+insert into public.shift_submission_items (
+  id, organization_id, submission_id, preferred_date,
+  start_time, end_time
+) values
+  (
+    '46000000-0000-0000-0000-000000000001',
+    '00000000-0000-0000-0000-000000000001',
+    '45000000-0000-0000-0000-000000000001',
+    '2026-07-20', '09:00', '17:00'
+  ),
+  (
+    '46000000-0000-0000-0000-000000000002',
+    '00000000-0000-0000-0000-000000000002',
+    '45000000-0000-0000-0000-000000000002',
+    '2026-07-20', '09:00', '17:00'
+  );
+
+insert into public.notifications (
+  id, organization_id, recipient_staff_id, title, body, notification_type
+) values
+  (
+    '47000000-0000-0000-0000-000000000001',
+    '00000000-0000-0000-0000-000000000001',
+    '20000000-0000-0000-0000-000000000001',
+    'Notification 1', 'body', 'test'
+  ),
+  (
+    '47000000-0000-0000-0000-000000000002',
+    '00000000-0000-0000-0000-000000000002',
+    '20000000-0000-0000-0000-000000000002',
+    'Notification 2', 'body', 'test'
   );
 
 do $$
@@ -245,6 +409,27 @@ begin
     where organization_id = '00000000-0000-0000-0000-000000000002'
   ) then
     raise exception 'staff RLS exposed the other organization';
+  end if;
+  if (select count(*) from public.attendance_records) <> 1 then
+    raise exception 'attendance_records RLS did not isolate the linked staff row';
+  end if;
+  if (select count(*) from public.attendance_events) <> 1 then
+    raise exception 'attendance_events RLS did not isolate the linked staff row';
+  end if;
+  if (select count(*) from public.attendance_requests) <> 1 then
+    raise exception 'attendance_requests RLS did not isolate the linked staff row';
+  end if;
+  if (select count(*) from public.shifts) <> 1 then
+    raise exception 'shifts RLS did not isolate the linked staff row';
+  end if;
+  if (select count(*) from public.shift_submissions) <> 1 then
+    raise exception 'shift_submissions RLS did not isolate the linked staff row';
+  end if;
+  if (select count(*) from public.shift_submission_items) <> 1 then
+    raise exception 'shift_submission_items RLS did not isolate the linked staff row';
+  end if;
+  if (select count(*) from public.notifications) <> 1 then
+    raise exception 'notifications RLS did not isolate the linked staff row';
   end if;
 end;
 $$;
