@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 
 import { CorrectionRequestForm } from '@/components/stamp/CorrectionRequestForm';
 import { MobileStampPanel } from '@/components/stamp/MobileStampPanel';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { requireAuthenticatedRole } from '@/lib/auth/session';
@@ -318,8 +318,8 @@ export default async function MobileStampPage({
             <h1 className="text-3xl font-bold">個人スマホ打刻</h1>
             <p className="mt-1 text-sm text-gray-600">GPSを取得して、出勤・退勤・休憩を記録します。</p>
           </div>
-          <Link href="/stamp">
-            <Button variant="outline">戻る</Button>
+          <Link href="/stamp" className={buttonVariants({ variant: 'outline' })}>
+            戻る
           </Link>
         </div>
 

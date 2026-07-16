@@ -3,7 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { notFound } from 'next/navigation';
 
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { SessionActions } from '@/components/auth/SessionActions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -272,11 +272,17 @@ export default async function ManagerDashboardPage({
             </p>
           </div>
           <div className="flex gap-2">
-            <Link href={`/manager/${params.storeId}/requests`}>
-              <Button variant="outline">申請管理</Button>
+            <Link
+              href={`/manager/${params.storeId}/requests`}
+              className={buttonVariants({ variant: 'outline' })}
+            >
+              申請管理
             </Link>
-            <Link href={`/manager/${params.storeId}/shifts`}>
-              <Button variant="outline">シフト管理</Button>
+            <Link
+              href={`/manager/${params.storeId}/shifts`}
+              className={buttonVariants({ variant: 'outline' })}
+            >
+              シフト管理
             </Link>
             <SessionActions />
           </div>
@@ -290,10 +296,15 @@ export default async function ManagerDashboardPage({
             </CardHeader>
             <CardContent className="flex flex-wrap gap-2">
               {storeFilters.map((filterStore) => (
-                <Link key={filterStore.id} href={`/manager/${filterStore.id}`}>
-                  <Button variant={filterStore.id === store.id ? 'default' : 'outline'} size="sm">
-                    {filterStore.name}
-                  </Button>
+                <Link
+                  key={filterStore.id}
+                  href={`/manager/${filterStore.id}`}
+                  className={buttonVariants({
+                    variant: filterStore.id === store.id ? 'default' : 'outline',
+                    size: 'sm',
+                  })}
+                >
+                  {filterStore.name}
                 </Link>
               ))}
             </CardContent>

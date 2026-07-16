@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { createSupabaseAdminClient } from '@/lib/supabase';
 
@@ -30,8 +30,8 @@ export default async function StampPage() {
             <h1 className="text-3xl font-bold">打刻</h1>
             <p className="mt-1 text-sm text-gray-600">店舗iPad打刻または個人スマホ打刻を選択します。</p>
           </div>
-          <Link href="/">
-            <Button variant="outline">戻る</Button>
+          <Link href="/" className={buttonVariants({ variant: 'outline' })}>
+            戻る
           </Link>
         </div>
 
@@ -42,13 +42,18 @@ export default async function StampPage() {
           </CardHeader>
           <CardContent className="grid gap-3 sm:grid-cols-2">
             {storeRows.map((store) => (
-              <Link key={store.id} href={`/stamp/${store.id}`} className="block">
-                <Button variant="outline" className="h-auto w-full justify-start py-4">
-                  <span className="text-left">
-                    <span className="block font-medium">{store.name}</span>
-                    {store.code && <span className="block text-xs text-gray-500">{store.code}</span>}
-                  </span>
-                </Button>
+              <Link
+                key={store.id}
+                href={`/stamp/${store.id}`}
+                className={buttonVariants({
+                  variant: 'outline',
+                  className: 'h-auto w-full justify-start py-4',
+                })}
+              >
+                <span className="text-left">
+                  <span className="block font-medium">{store.name}</span>
+                  {store.code && <span className="block text-xs text-gray-500">{store.code}</span>}
+                </span>
               </Link>
             ))}
             {storeRows.length === 0 && (
@@ -63,8 +68,11 @@ export default async function StampPage() {
             <CardDescription>ログイン済みスタッフとして店舗を選択し、GPS付きで打刻します。</CardDescription>
           </CardHeader>
           <CardContent>
-            <Link href="/stamp/mobile">
-              <Button className="w-full" size="lg">個人スマホ打刻へ</Button>
+            <Link
+              href="/stamp/mobile"
+              className={buttonVariants({ size: 'lg', className: 'w-full' })}
+            >
+              個人スマホ打刻へ
             </Link>
           </CardContent>
         </Card>

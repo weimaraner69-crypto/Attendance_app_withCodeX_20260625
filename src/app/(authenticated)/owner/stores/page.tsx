@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { revalidatePath } from 'next/cache';
 
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -199,8 +199,8 @@ export default async function StoresPage() {
           <h2 className="text-3xl font-bold">店舗管理</h2>
           <p className="mt-1 text-sm text-gray-600">店舗情報、GPS判定、店舗iPad端末を管理します。</p>
         </div>
-        <Link href="/owner">
-          <Button variant="outline">戻る</Button>
+        <Link href="/owner" className={buttonVariants({ variant: 'outline' })}>
+          戻る
         </Link>
       </div>
 

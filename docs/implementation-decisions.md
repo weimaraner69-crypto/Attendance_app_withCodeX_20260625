@@ -58,6 +58,19 @@
 - PINを5回連続で間違えた場合は10分間ロックし、成功時に失敗回数をリセットする。
 - 6時間の端末認証とPIN解除状態は、サーバーだけが読める署名付きHttpOnly Cookieで管理する。
 
+## A-001 スタッフAuth招待とパスワード設定
+
+- オーナーは `/owner/staff` から有効な未紐付けスタッフをメール招待する。平文パスワードとAuth UUIDは入力しない。
+- `staff.auth_user_id` にはSupabase Admin APIの招待応答が返したユーザーIDだけを使う。
+- 招待前に同一組織、`staff` ロール、有効状態、メール重複、既存紐付けを検証する。
+- Auth招待後の `user_profiles` 作成または `staff` 紐付けが失敗した場合、作成直後のAuthユーザーを削除して中途状態を残さない。
+- invite/recoveryメールは `/auth/confirm` へ戻し、ユーザーの明示的なPOST後に `token_hash` と種別を `verifyOtp` する。許可する種別は `invite` と `recovery` だけとする。
+- Authユーザー、`user_profiles(role = staff)`、有効な `staff.auth_user_id` の組織が一致した場合だけ、DBにトークンハッシュを保存する10分有効・単回利用のHttpOnlyパスワード設定権限を発行する。
+- `verifyOtp` は `persistSession=false`、`detectSessionInUrl=false` のリクエスト内専用Supabaseクライアントで行い、callback用AuthセッションをCookieやstorageへ永続化しない。
+- intent発行はadvisory lock付きsecurity definer関数と未消費 `user_id` の部分一意索引で直列化する。パスワード更新は設定権限を原子的に消費する同一OriginのサーバーAPIだけでAdmin API経由で行う。期限切れ・改ざん・同時再利用・通常staffセッションはfail-closeする。
+- `staff.auth_user_id` と組織の対応はDBの複合外部キーで固定し、staff本人参照を行うRLSも `private.current_user_organization_id()` との一致を必須とする。
+- 送信した招待・再設定操作は `audit_logs` へ記録するが、メール本文、トークン、Auth UUIDは記録しない。
+
 ## A-000 日報アプリ向け外部連携API
 
 - 勤怠管理アプリを出退勤データの正本とし、日報管理アプリは外部API経由で読み取り専用にする。

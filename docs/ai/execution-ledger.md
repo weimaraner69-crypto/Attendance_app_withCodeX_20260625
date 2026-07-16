@@ -17,7 +17,31 @@
 
 ## 記録
 
-### 現在状態（2026-07-14 独立AIレビュー運用改定・最新）
+### 現在状態（2026-07-16 PR #15最新化・レビュー再開・最新）
+
+- 現在の mode: `daily_development`（Issue #13レビュー再開）
+- active branch: `feat/issue-13-staff-invitations`
+- 直近完了 PR: PR #17（独立AIレビュー運用改定）を独立レビュー・CI成功後に `main` へマージ済み
+- 現在タスク: PR #15へ最新`main`を取り込み、Round 1・2とRound 3のMust（一時AuthセッションCookie迂回、intent発行競合、実Postgres検証不足、303 PRG、旧intent残留）を修正。変更したRLS全7群の実DB組織分離も追加検証済み
+- review baseline: レビュー修正のpush後に、別の独立reviewer/session、`head_sha`、diff fingerprint、context modeを新しい証跡JSONへ固定する
+- 次タスク: Round 3 Must修正後の現headに限定したpost-cap独立確認を行い、証跡JSONとCIを完了する
+- レビュー条件: Copilotは任意。実装担当から独立したCodex / Claudeの`full_repo_agentic`レビューと、専用認証回帰テストによる二重確認を必須とする
+- 安全床: `.env.local`を読まない。秘密情報を表示しない。本番Supabase設定、実メール送信、日報側実接続、本番デプロイ、実店舗データ投入、Go-Live、PRマージは対象外
+- 最終更新: 2026-07-16
+
+### 現在状態（2026-07-14 A-001スタッフAuthレビュー対応・履歴）
+
+- 現在の mode: `daily_development`（Issue #13実装）
+- active branch: `feat/issue-13-staff-invitations`
+- 直近完了 PR: PR #14（計画・Issue整合）をCopilotレビュー、CI成功後に `main` へマージ済み
+- 現在タスク: PR #15 Copilot Round 2の5指摘（LIKE用変数名2件、リンク内ボタン3件）と同種の横断検出箇所を修正し、フル品質ゲートを再実行中
+- review baseline: Round 2修正コミットをpushし、Copilot Round 3を依頼した時点のPR head SHAを基準とする
+- 次タスク: Round 2修正をpush後に5スレッドへ返信・resolveし、最終Round 3レビューとCIを確認する
+- レビュー条件: `.github/instructions/review-loop.instructions.md` の最大3ラウンドに従う
+- 安全床: `.env.local` を読まない。秘密情報を表示しない。Supabase本番設定、実メール送信、日報側実接続、本番デプロイ、実店舗データ投入、Go-Liveは対象外
+- 最終更新: 2026-07-14
+
+### 現在状態（2026-07-14 独立AIレビュー運用改定・履歴）
 
 - 現在の mode: `governance_change`
 - active branch: `chore/independent-ai-review-policy`

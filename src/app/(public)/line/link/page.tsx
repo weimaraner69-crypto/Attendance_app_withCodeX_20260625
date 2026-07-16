@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { getCurrentAuthContext } from '@/lib/auth/session';
 import { hashLineLinkToken } from '@/lib/line/messaging';
@@ -120,7 +120,9 @@ export default async function LineLinkPage({
             <CardDescription>LINEへ戻り、「シフト確認」や「打刻」と送信してください。</CardDescription>
           </CardHeader>
           <CardContent>
-            <Link href="/stamp/mobile"><Button className="w-full">勤怠画面を開く</Button></Link>
+            <Link href="/stamp/mobile" className={buttonVariants({ className: 'w-full' })}>
+              勤怠画面を開く
+            </Link>
           </CardContent>
         </Card>
       </main>
@@ -145,8 +147,11 @@ export default async function LineLinkPage({
           {!context && token && (
             <>
               <p className="text-sm text-gray-600">先にスタッフとしてログインしてください。ログイン後、この画面へ戻ります。</p>
-              <Link href={`/login?next=${encodeURIComponent(`/line/link?token=${token}`)}`}>
-                <Button className="w-full">スタッフログイン</Button>
+              <Link
+                href={`/login?next=${encodeURIComponent(`/line/link?token=${token}`)}`}
+                className={buttonVariants({ className: 'w-full' })}
+              >
+                スタッフログイン
               </Link>
             </>
           )}

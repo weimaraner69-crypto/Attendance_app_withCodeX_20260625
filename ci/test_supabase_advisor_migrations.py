@@ -134,5 +134,57 @@ class SupabaseAdvisorMigrationTest(TestCase):
             self.assertIn(f"create index if not exists {index_name}", migration)
 
 
+class StaffAuthSecurityMigrationTest(TestCase):
+    SECURITY_MIGRATION = (
+        MIGRATIONS / "20260716034432_secure_staff_password_intents.sql"
+    )
+
+    def test_staff_auth_link_is_tenant_consistent_in_the_database(self) -> None:
+        migration = self.SECURITY_MIGRATION.read_text(encoding="utf-8")
+
+        self.assertIn("unique (id, organization_id)", migration)
+        self.assertIn("foreign key (auth_user_id, organization_id)", migration)
+        self.assertIn("references public.user_profiles (id, organization_id)", migration)
+        self.assertIn("deferrable initially deferred", migration)
+
+    def test_password_intents_are_single_use_and_not_client_readable(self) -> None:
+        migration = self.SECURITY_MIGRATION.read_text(encoding="utf-8")
+
+        self.assertIn("create table public.staff_password_intents", migration)
+        self.assertIn("token_hash text not null unique", migration)
+        self.assertIn("consumed_at timestamptz", migration)
+        self.assertIn("create unique index idx_staff_password_intents_active_user", migration)
+        self.assertIn("on public.staff_password_intents (user_id)", migration)
+        self.assertIn("where consumed_at is null", migration)
+        self.assertIn("pg_advisory_xact_lock", migration)
+        self.assertIn("create or replace function public.issue_staff_password_intent", migration)
+        self.assertIn("security definer", migration)
+        self.assertIn("set search_path = ''", migration)
+        self.assertIn(
+            "revoke all on function public.issue_staff_password_intent",
+            migration,
+        )
+        self.assertIn(
+            "revoke all on public.staff_password_intents from public, anon, authenticated;",
+            migration,
+        )
+        self.assertNotIn(
+            'create policy "',
+            migration.split("alter table public.staff_password_intents enable row level security;", 1)[1]
+            .split('drop policy if exists "organization members or staff can read staff"', 1)[0],
+        )
+
+    def test_staff_rls_checks_profile_organization_for_every_own_link(self) -> None:
+        migration = self.SECURITY_MIGRATION.read_text(encoding="utf-8")
+
+        self.assertGreaterEqual(migration.count("own_staff.auth_user_id = (select auth.uid())"), 6)
+        self.assertEqual(
+            migration.count("own_staff.auth_user_id = (select auth.uid())"),
+            migration.count(
+                "own_staff.organization_id = private.current_user_organization_id()"
+            ),
+        )
+
+
 if __name__ == "__main__":
     main()

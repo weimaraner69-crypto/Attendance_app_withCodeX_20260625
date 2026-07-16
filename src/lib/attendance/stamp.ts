@@ -1,6 +1,7 @@
 import { getDistance } from '@/lib/utils/gpsUtils';
 import { verifyPin } from '@/lib/auth/pin';
-import { createSupabaseAdminClient, createSupabaseServerClient } from '@/lib/supabase';
+import { getCurrentAuthContext } from '@/lib/auth/session';
+import { createSupabaseAdminClient } from '@/lib/supabase';
 import type { Database } from '@/lib/supabase';
 import { calculateRecordPatch, minutesBetween } from './stamp-state';
 
@@ -104,15 +105,6 @@ function getTokyoDate(occurredAt: Date) {
   }).format(occurredAt);
 }
 
-async function getCurrentAuthUserId() {
-  const supabase = createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  return user?.id ?? null;
-}
-
 export async function stampAttendance(payload: StampPayload): Promise<StampResult> {
   const supabase = createSupabaseAdminClient();
   const occurredAtDate = payload.occurred_at ? new Date(payload.occurred_at) : new Date();
@@ -198,8 +190,14 @@ export async function stampAttendance(payload: StampPayload): Promise<StampResul
   }
 
   if (payload.source === 'mobile_web') {
-    authUserId = await getCurrentAuthUserId();
-    if (!authUserId || staff.auth_user_id !== authUserId) {
+    const context = await getCurrentAuthContext();
+    authUserId = context?.profile.role === 'staff' ? context.user.id : null;
+    if (
+      !authUserId ||
+      !context?.staff ||
+      context.staff.id !== staff.id ||
+      staff.auth_user_id !== authUserId
+    ) {
       return stampError(401, 'UNAUTHENTICATED', 'スタッフ本人のログインが必要です');
     }
 

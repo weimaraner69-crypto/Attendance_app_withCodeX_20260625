@@ -8,6 +8,6 @@ describe('role home routing', () => {
     expect(getRoleHomePath('sr')).toBe('/sr');
     expect(getRoleHomePath('manager', 'store-id')).toBe('/manager/store-id');
     expect(getRoleHomePath('manager')).toBe('/manager/login');
-    expect(getRoleHomePath('staff')).toBe('/stamp');
+    expect(getRoleHomePath('staff')).toBe('/stamp/mobile');
   });
 });

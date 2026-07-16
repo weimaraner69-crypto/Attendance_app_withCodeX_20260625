@@ -5,6 +5,44 @@
 
 ---
 
+## [2026-07-16] A-001 招待・再設定リンクをSSR/PKCE対応へ修正
+
+### 修正
+
+- Supabase Authのinvite/recoveryメールを、`token_hash`をサーバー検証する `/auth/confirm` へ統一し、メールリンクスキャナがGETだけでトークンを消費しない確認POSTを追加。
+- 検証成功時だけ、Authユーザーと同じ組織の有効なstaff紐付けを確認し、DBにハッシュだけを保存する10分有効・単回利用のHttpOnly設定権限を発行。
+- `verifyOtp` をCookie/storageに永続化しないリクエスト内専用Supabaseクライアントで実行し、callback用Authセッションをブラウザへ発行しない構成へ変更。
+- 確認POST後の正常・異常redirectを303 See Otherに固定し、遷移先のパスワード設定画面へGETで移動するPRGフローを保証。
+- 確認POST開始時に古いpassword intent Cookieを必ず破棄し、cross-origin、OTP、identity、DB発行のいずれかが失敗しても別ユーザーの旧intentへフォールバックしないよう修正。
+- intent発行はadvisory lock付きDB関数と未消費 `user_id` 部分一意索引で原子化し、パスワード更新はDB上の設定権限を原子的に消費した1リクエストだけがAdmin APIで実行できるよう変更。
+- スタッフセッション解決へ `staff.organization_id = user_profiles.organization_id` の境界条件を追加。
+- `staff.auth_user_id` と組織の整合性を複合外部キーで固定し、staff本人参照を行うRLSに組織照合を追加。
+- Supabaseのinvite/recoveryメールテンプレートを `supabase/templates/` へ追加。
+- token検証、セッション非永続化、同時発行/消費、リンクスキャナ、RLS/DB制約、Auth/組織削除を専用Vitestと実Postgres CIで固定。
+
+### 影響ファイル
+
+- `src/app/auth/confirm/page.tsx`
+- `src/app/auth/confirm/complete/route.ts`
+- `src/app/auth/staff-password/page.tsx`
+- `src/app/api/auth/staff-password/route.ts`
+- `src/lib/auth/staff-auth-confirmation.ts`
+- `src/lib/auth/staff-password-intent.ts`
+- `src/lib/auth/staff-password-update.ts`
+- `src/lib/supabase/transient-auth.ts`
+- `src/lib/auth/session.ts`
+- `ci/test_staff_auth_postgres.sql`
+- `.github/workflows/ci.yml`
+- `next.config.mjs`
+- `supabase/migrations/20260716034432_secure_staff_password_intents.sql`
+- `supabase/templates/invite.html`
+- `supabase/templates/recovery.html`
+- `NEXT.md`
+- `FINISHED.md`
+- `docs/implementation-decisions.md`
+- `docs/operations-maintenance.md`
+- `docs/ai/execution-ledger.md`
+
 ## [2026-07-14] PRレビューをプロバイダー非依存に変更
 
 ### 変更
@@ -36,6 +74,47 @@
 - `docs/ai/execution-ledger.md`
 - `NEXT.md`
 - `CHANGELOG.md`
+
+## [2026-07-14] A-001 Copilot Round 1・2レビュー指摘を修正
+
+### 修正
+
+- メールの大文字小文字を無視する `ilike` 照合で、`%`、`_`、`\`をLIKE特殊文字としてエスケープし、別メールの誤一致を防止。
+- スタッフパスワード設定画面のセッションAPI確認で通信例外が発生しても、確認中のまま止まらず無効リンク表示へfail-closeするよう修正。
+- スタッフパスワード設定画面のSupabaseクライアントをブラウザでのみ初期化し、CIの静的事前生成が公開環境変数なしでも完了するよう修正。
+- リポジトリ内の `.ilike()` と同種のセッション確認fetchを横断確認し、追加対応箇所がないことを確認。
+- LIKEエスケープ後の変数名を `emailLikePattern` へ変更し、メール形式検証用の正規表現と区別。
+- `Link` または通常アンカーの子に `Button` を置いていた21箇所を横断修正し、アンカーへ `buttonVariants` を直接適用してHTMLとキーボード操作の意味を正常化。
+
+## [2026-07-14] A-001 スタッフAuth招待・初回設定・再設定を実装
+
+### 変更
+
+- `/owner/staff` から有効な未紐付けスタッフへSupabase Auth招待メールを送信し、Admin APIの応答IDだけで `user_profiles` と `staff.auth_user_id` を紐付けるようにした。
+- 手動のAuth UUID入力欄を削除し、他組織、他ロール、無効、重複、紐付け済みの招待をサーバー側で拒否するようにした。
+- DB紐付けに失敗した場合は作成直後のAuthユーザーを補償削除し、中途状態を残さないようにした。
+- `/auth/staff-password` を追加し、有効な招待・再設定セッションと本人スタッフ紐付けを確認してからパスワードを設定するようにした。
+- スタッフのログイン後ホームを `/stamp/mobile` へ統一した。
+
+### 確認
+
+- 通常招待、無効、他組織、ロール不一致、メール重複、紐付け済み、不正メール、補償削除、再設定、無効セッションを回帰テストで固定。
+- 本番SupabaseのRedirect URL変更と実メール確認は、本番運用作業として今回は実施していない。
+
+### 影響ファイル
+
+- `src/lib/auth/staff-auth.ts`
+- `src/lib/auth/staff-auth.test.ts`
+- `src/app/(authenticated)/owner/staff/page.tsx`
+- `src/app/auth/staff-password/page.tsx`
+- `src/lib/auth/session.ts`
+- `NEXT.md`
+- `docs/implementation-decisions.md`
+- `docs/operations-maintenance.md`
+- `docs/ai/decision-ledger.md`
+- `docs/ai/execution-ledger.md`
+- `docs/ai/pre-pr-critical-review.md`
+- `FINISHED.md`
 
 ## [2026-07-14] 計画・GitHub Issue・外部API契約を同期
 

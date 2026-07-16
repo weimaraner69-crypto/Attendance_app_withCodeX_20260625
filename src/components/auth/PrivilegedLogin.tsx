@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -395,8 +395,11 @@ export function PrivilegedLogin({ variant }: { variant: LoginVariant }) {
             </form>
           )}
 
-          <Link href="/" className="block">
-            <Button variant="ghost" className="w-full">トップページに戻る</Button>
+          <Link
+            href="/"
+            className={buttonVariants({ variant: 'ghost', className: 'w-full' })}
+          >
+            トップページに戻る
           </Link>
           {screen === 'pin' && selectedRole && (
             <p className="text-center text-xs text-gray-500">

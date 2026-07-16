@@ -25,6 +25,8 @@ Git、Issue、Pull Request、チャット、ログへ値を貼り付けません
 - ステージング: 本番と同じ変数を設定し、LINEはステージング用チャネルを分ける。
 - 本番: Supabase project、LINE Messaging APIチャネル、公開HTTPSドメインを本番用に固定する。
 - `NEXT_PUBLIC_APP_URL` は末尾スラッシュなしにする。
+- Supabase DashboardのAuthentication > URL Configurationで、Site URLを `NEXT_PUBLIC_APP_URL` と同じOriginへ設定し、スタッフ招待・再設定のRedirect URLに `NEXT_PUBLIC_APP_URL` + `/auth/confirm` を登録する。
+- Authentication > Email TemplatesのInvite userへ `supabase/templates/invite.html`、Reset passwordへ `supabase/templates/recovery.html` の内容を反映する。両テンプレートは `/auth/confirm` で `token_hash` をサーバー検証する。
 - service role key、LINE secret、LINE access token はローテーション手順をパスワード管理ツールに残す。
 
 ### 値を表示しない確認方法
@@ -39,10 +41,13 @@ Git、Issue、Pull Request、チャット、ログへ値を貼り付けません
 - `npm run lint` が成功する。
 - `npm run build` が成功する。
 - 必要なSupabaseマイグレーションがSQL EditorまたはSupabase CLIで適用済み。
+- スタッフAuthを使う場合、`20260716034432_secure_staff_password_intents.sql` の適用前に既存 `staff.auth_user_id` と `user_profiles.organization_id` の不整合が0件であることを確認する。
+- CIの `ci/test_staff_auth_postgres.sql` が新規Postgresへ全マイグレーションを適用し、複合FK、Auth/組織削除、intent権限・単回利用、staff RLS組織分離を確認する。
 - `docs/supabase-setup.md`、`docs/line-setup.md` の未完了手順が残っていない。
 - `/api/internal/supabase/health` が `ok: true` を返す。
 - 外部連携APIを使う場合、APIキーはハッシュ保存し、平文キーは発行直後だけ安全に渡す。
 - LINEを使う場合、LINE DevelopersのWebhook検証がHTTP 200になる。
+- スタッフAuthを使う場合、招待と再設定の実メールが `/auth/confirm` の確認POSTで検証された後に `/auth/staff-password` へ到達し、設定前は通常画面と打刻を利用できず、設定後に新しいパスワードで `/stamp/mobile` へログインできる。
 
 ## 3. エラー監視方針
 
