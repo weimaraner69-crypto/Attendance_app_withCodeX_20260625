@@ -1,0 +1,143 @@
+{
+  "schema_version": 2,
+  "phase": "post_push",
+  "provider": "codex",
+  "reviewer_id": "codex-euclid-019f69be",
+  "review_session_id": "019f69be-adc7-7911-81c8-135d8e4364b9",
+  "implementation_session_id": "codex-main-pr19-20260716",
+  "head_sha": "7b7f1fc256bd10874417a1a554dd04ea93142b4d",
+  "diff_fingerprint": "sha256:b3deccae5770fd017f5286e17692e42c390222bca9142c71d4046fccd98eb8e0",
+  "risk_tier": "red",
+  "round": 2,
+  "review_status": "completed",
+  "secondary_verification": {
+    "required": true,
+    "method": "dedicated_tests",
+    "status": "passed",
+    "evidence": "Local and GitHub quality gates passed, including fresh PostgreSQL migration, authorization, stale-window, log aggregation, and 61-request concurrency tests.",
+    "commands": [
+      {
+        "command": "python3 -m unittest ci.test_policy_check ci.test_supabase_advisor_migrations",
+        "exit_code": 0,
+        "summary": "37 tests passed",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "python3 ci/policy_check.py",
+        "exit_code": 0,
+        "summary": "Policy check passed locally and in GitHub Actions",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "npm test",
+        "exit_code": 0,
+        "summary": "72 tests passed locally and in GitHub Actions",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "npm run lint",
+        "exit_code": 0,
+        "summary": "No ESLint warnings or errors",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "npm run build",
+        "exit_code": 0,
+        "summary": "Production build passed locally and in GitHub Actions",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "psql --set ON_ERROR_STOP=1 --file ci/test_staff_auth_postgres.sql",
+        "exit_code": 0,
+        "summary": "All migrations and existing staff Auth and RLS boundaries passed on fresh PostgreSQL",
+        "covered_paths": ["ci/**", "supabase/migrations/**"]
+      },
+      {
+        "command": "psql --set ON_ERROR_STOP=1 --file ci/test_external_api_rate_limit_postgres.sql",
+        "exit_code": 0,
+        "summary": "Rate boundary, stale-window, saturation, privilege matrix, and 429 aggregation checks passed",
+        "covered_paths": ["ci/**", "supabase/migrations/**"]
+      },
+      {
+        "command": "bash ci/test_external_api_rate_limit_concurrency.sh",
+        "exit_code": 0,
+        "summary": "61 concurrent requests produced 60 allowed and one denied",
+        "covered_paths": ["ci/**", "supabase/migrations/**"]
+      }
+    ]
+  },
+  "summary": "Round 2 independently verified the complete PR after Round 1 fixes. No Must, Should, or Nice findings remained; verdict APPROVE with confidence 0.94.",
+  "repository_context_mode": "full_repo_agentic",
+  "diff_only_reason": "",
+  "changed_files": [
+    ".github/workflows/ci.yml",
+    "CHANGELOG.md",
+    "FINISHED.md",
+    "NEXT.md",
+    "ci/test_external_api_rate_limit_concurrency.sh",
+    "ci/test_external_api_rate_limit_postgres.sql",
+    "ci/test_staff_auth_postgres.sql",
+    "ci/test_supabase_advisor_migrations.py",
+    "docs/ai/decision-ledger.md",
+    "docs/ai/execution-ledger.md",
+    "docs/ai/pre-pr-critical-review.md",
+    "docs/implementation-decisions.md",
+    "docs/integrations/attendance-api-spec.md",
+    "docs/operations-maintenance.md",
+    "src/app/api/external/v1/attendance/route.ts",
+    "src/app/api/external/v1/health/route.ts",
+    "src/app/api/external/v1/staff/route.ts",
+    "src/app/api/external/v1/stores/route.ts",
+    "src/lib/external-api/auth.ts",
+    "src/lib/external-api/request.test.ts",
+    "src/lib/external-api/request.ts",
+    "src/lib/external-api/responses.ts",
+    "src/lib/external-api/routes.test.ts",
+    "src/lib/supabase/database.types.ts",
+    "supabase/migrations/20260716055206_external_api_rate_limit_access_logs.sql"
+  ],
+  "related_files": [
+    {
+      "path": "src/lib/external-api/auth.ts",
+      "reason": "API key resolution and post-limit organization loading"
+    },
+    {
+      "path": "src/lib/external-api/request.ts",
+      "reason": "Shared rate limiting, logging, response headers, and method rejection"
+    },
+    {
+      "path": "src/app/api/external/v1/health/route.ts",
+      "reason": "Representative explicit GET, HEAD, OPTIONS, and unsupported method exports"
+    },
+    {
+      "path": "supabase/migrations/20260716055206_external_api_rate_limit_access_logs.sql",
+      "reason": "Atomic counter, grants, RLS, and aggregated access-log contract"
+    },
+    {
+      "path": "ci/test_external_api_rate_limit_postgres.sql",
+      "reason": "Real PostgreSQL boundary and permission verification"
+    },
+    {
+      "path": ".github/instructions/review-loop.instructions.md",
+      "reason": "Independent review and evidence authority"
+    }
+  ],
+  "scanned_paths": [".github", "ai", "ci", "docs", "src", "supabase"],
+  "commands_run": [
+    {
+      "command": "bounded full-repository review of PR 19 head 7b7f1fc and directly related API, SQL, test, and operations paths",
+      "exit_code": 0,
+      "summary": "No actionable Must, Should, or Nice findings; APPROVE"
+    }
+  ],
+  "context_fingerprint": "git-tree:42c0f305d8b7056a91281dacf4f3a49980bb48d9",
+  "context_budget": {
+    "max_related_files": 40,
+    "max_context_chars": 180000,
+    "max_file_excerpt_chars": 12000,
+    "max_context_commands": 12
+  },
+  "context_truncated": false,
+  "context_truncated_reason": "",
+  "issues": []
+}
