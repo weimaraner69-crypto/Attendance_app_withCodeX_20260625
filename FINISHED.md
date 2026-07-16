@@ -14,6 +14,7 @@
 
 - 実施日: 2026-07-14〜2026-07-16
 - 種別: 認証/アカウント運用
+- 完了PR: #15（2026-07-16 `main` へマージ、merge commit `7d301fc6c3188d14a1216c83b05ec0affa3d4dd5`）
 
 ### 実施内容
 
@@ -42,6 +43,7 @@
 - 確認POSTの全分岐で旧password intent Cookieを先に破棄し、失敗した新リンクから共有ブラウザの旧intentを利用できないことを回帰テストで固定。
 - 一時Postgresに全マイグレーションを適用し、複合FK、Auth/組織削除、intent権限・再発行・二重claim、staff RLS組織分離を実DBで確認。
 - Python回帰35件、Vitest 59件、policy check、lint、build、`git diff --check` がすべて成功。
+- 実装担当から独立したCodexレビュー3件の最終証跡、GitHub Actionsの `quality-gate`、`review-evidence-gate`、`secret-scan` 成功、未解決・非outdatedレビュースレッド0件を確認してマージ。
 - `.env.local` の値は読み取り・表示していない。
 
 ### 残作業

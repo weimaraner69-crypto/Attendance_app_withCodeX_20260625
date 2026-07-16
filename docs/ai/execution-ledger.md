@@ -17,7 +17,18 @@
 
 ## 記録
 
-### 現在状態（2026-07-16 PR #15最新化・レビュー再開・最新）
+### 現在状態（2026-07-16 PR #15完了・Issue #7着手準備・最新）
+
+- 現在の mode: `daily_development`（PR #15完了同期）
+- active branch: `chore/finalize-pr15-records`
+- 直近完了 PR: PR #15（A-001スタッフAuth招待・初回設定・再設定）を独立レビュー3件、全CI成功、未解決レビュー0件で `main` へマージ済み
+- 現在タスク: `NEXT.md`、`CHANGELOG.md`、`FINISHED.md`、Issue #13をPR #15の完了状態へ同期する
+- 次タスク: 同期PR完了後、Issue #7のAPIキー単位レート制限と外部APIアクセスログへ着手する。その後はIssue #16、Issue #6の順とする
+- レビュー条件: 実装担当から独立したCodex / Claudeのrepo-aware reviewを必須とし、Copilotは任意の追加レビューとする
+- 安全床: `.env.local`を読まない。秘密情報を表示しない。本番Supabase設定、実メール送信、日報側実接続、本番デプロイ、実店舗データ投入、Go-Liveは対象外
+- 最終更新: 2026-07-16
+
+### 現在状態（2026-07-16 PR #15最新化・レビュー再開・履歴）
 
 - 現在の mode: `daily_development`（Issue #13レビュー再開）
 - active branch: `feat/issue-13-staff-invitations`

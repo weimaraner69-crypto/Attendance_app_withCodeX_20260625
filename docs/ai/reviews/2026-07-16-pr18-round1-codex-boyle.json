@@ -1,0 +1,58 @@
+{
+  "schema_version": 2,
+  "phase": "post_push",
+  "provider": "codex",
+  "reviewer_id": "codex-boyle-pr18-docs-20260716",
+  "review_session_id": "019f6972-94b0-7da2-84a6-73af8e81a355",
+  "implementation_session_id": "codex-main-finalize-pr15-20260716",
+  "head_sha": "c06d46c2786f4a371fda02e64f0a1180f77cfb09",
+  "diff_fingerprint": "sha256:f45028b04d90d246f4d048546328908e0a2ff2d6fe3a24ab3a65722651bc5ee8",
+  "risk_tier": "green",
+  "round": 1,
+  "review_status": "completed",
+  "secondary_verification": {
+    "required": false,
+    "method": "not_required",
+    "status": "not_required",
+    "evidence": "Docs-only green tier change with no Must, Should, or Nice findings.",
+    "commands": []
+  },
+  "summary": "Independent docs-only review verified the PR #15 merge record, the separation of completed code from deferred production setup, the Issue #7 to #16 to #6 execution order, and the continued deferral of daily-report and production operations. No findings were identified and the reviewer approved the change.",
+  "repository_context_mode": "diff_only",
+  "diff_only_reason": "The PR changes only planning, changelog, completion, and execution-ledger Markdown records and does not change runtime code, configuration, workflows, migrations, or release behavior.",
+  "changed_files": [
+    "CHANGELOG.md",
+    "FINISHED.md",
+    "NEXT.md",
+    "docs/ai/execution-ledger.md"
+  ],
+  "related_files": [
+    {
+      "path": ".github/instructions/review-loop.instructions.md",
+      "reason": "Defines the independent review and green-tier Round 1 short-circuit requirements."
+    }
+  ],
+  "scanned_paths": [
+    "CHANGELOG.md",
+    "FINISHED.md",
+    "NEXT.md",
+    "docs/ai/execution-ledger.md"
+  ],
+  "commands_run": [
+    {
+      "command": "independent diff-only review of PR #18 at c06d46c against origin/main",
+      "exit_code": 0,
+      "summary": "Verified factual consistency, deferrals, and next-task ordering across all four changed files."
+    }
+  ],
+  "context_fingerprint": "git-tree:de31fa0be6f2ea614f00637b3aa050da22ea8b33",
+  "context_budget": {
+    "max_related_files": 40,
+    "max_context_chars": 180000,
+    "max_file_excerpt_chars": 12000,
+    "max_context_commands": 12
+  },
+  "context_truncated": false,
+  "context_truncated_reason": "",
+  "issues": []
+}
