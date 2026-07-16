@@ -17,6 +17,20 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: attendance_test
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
@@ -42,6 +56,16 @@ jobs:
 
       - name: Supabase migration tests
         run: python3 -m unittest ci.test_supabase_advisor_migrations
+
+      - name: Staff Auth PostgreSQL integration tests
+        run: |
+          psql --set ON_ERROR_STOP=1 --file ci/test_staff_auth_postgres.sql
+          bash ci/test_staff_auth_postgres_concurrency.sh
+        env:
+          PGHOST: localhost
+          PGPORT: 5432
+          PGUSER: postgres
+          PGDATABASE: attendance_test
 
       - name: Policy check
         run: python3 ci/policy_check.py

@@ -42,6 +42,7 @@ Git、Issue、Pull Request、チャット、ログへ値を貼り付けません
 - `npm run build` が成功する。
 - 必要なSupabaseマイグレーションがSQL EditorまたはSupabase CLIで適用済み。
 - スタッフAuthを使う場合、`20260716034432_secure_staff_password_intents.sql` の適用前に既存 `staff.auth_user_id` と `user_profiles.organization_id` の不整合が0件であることを確認する。
+- CIの `ci/test_staff_auth_postgres.sql` が新規Postgresへ全マイグレーションを適用し、複合FK、Auth/組織削除、intent権限・単回利用、staff RLS組織分離を確認する。
 - `docs/supabase-setup.md`、`docs/line-setup.md` の未完了手順が残っていない。
 - `/api/internal/supabase/health` が `ok: true` を返す。
 - 外部連携APIを使う場合、APIキーはハッシュ保存し、平文キーは発行直後だけ安全に渡す。

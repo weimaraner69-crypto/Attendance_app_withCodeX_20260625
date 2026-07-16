@@ -3,14 +3,15 @@ import { NextResponse } from 'next/server';
 import { confirmStaffAuthLink } from '@/lib/auth/staff-auth-confirmation';
 import { hasValidStaffAuthIdentity } from '@/lib/auth/staff-auth-identity';
 import {
-  clearStaffPasswordFlowGuard,
   generateStaffPasswordIntentToken,
   hashStaffPasswordIntentToken,
   setStaffPasswordIntentCookie,
   STAFF_PASSWORD_INTENT_TTL_SECONDS,
-  startStaffPasswordFlowGuard,
 } from '@/lib/auth/staff-password-intent';
-import { createSupabaseAdminClient, createSupabaseServerClient } from '@/lib/supabase';
+import {
+  createSupabaseAdminClient,
+  createSupabaseTransientAuthClient,
+} from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,7 +30,7 @@ export async function POST(request: Request) {
   callbackUrl.searchParams.set('token_hash', tokenHash);
   callbackUrl.searchParams.set('type', type);
 
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseTransientAuthClient();
   const admin = createSupabaseAdminClient();
   const result = await confirmStaffAuthLink(callbackUrl.toString(), {
     async verifyOtp(value, intentType) {
@@ -37,29 +38,14 @@ export async function POST(request: Request) {
       return error ? null : data.user?.id ?? null;
     },
     hasValidStaffIdentity: (userId) => hasValidStaffAuthIdentity(admin, userId),
-    startFlowGuard: startStaffPasswordFlowGuard,
-    clearFlowGuard: clearStaffPasswordFlowGuard,
-    async signOut() {
-      const { error } = await supabase.auth.signOut({ scope: 'local' });
-      return !error;
-    },
     async createIntent(userId, intentType) {
-      const consumedAt = new Date().toISOString();
-      const { error: cleanupError } = await admin
-        .from('staff_password_intents')
-        .update({ consumed_at: consumedAt })
-        .eq('user_id', userId)
-        .is('consumed_at', null);
-      if (cleanupError) return false;
-
       const token = generateStaffPasswordIntentToken();
       const expiresAt = new Date(Date.now() + STAFF_PASSWORD_INTENT_TTL_SECONDS * 1000).toISOString();
-      const { error } = await admin.from('staff_password_intents').insert({
-        user_id: userId,
-        token_hash: hashStaffPasswordIntentToken(token),
-        intent_type: intentType,
-        expires_at: expiresAt,
-        consumed_at: null,
+      const { error } = await admin.rpc('issue_staff_password_intent', {
+        p_user_id: userId,
+        p_token_hash: hashStaffPasswordIntentToken(token),
+        p_intent_type: intentType,
+        p_expires_at: expiresAt,
       });
       if (error) return false;
       setStaffPasswordIntentCookie(token);

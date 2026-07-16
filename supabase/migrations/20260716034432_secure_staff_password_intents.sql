@@ -26,13 +26,55 @@ create table public.staff_password_intents (
   check (consumed_at is null or consumed_at >= created_at)
 );
 
-create index idx_staff_password_intents_active_user
+create unique index idx_staff_password_intents_active_user
   on public.staff_password_intents (user_id)
   where consumed_at is null;
 
 alter table public.staff_password_intents enable row level security;
 revoke all on public.staff_password_intents from public, anon, authenticated;
 grant select, insert, update, delete on public.staff_password_intents to service_role;
+
+create or replace function public.issue_staff_password_intent(
+  p_user_id uuid,
+  p_token_hash text,
+  p_intent_type text,
+  p_expires_at timestamptz
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if p_expires_at <= now() then
+    raise exception 'password intent expiry must be in the future';
+  end if;
+
+  perform pg_advisory_xact_lock(hashtextextended(p_user_id::text, 0));
+
+  update public.staff_password_intents
+  set consumed_at = now()
+  where user_id = p_user_id
+    and consumed_at is null;
+
+  insert into public.staff_password_intents (
+    user_id,
+    token_hash,
+    intent_type,
+    expires_at
+  ) values (
+    p_user_id,
+    p_token_hash,
+    p_intent_type,
+    p_expires_at
+  );
+end;
+$$;
+
+revoke all on function public.issue_staff_password_intent(uuid, text, text, timestamptz)
+  from public, anon, authenticated;
+grant execute on function public.issue_staff_password_intent(uuid, text, text, timestamptz)
+  to service_role;
 
 drop policy if exists "organization members or staff can read staff" on public.staff;
 create policy "organization members or staff can read staff"

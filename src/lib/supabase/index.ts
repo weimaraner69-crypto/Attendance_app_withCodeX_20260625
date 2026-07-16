@@ -1,4 +1,5 @@
 export { createSupabaseAdminClient } from './admin';
 export { createSupabaseBrowserClient } from './client';
 export { createSupabaseServerClient } from './server';
+export { createSupabaseTransientAuthClient } from './transient-auth';
 export type { Database, Json } from './database.types';

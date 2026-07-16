@@ -66,8 +66,8 @@
 - Auth招待後の `user_profiles` 作成または `staff` 紐付けが失敗した場合、作成直後のAuthユーザーを削除して中途状態を残さない。
 - invite/recoveryメールは `/auth/confirm` へ戻し、ユーザーの明示的なPOST後に `token_hash` と種別を `verifyOtp` する。許可する種別は `invite` と `recovery` だけとする。
 - Authユーザー、`user_profiles(role = staff)`、有効な `staff.auth_user_id` の組織が一致した場合だけ、DBにトークンハッシュを保存する10分有効・単回利用のHttpOnlyパスワード設定権限を発行する。
-- `verifyOtp` が作ったローカルAuthセッションは設定権限発行前に破棄し、破棄失敗中は通常画面と打刻の認証解決を拒否する。
-- パスワード更新は設定権限を原子的に消費する同一OriginのサーバーAPIだけでAdmin API経由で行う。期限切れ・改ざん・同時再利用・通常staffセッションはfail-closeする。
+- `verifyOtp` は `persistSession=false`、`detectSessionInUrl=false` のリクエスト内専用Supabaseクライアントで行い、callback用AuthセッションをCookieやstorageへ永続化しない。
+- intent発行はadvisory lock付きsecurity definer関数と未消費 `user_id` の部分一意索引で直列化する。パスワード更新は設定権限を原子的に消費する同一OriginのサーバーAPIだけでAdmin API経由で行う。期限切れ・改ざん・同時再利用・通常staffセッションはfail-closeする。
 - `staff.auth_user_id` と組織の対応はDBの複合外部キーで固定し、staff本人参照を行うRLSも `private.current_user_organization_id()` との一致を必須とする。
 - 送信した招待・再設定操作は `audit_logs` へ記録するが、メール本文、トークン、Auth UUIDは記録しない。
 

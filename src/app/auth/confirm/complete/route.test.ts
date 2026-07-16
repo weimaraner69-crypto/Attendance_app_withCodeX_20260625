@@ -2,40 +2,29 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   verifyOtp: vi.fn(),
-  signOut: vi.fn(),
   hasValidIdentity: vi.fn(),
-  startGuard: vi.fn(),
-  clearGuard: vi.fn(),
   generateToken: vi.fn(),
   hashToken: vi.fn(),
   setIntentCookie: vi.fn(),
-  cleanupUpdate: vi.fn(),
-  insertIntent: vi.fn(),
+  issueIntent: vi.fn(),
 }));
 
 vi.mock('@/lib/auth/staff-auth-identity', () => ({
   hasValidStaffAuthIdentity: mocks.hasValidIdentity,
 }));
 vi.mock('@/lib/auth/staff-password-intent', () => ({
-  clearStaffPasswordFlowGuard: mocks.clearGuard,
   generateStaffPasswordIntentToken: mocks.generateToken,
   hashStaffPasswordIntentToken: mocks.hashToken,
   setStaffPasswordIntentCookie: mocks.setIntentCookie,
   STAFF_PASSWORD_INTENT_TTL_SECONDS: 600,
-  startStaffPasswordFlowGuard: mocks.startGuard,
 }));
 vi.mock('@/lib/supabase', () => ({
-  createSupabaseServerClient: () => ({
-    auth: { verifyOtp: mocks.verifyOtp, signOut: mocks.signOut },
+  createSupabaseTransientAuthClient: () => ({
+    auth: { verifyOtp: mocks.verifyOtp },
   }),
   createSupabaseAdminClient: () => ({
     auth: { admin: {} },
-    from: () => ({
-      update: () => ({
-        eq: () => ({ is: mocks.cleanupUpdate }),
-      }),
-      insert: mocks.insertIntent,
-    }),
+    rpc: mocks.issueIntent,
   }),
 }));
 
@@ -58,39 +47,32 @@ describe('staff Auth confirmation route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.verifyOtp.mockResolvedValue({ data: { user: { id: 'auth-user-1' } }, error: null });
-    mocks.signOut.mockResolvedValue({ error: null });
     mocks.hasValidIdentity.mockResolvedValue(true);
     mocks.generateToken.mockReturnValue('opaque-token');
     mocks.hashToken.mockReturnValue('a'.repeat(64));
-    mocks.cleanupUpdate.mockResolvedValue({ error: null });
-    mocks.insertIntent.mockResolvedValue({ error: null });
+    mocks.issueIntent.mockResolvedValue({ error: null });
   });
 
-  it('removes the OTP session before issuing a DB-backed browser intent', async () => {
+  it('uses transient OTP verification and atomically issues a DB-backed browser intent', async () => {
     const response = await POST(confirmationRequest());
 
     expect(response.status).toBe(307);
     expect(mocks.verifyOtp).toHaveBeenCalledWith({ token_hash: 'token-hash', type: 'invite' });
-    expect(mocks.signOut).toHaveBeenCalledWith({ scope: 'local' });
-    expect(mocks.insertIntent).toHaveBeenCalledWith(expect.objectContaining({
-      user_id: 'auth-user-1',
-      token_hash: 'a'.repeat(64),
-      intent_type: 'invite',
-      consumed_at: null,
-    }));
+    expect(mocks.issueIntent).toHaveBeenCalledWith('issue_staff_password_intent', {
+      p_user_id: 'auth-user-1',
+      p_token_hash: 'a'.repeat(64),
+      p_intent_type: 'invite',
+      p_expires_at: expect.any(String),
+    });
     expect(mocks.setIntentCookie).toHaveBeenCalledWith('opaque-token');
-    expect(mocks.clearGuard).toHaveBeenCalledOnce();
   });
 
-  it('keeps the authorization guard and issues no intent when logout fails', async () => {
-    mocks.signOut.mockResolvedValue({ error: new Error('logout failed') });
+  it('issues no browser intent when the atomic database operation fails', async () => {
+    mocks.issueIntent.mockResolvedValue({ error: new Error('issue failed') });
 
     const response = await POST(confirmationRequest('recovery'));
 
     expect(response.status).toBe(307);
-    expect(mocks.startGuard).toHaveBeenCalledOnce();
-    expect(mocks.clearGuard).not.toHaveBeenCalled();
-    expect(mocks.insertIntent).not.toHaveBeenCalled();
     expect(mocks.setIntentCookie).not.toHaveBeenCalled();
   });
 

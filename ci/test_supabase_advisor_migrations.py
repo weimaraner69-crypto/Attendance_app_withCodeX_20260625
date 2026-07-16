@@ -153,9 +153,17 @@ class StaffAuthSecurityMigrationTest(TestCase):
         self.assertIn("create table public.staff_password_intents", migration)
         self.assertIn("token_hash text not null unique", migration)
         self.assertIn("consumed_at timestamptz", migration)
-        self.assertIn("idx_staff_password_intents_active_user", migration)
+        self.assertIn("create unique index idx_staff_password_intents_active_user", migration)
         self.assertIn("on public.staff_password_intents (user_id)", migration)
         self.assertIn("where consumed_at is null", migration)
+        self.assertIn("pg_advisory_xact_lock", migration)
+        self.assertIn("create or replace function public.issue_staff_password_intent", migration)
+        self.assertIn("security definer", migration)
+        self.assertIn("set search_path = ''", migration)
+        self.assertIn(
+            "revoke all on function public.issue_staff_password_intent",
+            migration,
+        )
         self.assertIn(
             "revoke all on public.staff_password_intents from public, anon, authenticated;",
             migration,

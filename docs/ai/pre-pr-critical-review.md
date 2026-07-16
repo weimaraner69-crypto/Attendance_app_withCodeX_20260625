@@ -22,9 +22,9 @@ PR 作成前の spec、security、reliability 観点のレビュー結果を記�
 - 実施者 / provider: Codex実装セッション（独立レビューには算入しない）
 - 確認した文書・差分: Supabase Auth email template/SSR資料、旧Round 3レビュー、Issue #13、認証Route Handler、セッション解決、専用回帰テスト
 - 実行した検証: 認証専用Vitest 24件、全Vitest 57件、Python回帰35件、policy check、lint、build、`git diff --check`
-- Must: 旧3件に加え、Round 1独立レビューで検出したcallbackの一時Authセッションが通常利用できる問題を修正。設定権限発行前のログアウトとフローガードを必須化
-- Should: Round 1の2件を修正。設定権限をDB-backedのハッシュトークンと原子的claimへ変更し、staff/profile組織整合性をDB制約とRLSで固定
-- Nice: メールリンクスキャナがGETでOTPを消費しないよう、ユーザーの確認POSTを必須化
+- Must: 旧指摘の対応後もフローガードCookie削除でcallback Authセッションを通常利用できるとの再指摘に対し、`verifyOtp` をCookie/storage非永続のリクエスト内専用クライアントへ分離し、通常利用可能なセッションの発行自体を廃止
+- Should: intentのcleanup/insert競合をadvisory lock付きDB関数と未消費ユーザー部分一意索引で原子化。CIで実Postgresへ全マイグレーションを適用し、FK・削除・権限・RLS・intent境界を検証
+- Nice: `/auth/confirm` と配下に `Cache-Control: private, no-store` と `Referrer-Policy: no-referrer` を追加
 - Nice: Issue #16のメール同期、audit log失敗検出、アクセシビリティ改善は別PRで継続
 - 残リスク: hosted SupabaseへのEmail Templates反映と実メールE2Eは本番運用工程のため未実施
 - 結論: 全品質ゲート完了後、別reviewer/sessionによる`full_repo_agentic`独立レビューへ進む

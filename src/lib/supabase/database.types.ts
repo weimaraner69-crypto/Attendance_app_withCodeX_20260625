@@ -6,11 +6,19 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
-type Table<Row> = {
+type Relationship = {
+  foreignKeyName: string;
+  columns: string[];
+  isOneToOne: boolean;
+  referencedRelation: string;
+  referencedColumns: string[];
+};
+
+type Table<Row, Relationships extends Relationship[] = []> = {
   Row: Row;
   Insert: Partial<Row>;
   Update: Partial<Row>;
-  Relationships: [];
+  Relationships: Relationships;
 };
 
 type Timestamp = string;
@@ -263,18 +271,29 @@ export type Database = {
         created_at: Timestamp;
         updated_at: Timestamp;
       }>;
-      shift_submission_items: Table<{
-        id: string;
-        organization_id: string;
-        submission_id: string;
-        preferred_date: DateString;
-        start_time: TimeString | null;
-        end_time: TimeString | null;
-        is_unavailable: boolean;
-        note: string | null;
-        created_at: Timestamp;
-        updated_at: Timestamp;
-      }>;
+      shift_submission_items: Table<
+        {
+          id: string;
+          organization_id: string;
+          submission_id: string;
+          preferred_date: DateString;
+          start_time: TimeString | null;
+          end_time: TimeString | null;
+          is_unavailable: boolean;
+          note: string | null;
+          created_at: Timestamp;
+          updated_at: Timestamp;
+        },
+        [
+          {
+            foreignKeyName: 'shift_submission_items_submission_id_fkey';
+            columns: ['submission_id'];
+            isOneToOne: false;
+            referencedRelation: 'shift_submissions';
+            referencedColumns: ['id'];
+          },
+        ]
+      >;
       audit_logs: Table<{
         id: string;
         organization_id: string | null;
@@ -300,7 +319,17 @@ export type Database = {
       }>;
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      issue_staff_password_intent: {
+        Args: {
+          p_user_id: string;
+          p_token_hash: string;
+          p_intent_type: 'invite' | 'recovery';
+          p_expires_at: Timestamp;
+        };
+        Returns: undefined;
+      };
+    };
     Enums: {
       app_role: 'owner' | 'manager' | 'sr' | 'staff';
       attendance_status: 'not_started' | 'working' | 'on_break' | 'finished';
