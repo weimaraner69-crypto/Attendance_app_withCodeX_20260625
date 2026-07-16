@@ -28,6 +28,16 @@ Capability Lease（ユーザーが明示的に一時的な自律実行範囲を�
 
 ## 記録
 
+### DEC-20260716-002
+
+- 論点: 複数のNext.js実行インスタンスで、外部APIの60 req/min/key制限とアクセスログをどう一貫させるか
+- 判断: PostgreSQLのAPIキー別固定1分窓を原子的upsertで更新し、全エンドポイントを共通リクエストラッパーへ通す。アクセスログはキーID、パス、HTTP状態、時刻だけをservice roleで保存する。
+- 仮定: 外部APIはSupabaseへ到達できるサーバーRoute Handlerから実行され、APIキーの認証後にキーIDを取得できる。
+- 理由: プロセス内カウンターはサーバーレス/複数インスタンスで共有できず、各Routeの個別処理ではエラー応答のヘッダー・ログが欠落しやすいため。
+- 影響ファイル: `supabase/migrations/20260716055206_external_api_rate_limit_access_logs.sql`、`src/lib/external-api/request.ts`、外部API Route、CI回帰テスト、API仕様
+- リスク: DB障害時はレート判定不能になるため、成功扱いにせず500と `Remaining: 0` でfail-closeする。アクセスログ障害はAPI本体を壊さない。
+- ロールバック: 共通ラッパーを従来の認証呼び出しへ戻し、追加マイグレーションの関数・テーブルを後続の明示的なrollback migrationで削除する。
+
 ### DEC-20260716-001（capability lease）
 
 - 論点: Round 3 fail-closeで停止したPR #15を、独立AIレビュー運用の導入後にどこまで再開するか

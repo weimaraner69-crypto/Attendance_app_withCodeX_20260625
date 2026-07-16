@@ -317,6 +317,20 @@ export type Database = {
         created_at: Timestamp;
         updated_at: Timestamp;
       }>;
+      external_api_rate_limit_windows: Table<{
+        key_id: string;
+        window_started_at: Timestamp;
+        request_count: number;
+        updated_at: Timestamp;
+      }>;
+      external_api_access_logs: Table<{
+        id: number;
+        key_id: string;
+        endpoint: string;
+        status_code: number;
+        rate_limit_window_started_at: Timestamp | null;
+        at: Timestamp;
+      }>;
     };
     Views: Record<string, never>;
     Functions: {
@@ -328,6 +342,17 @@ export type Database = {
           p_expires_at: Timestamp;
         };
         Returns: undefined;
+      };
+      consume_external_api_rate_limit: {
+        Args: {
+          p_key_id: string;
+          p_now?: Timestamp;
+        };
+        Returns: {
+          allowed: boolean;
+          remaining: number;
+          reset_at: Timestamp;
+        }[];
       };
     };
     Enums: {

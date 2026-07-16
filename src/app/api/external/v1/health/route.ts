@@ -1,17 +1,14 @@
 import { NextResponse } from 'next/server';
 
-import { authenticateExternalApiRequest } from '@/lib/external-api/auth';
-import { internalError } from '@/lib/external-api/responses';
+import {
+  externalApiMethodNotAllowed,
+  withExternalApiRequest,
+} from '@/lib/external-api/request';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
-  try {
-    const auth = await authenticateExternalApiRequest(request);
-    if (!auth.ok) return auth.response;
-
-    const { organization, apiKey } = auth.context;
-
+  return withExternalApiRequest(request, async ({ organization, apiKey }) => {
     return NextResponse.json({
       ok: true,
       organization: {
@@ -24,7 +21,18 @@ export async function GET(request: Request) {
       },
       server_time: new Date().toISOString(),
     });
-  } catch {
-    return internalError();
-  }
+  });
 }
+
+export async function HEAD(request: Request) {
+  const response = await GET(request);
+  return new Response(null, { status: response.status, headers: response.headers });
+}
+
+export {
+  externalApiMethodNotAllowed as DELETE,
+  externalApiMethodNotAllowed as OPTIONS,
+  externalApiMethodNotAllowed as PATCH,
+  externalApiMethodNotAllowed as POST,
+  externalApiMethodNotAllowed as PUT,
+};

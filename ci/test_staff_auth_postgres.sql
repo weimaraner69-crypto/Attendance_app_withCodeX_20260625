@@ -34,6 +34,7 @@ $$;
 \ir ../supabase/migrations/202607130001_supabase_advisor_review_followup.sql
 \ir ../supabase/migrations/202607130002_performance_advisor_optimization.sql
 \ir ../supabase/migrations/20260716034432_secure_staff_password_intents.sql
+\ir ../supabase/migrations/20260716055206_external_api_rate_limit_access_logs.sql
 
 grant select on
   public.staff,

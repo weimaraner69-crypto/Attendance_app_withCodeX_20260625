@@ -186,5 +186,56 @@ class StaffAuthSecurityMigrationTest(TestCase):
         )
 
 
+class ExternalApiRateLimitMigrationTest(TestCase):
+    RATE_LIMIT_MIGRATION = (
+        MIGRATIONS / "20260716055206_external_api_rate_limit_access_logs.sql"
+    )
+
+    def test_rate_limit_counter_is_atomic_and_service_role_only(self) -> None:
+        migration = self.RATE_LIMIT_MIGRATION.read_text(encoding="utf-8")
+
+        self.assertIn("create table public.external_api_rate_limit_windows", migration)
+        self.assertIn("on conflict (key_id) do update", migration)
+        self.assertIn(
+            "least(public.external_api_rate_limit_windows.request_count + 1, 61)",
+            migration,
+        )
+        self.assertIn(
+            "excluded.window_started_at > public.external_api_rate_limit_windows.window_started_at",
+            migration,
+        )
+        self.assertIn(
+            "public.external_api_rate_limit_windows.request_count < 61",
+            migration,
+        )
+        self.assertIn("create or replace function public.consume_external_api_rate_limit", migration)
+        self.assertIn("security definer", migration)
+        self.assertIn("set search_path = ''", migration)
+        self.assertIn(
+            "revoke all on function public.consume_external_api_rate_limit",
+            migration,
+        )
+        self.assertIn("to service_role;", migration)
+
+    def test_access_logs_are_private_and_indexed(self) -> None:
+        migration = self.RATE_LIMIT_MIGRATION.read_text(encoding="utf-8")
+
+        self.assertIn("create table public.external_api_access_logs", migration)
+        self.assertIn("key_id uuid not null", migration)
+        self.assertIn("status_code smallint not null", migration)
+        self.assertIn("at timestamptz not null default now()", migration)
+        self.assertIn("idx_external_api_access_logs_key_at", migration)
+        self.assertIn("idx_external_api_access_logs_at", migration)
+        self.assertIn(
+            "idx_external_api_access_logs_rate_limited_window",
+            migration,
+        )
+        self.assertIn("enable row level security", migration)
+        self.assertIn(
+            "revoke all on public.external_api_access_logs from public, anon, authenticated;",
+            migration,
+        )
+
+
 if __name__ == "__main__":
     main()

@@ -1,21 +1,20 @@
 import { NextResponse } from 'next/server';
 
-import { authenticateExternalApiRequest } from '@/lib/external-api/auth';
 import { parseBooleanParam } from '@/lib/external-api/params';
+import {
+  externalApiMethodNotAllowed,
+  withExternalApiRequest,
+} from '@/lib/external-api/request';
 import { internalError } from '@/lib/external-api/responses';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
-  try {
-    const auth = await authenticateExternalApiRequest(request);
-    if (!auth.ok) return auth.response;
-
+  return withExternalApiRequest(request, async ({ supabase, organization }) => {
     const url = new URL(request.url);
     const isActive = parseBooleanParam(url.searchParams.get('is_active'), true);
     if (!isActive.ok) return isActive.response;
 
-    const { supabase, organization } = auth.context;
     const { data, error } = await supabase
       .from('stores')
       .select('id, code, name, is_active')
@@ -29,7 +28,18 @@ export async function GET(request: Request) {
       stores: data ?? [],
       count: data?.length ?? 0,
     });
-  } catch {
-    return internalError();
-  }
+  });
 }
+
+export async function HEAD(request: Request) {
+  const response = await GET(request);
+  return new Response(null, { status: response.status, headers: response.headers });
+}
+
+export {
+  externalApiMethodNotAllowed as DELETE,
+  externalApiMethodNotAllowed as OPTIONS,
+  externalApiMethodNotAllowed as PATCH,
+  externalApiMethodNotAllowed as POST,
+  externalApiMethodNotAllowed as PUT,
+};

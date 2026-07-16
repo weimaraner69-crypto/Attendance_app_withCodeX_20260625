@@ -29,7 +29,15 @@ export type ExternalApiContext = {
   organization: OrganizationRow;
 };
 
+export type ExternalApiKeyContext = Omit<ExternalApiContext, 'organization'> & {
+  organizationId: string;
+};
+
 export type ExternalApiAuthResult =
+  | { ok: true; context: ExternalApiKeyContext }
+  | { ok: false; response: Response };
+
+export type ExternalApiContextResult =
   | { ok: true; context: ExternalApiContext }
   | { ok: false; response: Response };
 
@@ -101,10 +109,28 @@ export async function authenticateExternalApiRequest(
     };
   }
 
+  return {
+    ok: true,
+    context: {
+      supabase,
+      organizationId: apiKey.organization_id,
+      apiKey: {
+        id: apiKey.id,
+        name: apiKey.name,
+        scopes: apiKey.scopes,
+      },
+    },
+  };
+}
+
+export async function loadExternalApiContext(
+  keyContext: ExternalApiKeyContext
+): Promise<ExternalApiContextResult> {
+  const { supabase, apiKey } = keyContext;
   const { data: organization, error: organizationError } = await supabase
     .from('organizations')
     .select('id, name, timezone')
-    .eq('id', apiKey.organization_id)
+    .eq('id', keyContext.organizationId)
     .single<OrganizationRow>();
 
   if (organizationError || !organization) {
@@ -123,12 +149,8 @@ export async function authenticateExternalApiRequest(
     ok: true,
     context: {
       supabase,
+      apiKey,
       organization,
-      apiKey: {
-        id: apiKey.id,
-        name: apiKey.name,
-        scopes: apiKey.scopes,
-      },
     },
   };
 }
