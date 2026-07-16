@@ -57,7 +57,8 @@ workflows:
       - commit_changes
       - push_branch
       - create_pr_with_template
-      - request_ai_review_or_repo_aware_fallback
+      - run_independent_repo_aware_review
+      - optionally_request_copilot_review
       - monitor_ci_final_gate
       - address_ci_and_review_findings
       - run_release_manager

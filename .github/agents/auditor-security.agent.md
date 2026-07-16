@@ -27,7 +27,7 @@ model: "Claude Haiku 4.5 (copilot)"
 
 - policy_check.py と重複する検査も、目視で再確認する
 - 疑わしい場合は安全側に倒して指摘する
-- **PR レビュー対応は最大 3 ラウンド**。Round 3 後の非ブロッキング Must/Should は Backlog 化、即時ブロッカーは fail-close
+- **PR レビュー対応は最大 3 ラウンド**。Round 3 後も Must は fail-close、非ブロッキング Should のみ Backlog 化
 
 ## セキュリティ制約 <!-- REQUIRED: このセクションは削除しないこと -->
 

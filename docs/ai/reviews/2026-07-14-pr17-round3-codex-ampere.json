@@ -1,0 +1,164 @@
+{
+  "schema_version": 2,
+  "phase": "post_push",
+  "provider": "codex",
+  "reviewer_id": "codex-ampere-019f5e68",
+  "review_session_id": "019f5e68-b380-7220-afa6-becfb0d3ba17",
+  "implementation_session_id": "codex-main-20260714-review-policy",
+  "head_sha": "b1479fce98a625634f95318141b05b9b751a38b0",
+  "diff_fingerprint": "sha256:7f51e655632d724972f0491367d0da543b27db22a2048fa0f6351e9b1a204224",
+  "risk_tier": "red",
+  "round": 3,
+  "exception_round": 5,
+  "exception_approved_by": "repository_owner",
+  "exception_approval_context": "The user explicitly approved one additional current-head review after each post-cap fail-close remediation.",
+  "prior_exception_reviews": [
+    {
+      "exception_round": 4,
+      "reviewer_id": "codex-linnaeus-019f5e5d",
+      "review_session_id": "019f5e5d-c341-7723-b866-ffdba80eca3c",
+      "head_sha": "1f3f54f1c72944cc189ba7e8f7672d3998fd5c07",
+      "result": "One Must targeted-test shell exit masking finding; fixed in b1479fc."
+    }
+  ],
+  "review_status": "completed",
+  "secondary_verification": {
+    "required": true,
+    "method": "dedicated_tests",
+    "status": "passed",
+    "evidence": "All deterministic checks passed on the reviewed b1479fc implementation state before the evidence-only commit.",
+    "commands": [
+      {
+        "command": "python3 -m unittest ci.test_policy_check ci.test_supabase_advisor_migrations",
+        "exit_code": 0,
+        "summary": "32 tests passed",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "python3 ci/policy_check.py",
+        "exit_code": 0,
+        "summary": "Policy check passed",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "npm test",
+        "exit_code": 0,
+        "summary": "20 tests passed",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "npm run lint",
+        "exit_code": 0,
+        "summary": "No ESLint warnings or errors",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "npm run build",
+        "exit_code": 0,
+        "summary": "Production build completed",
+        "covered_paths": ["**"]
+      }
+    ]
+  },
+  "summary": "User-approved exceptional Round 5 verified the current pushed head. No new actionable code findings remained; the only reported blocker was the intentionally missing current-head evidence resolved by this file.",
+  "repository_context_mode": "full_repo_agentic",
+  "diff_only_reason": "",
+  "changed_files": [
+    ".github/PULL_REQUEST_TEMPLATE.md",
+    ".github/agents/auditor-reliability.agent.md",
+    ".github/agents/auditor-security.agent.md",
+    ".github/agents/auditor-spec.agent.md",
+    ".github/agents/implementer-single-file.agent.md",
+    ".github/agents/implementer.agent.md",
+    ".github/agents/orchestrator.agent.md",
+    ".github/agents/pre-pr-critical-reviewer.agent.md",
+    ".github/agents/release-manager.agent.md",
+    ".github/agents/test-engineer.agent.md",
+    ".github/instructions/review-loop.instructions.md",
+    ".github/instructions/security.instructions.md",
+    ".github/prompts/EXECUTE.prompt.md",
+    ".github/prompts/FINAL_REVIEW.prompt.md",
+    ".github/workflows/ci.yml",
+    "CHANGELOG.md",
+    "NEXT.md",
+    "ai/coherence-workflow.yml",
+    "ai/operation-policy.yml",
+    "ai/pre-pr-review-policy.yml",
+    "ai/review-risk-paths.json",
+    "ci/README.md",
+    "ci/policy_check.py",
+    "ci/requirements.txt",
+    "ci/test_policy_check.py",
+    "docs/ai/decision-ledger.md",
+    "docs/ai/execution-ledger.md",
+    "docs/ai/pre-pr-reviews/README.md",
+    "docs/ai/review-result.schema.json",
+    "docs/orchestration.md"
+  ],
+  "related_files": [
+    {
+      "path": "ci/policy_check.py",
+      "reason": "Shell control operator and evidence target validation"
+    },
+    {
+      "path": "ci/test_policy_check.py",
+      "reason": "Exit masking and prior fail-open regression coverage"
+    },
+    {
+      "path": "ai/review-risk-paths.json",
+      "reason": "Security-sensitive red path classification"
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "reason": "Merge-ref quality gate and head-ref evidence gate separation"
+    },
+    {
+      "path": ".github/instructions/review-loop.instructions.md",
+      "reason": "Provider-independent review source of truth"
+    }
+  ],
+  "scanned_paths": [
+    ".github",
+    "ai",
+    "ci",
+    "docs",
+    "src"
+  ],
+  "commands_run": [
+    {
+      "command": "python3 -m unittest ci.test_policy_check ci.test_supabase_advisor_migrations",
+      "exit_code": 0,
+      "summary": "32 tests passed in the independent review session"
+    },
+    {
+      "command": "python3 ci/policy_check.py",
+      "exit_code": 0,
+      "summary": "Normal policy gate passed"
+    },
+    {
+      "command": "python3 ci/policy_check.py --require-review-evidence --pr-number 17",
+      "exit_code": 1,
+      "summary": "Expected pre-evidence failure confirmed current-head fail-close behavior"
+    },
+    {
+      "command": "targeted shell operator and quoting boundary checks",
+      "exit_code": 0,
+      "summary": "Masked commands rejected and quoted literals accepted"
+    },
+    {
+      "command": "git diff --check origin/main...b1479fc",
+      "exit_code": 0,
+      "summary": "No whitespace errors"
+    }
+  ],
+  "context_fingerprint": "sha256:1854ab9126b9a58d41f4873e050419ac20c150436ef925c0316f6698521fe9cb",
+  "context_budget": {
+    "max_related_files": 40,
+    "max_context_chars": 180000,
+    "max_file_excerpt_chars": 12000,
+    "max_context_commands": 12
+  },
+  "context_truncated": false,
+  "context_truncated_reason": "",
+  "issues": []
+}

@@ -28,7 +28,17 @@ Capability Lease（ユーザーが明示的に一時的な自律実行範囲を�
 
 ## 記録
 
-### DEC-20260714-002
+### DEC-20260716-001（capability lease）
+
+- 論点: Round 3 fail-closeで停止したPR #15を、独立AIレビュー運用の導入後にどこまで再開するか
+- granted_by: ユーザー明示指示「PR #15の最新化、再検証、レビューまで進めてください」
+- scope: PR #15への最新`main`取り込み、Round 3 Must修正、回帰テスト、文書同期、コミット、push、独立repo-aware reviewと証跡作成
+- granted: 競合解消、実装修正、検証、コミット、push、独立レビュー実行、レビュー指摘対応
+- excluded: `.env.local`の読み取り・値表示、秘密情報の転記、本番Supabase変更、実メール送信、日報アプリとの実接続、本番デプロイ、PRのマージ
+- expiry_condition: PR #15の最新化、再検証、独立レビューと必要な指摘対応が完了した時点
+- 記録者注: 旧Round 3の自動継続ではなく、2026-07-16のオーナー明示指示に基づく再開として記録する。
+
+### DEC-20260714-003
 
 - 論点: Issue #13の招待、受諾、回帰テストを予定通り別PRに分けるか
 - 判断: 招待・安全な紐付け、初回パスワード設定・再設定、回帰テスト・運用記録を1つの機能PRに統合する。
@@ -37,6 +47,16 @@ Capability Lease（ユーザーが明示的に一時的な自律実行範囲を�
 - 影響ファイル: `NEXT.md`、`src/lib/auth/staff-auth.ts`、`src/app/auth/staff-password/page.tsx`、`src/app/(authenticated)/owner/staff/page.tsx`
 - リスク: PRが大きくなるが、責務分離したサービスと回帰テストで差分を確認可能にする。
 - ロールバック: 機能PR全体をrevertし、手動Auth UUID入力の旧画面へ戻す。
+
+### DEC-20260714-002
+
+- 論点: GitHub Copilot レビューの契約上限に依存せず、PR 品質ゲートをどう維持するか
+- 判断: 実装担当から独立した Codex または Claude の repo-aware review を必須ゲートとし、Copilot は利用可能時の任意の追加レビューとする。provider をまたいだラウンド上限3回は維持し、高リスク変更は第2レビューまたは専用回帰テストで二重確認する。
+- 仮定: Codex または Claude で、実装時と別の reviewer/session と repo-aware context を確保できる。
+- 理由: 品質を単一プロバイダーの契約・quota・到着待ちに依存させず、CI、独立レビュー、リスク別回帰検証で再現可能なゲートにするため。
+- 影響ファイル: `.github/instructions/review-loop.instructions.md`、`ai/operation-policy.yml`、`.github/agents/orchestrator.agent.md`、`.github/PULL_REQUEST_TEMPLATE.md`、`.github/workflows/ci.yml`、`ci/policy_check.py`、`ci/test_policy_check.py`、`docs/ai/review-result.schema.json`、`docs/ai/reviews/`、`docs/ai/pre-pr-reviews/`、`docs/orchestration.md`、`NEXT.md`
+- リスク: レビューの独立性や context mode を証跡化しないと、同一会話のセルフレビューが必須ゲートとして誤算入される。
+- ロールバック: 該当変更を revert し、Copilot 必須＋Codex / Claude fallback の旧手順に戻す。
 
 ### DEC-20260714-001
 

@@ -62,7 +62,7 @@ MCP ツールが利用不可の場合はスキップし、従来の方法（grep
 - 秘密情報を含めない（P-002）
 - 制約を回避するコードを書かない（P-003）
 - コメント・docstring は日本語で書く
-- **PR レビュー対応は最大 3 ラウンド**。Round 3 後の非ブロッキング Must/Should は Backlog 化、即時ブロッカーは fail-close
+- **PR レビュー対応は最大 3 ラウンド**。Round 3 後も Must は fail-close、非ブロッキング Should のみ Backlog 化
 
 ## セキュリティ制約 <!-- REQUIRED: このセクションは削除しないこと -->
 

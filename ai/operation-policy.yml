@@ -280,12 +280,25 @@ review_policy:
     この表は PR 前または release tier 固有の追加 AI review 予算を示す。
     git push 後の AI review loop は常に
     .github/instructions/review-loop.instructions.md を正本として実施する。
-    Copilot が利用不能な場合は Codex / Claude fallback review を同一ループの
-    完了条件として扱う。
+    実装担当から独立した Codex または Claude の repo-aware review を
+    必須ゲートとし、Copilot は利用可能時の任意の追加レビューとする。
   push_review_loop:
     required_after_git_push: true
     source_of_truth: .github/instructions/review-loop.instructions.md
     max_rounds: 3
+    round_budget_applies_across_providers: true
+    required_reviewer_any_of:
+      - codex_repo_aware
+      - claude_repo_aware
+    minimum_required_reviewers: 1
+    require_independent_reviewer_session: true
+    require_machine_readable_evidence: true
+    copilot_mode: optional_additional
+    copilot_unavailable_does_not_block: true
+    risk_requirements:
+      green: one_independent_repo_aware_review
+      yellow: one_independent_repo_aware_review_plus_targeted_tests
+      red: full_repo_agentic_review_plus_independent_second_review_or_dedicated_security_integration_tests
   docs_only:
     additional_copilot_review_rounds_before_push: 0
     additional_alternative_ai_review_rounds_before_push: 0
@@ -296,17 +309,15 @@ review_policy:
     additional_copilot_review_rounds_before_push: 0
     additional_alternative_ai_review_rounds_before_push: 0
   normal_implementation:
-    additional_copilot_review_rounds_before_push: 1
-    # トークン節約の既定として、通常実装では push 前の代替 AI レビューを回さない（0）。
-    # 代替 AI（Codex / Claude fallback）レビューは opt-in であり、必要時にユーザーまたは
-    # release tier（yellow / red）が明示的に有効化する。push 後の review loop は別途必須。
+    additional_copilot_review_rounds_before_push: 0
+    # push 前の追加 AI レビュー予算は 0。push 後の独立 repo-aware review は別途必須。
     additional_alternative_ai_review_rounds_before_push: 0
   yellow_release:
     additional_copilot_review_rounds_before_push: 0
     additional_alternative_ai_review_rounds_before_push: 1
   red_release:
-    additional_copilot_review_rounds_before_push: 1
-    max_review_rounds: 2
+    additional_copilot_review_rounds_before_push: 0
+    max_additional_review_rounds_before_push: 2
     additional_alternative_ai_review_rounds_before_push: 1
 
 ci_policy:
@@ -314,6 +325,10 @@ ci_policy:
   targeted_first: true
   full_ci_once_per_pr: true
   manual_rerun_default: false
+  final_pr_checks:
+    - quality_gate
+    - secret_scan
+    - review_evidence_gate
   full_ci_required_for:
     - red_release
     - db_migration
@@ -328,7 +343,7 @@ release_to_main:
     release_to_main の risk tier（green/yellow/red）は
     「変更リスクに応じた main 直 PR のレビュー軽量化」として適用する
     （green=低リスク変更の軽量レビュー、yellow/red=高リスク変更のフルレビュー）。
-    閾値・red_if_touches パスは現状維持。
+    tierの閾値は本節、risk pathは ai/review-risk-paths.json を正本とする。
   tiers:
     green:
       additional_copilot_review_rounds_before_push: 0
@@ -355,19 +370,12 @@ release_to_main:
       full_ci_required: if_naturally_available_without_manual_rerun
     red:
       ai_review_rounds: 1
-      max_review_rounds: 2
+      max_additional_review_rounds_before_push: 2
       full_ci_required: true
       rollback_required: true
       release_manifest_required: true
       sharding_required: only_if_huge
-  # 高リスク変更のパス例（各プロジェクトで実態に合わせて調整する）。
-  red_if_touches:
-    - "src/**/migrations/**"
-    - ".github/workflows/**"
-    - "pyproject.toml"
-    - "uv.lock"
-    - ".env*"
-    - "configs/**"
+  risk_path_source: ai/review-risk-paths.json
 
 runtime_smoke:
   required_for_user_visible_change: true

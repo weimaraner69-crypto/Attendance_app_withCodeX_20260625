@@ -17,7 +17,19 @@
 
 ## 記録
 
-### 現在状態（2026-07-14 A-001スタッフAuthレビュー対応・最新）
+### 現在状態（2026-07-16 PR #15最新化・レビュー再開・最新）
+
+- 現在の mode: `daily_development`（Issue #13レビュー再開）
+- active branch: `feat/issue-13-staff-invitations`
+- 直近完了 PR: PR #17（独立AIレビュー運用改定）を独立レビュー・CI成功後に `main` へマージ済み
+- 現在タスク: PR #15へ最新`main`を取り込み、旧Round 3のMust（SSR/PKCE callback、組織境界照合、invite/recovery intent消費）を修正して再検証する
+- review baseline: 修正と最新化のpush後に、独立reviewer/session、`head_sha`、diff fingerprint、context modeを新しい証跡JSONへ固定する
+- 次タスク: 高リスク認証変更の専用回帰テストと独立repo-aware reviewを完了し、Must/Should 0件を確認する
+- レビュー条件: Copilotは任意。実装担当から独立したCodex / Claudeの`full_repo_agentic`レビューと、専用認証回帰テストによる二重確認を必須とする
+- 安全床: `.env.local`を読まない。秘密情報を表示しない。本番Supabase設定、実メール送信、日報側実接続、本番デプロイ、実店舗データ投入、Go-Live、PRマージは対象外
+- 最終更新: 2026-07-16
+
+### 現在状態（2026-07-14 A-001スタッフAuthレビュー対応・履歴）
 
 - 現在の mode: `daily_development`（Issue #13実装）
 - active branch: `feat/issue-13-staff-invitations`
@@ -27,6 +39,18 @@
 - 次タスク: Round 2修正をpush後に5スレッドへ返信・resolveし、最終Round 3レビューとCIを確認する
 - レビュー条件: `.github/instructions/review-loop.instructions.md` の最大3ラウンドに従う
 - 安全床: `.env.local` を読まない。秘密情報を表示しない。Supabase本番設定、実メール送信、日報側実接続、本番デプロイ、実店舗データ投入、Go-Liveは対象外
+- 最終更新: 2026-07-14
+
+### 現在状態（2026-07-14 独立AIレビュー運用改定・履歴）
+
+- 現在の mode: `governance_change`
+- active branch: `chore/independent-ai-review-policy`
+- 直近完了 PR: PR #14（計画・Issue整合）をレビュー・CI成功後に `main` へマージ済み
+- 現在タスク: Copilot 契約上限に依存しない独立AIレビュー運用への改定
+- review baseline: PR作成後の `head_sha`、diff fingerprint、独立 reviewer/session を証跡JSONに記録する
+- 次タスク: 独立 Codex / Claude repo-aware review、CI、release-manager判定の完了後にマージ判断へ進む
+- レビュー条件: Copilotは任意。実装担当から独立した Codex / Claude repo-aware review と機械可読証跡を必須とする
+- 安全床: `.env.local` を読まない。秘密情報を表示しない。アプリ機能、本番DB、外部サービスは変更しない
 - 最終更新: 2026-07-14
 
 ### 現在状態（2026-07-14 計画・Issue整合・履歴）
