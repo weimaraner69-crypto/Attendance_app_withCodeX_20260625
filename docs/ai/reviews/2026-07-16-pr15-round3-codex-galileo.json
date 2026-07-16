@@ -1,0 +1,272 @@
+{
+  "schema_version": 2,
+  "phase": "post_push",
+  "provider": "codex",
+  "reviewer_id": "codex-pr15-r3-final-20260716-a",
+  "review_session_id": "019f6939-963e-7090-b0a2-8d175c5deaee",
+  "implementation_session_id": "codex-main-pr15-restart-20260716",
+  "head_sha": "950fb06b718cf45af3d7a61693f127a353992c57",
+  "diff_fingerprint": "sha256:345a6e0725a585e76ff7d793a000037a0fba16d74d7bcbb590201e73cf5fa25a",
+  "risk_tier": "red",
+  "round": 3,
+  "exception_round": 4,
+  "exception_approved_by": "repository_owner",
+  "exception_approval_context": "The owner explicitly requested PR #15 latest synchronization, revalidation, and review; post-cap work was limited to verifying the Round 3 Must remediation on the current head.",
+  "review_status": "completed",
+  "secondary_verification": {
+    "required": true,
+    "method": "dedicated_tests",
+    "status": "passed",
+    "evidence": "Python 35 tests, Vitest 59 tests, policy, lint, build, full PostgreSQL migration and seven-policy RLS checks, and two-connection intent issuance passed.",
+    "commands": [
+      {
+        "command": "python3 -m unittest ci.test_policy_check ci.test_supabase_advisor_migrations",
+        "exit_code": 0,
+        "summary": "35 tests passed",
+        "covered_paths": [
+          "**"
+        ]
+      },
+      {
+        "command": "npm test",
+        "exit_code": 0,
+        "summary": "59 tests passed",
+        "covered_paths": [
+          "**"
+        ]
+      },
+      {
+        "command": "python3 ci/policy_check.py",
+        "exit_code": 0,
+        "summary": "Policy check passed",
+        "covered_paths": [
+          "**"
+        ]
+      },
+      {
+        "command": "npm run lint",
+        "exit_code": 0,
+        "summary": "No ESLint warnings or errors",
+        "covered_paths": [
+          "**"
+        ]
+      },
+      {
+        "command": "npm run build",
+        "exit_code": 0,
+        "summary": "Production build completed",
+        "covered_paths": [
+          "**"
+        ]
+      },
+      {
+        "command": "psql --set ON_ERROR_STOP=1 --file ci/test_staff_auth_postgres.sql",
+        "exit_code": 0,
+        "summary": "All migrations, database boundaries, and seven changed RLS policy groups passed",
+        "covered_paths": [
+          "**"
+        ]
+      },
+      {
+        "command": "bash ci/test_staff_auth_postgres_concurrency.sh",
+        "exit_code": 0,
+        "summary": "Concurrent intent issuance left exactly one active intent",
+        "covered_paths": [
+          "**"
+        ]
+      }
+    ]
+  },
+  "summary": "Round 3 found one Must stale-intent fallback and one RLS-test Should. Both were fixed. A same-session post-cap check on 950fb06 confirmed Must zero and approved; one non-blocking explicit cross-origin assertion remains recorded as POSTCAP-001.",
+  "repository_context_mode": "full_repo_agentic",
+  "diff_only_reason": "",
+  "changed_files": [
+    ".github/workflows/ci.yml",
+    "CHANGELOG.md",
+    "FINISHED.md",
+    "NEXT.md",
+    "ci/test_staff_auth_postgres.sql",
+    "ci/test_staff_auth_postgres_concurrency.sh",
+    "ci/test_supabase_advisor_migrations.py",
+    "docs/ai/decision-ledger.md",
+    "docs/ai/execution-ledger.md",
+    "docs/ai/pre-pr-critical-review.md",
+    "docs/implementation-decisions.md",
+    "docs/operations-maintenance.md",
+    "next.config.mjs",
+    "src/app/(authenticated)/owner/audit-logs/page.tsx",
+    "src/app/(authenticated)/owner/sr-accounts/page.tsx",
+    "src/app/(authenticated)/owner/staff/page.tsx",
+    "src/app/(authenticated)/owner/stores/page.tsx",
+    "src/app/(manager)/manager/[storeId]/page.tsx",
+    "src/app/(manager)/manager/[storeId]/requests/page.tsx",
+    "src/app/(manager)/manager/[storeId]/shifts/page.tsx",
+    "src/app/(public)/line/link/page.tsx",
+    "src/app/(public)/stamp/[shopId]/page.tsx",
+    "src/app/(public)/stamp/mobile/page.tsx",
+    "src/app/(public)/stamp/page.tsx",
+    "src/app/api/auth/staff-password/route.test.ts",
+    "src/app/api/auth/staff-password/route.ts",
+    "src/app/auth/confirm/complete/route.test.ts",
+    "src/app/auth/confirm/complete/route.ts",
+    "src/app/auth/confirm/page.tsx",
+    "src/app/auth/staff-password/page.tsx",
+    "src/components/auth/PrivilegedLogin.tsx",
+    "src/components/reports/AttendanceReportView.tsx",
+    "src/lib/attendance/stamp.ts",
+    "src/lib/auth/session-context.test.ts",
+    "src/lib/auth/session.test.ts",
+    "src/lib/auth/session.ts",
+    "src/lib/auth/staff-auth-confirmation.test.ts",
+    "src/lib/auth/staff-auth-confirmation.ts",
+    "src/lib/auth/staff-auth-identity.ts",
+    "src/lib/auth/staff-auth-templates.test.ts",
+    "src/lib/auth/staff-auth.test.ts",
+    "src/lib/auth/staff-auth.ts",
+    "src/lib/auth/staff-password-intent.test.ts",
+    "src/lib/auth/staff-password-intent.ts",
+    "src/lib/auth/staff-password-update.test.ts",
+    "src/lib/auth/staff-password-update.ts",
+    "src/lib/supabase/database.types.ts",
+    "src/lib/supabase/index.ts",
+    "src/lib/supabase/transient-auth.test.ts",
+    "src/lib/supabase/transient-auth.ts",
+    "supabase/migrations/20260716034432_secure_staff_password_intents.sql",
+    "supabase/templates/invite.html",
+    "supabase/templates/recovery.html"
+  ],
+  "related_files": [
+    {
+      "path": "src/app/auth/confirm/complete/route.ts",
+      "reason": "Invite and recovery OTP confirmation boundary"
+    },
+    {
+      "path": "src/app/api/auth/staff-password/route.ts",
+      "reason": "Single-use password update boundary"
+    },
+    {
+      "path": "supabase/migrations/20260716034432_secure_staff_password_intents.sql",
+      "reason": "Tenant integrity, RLS, and intent database contract"
+    },
+    {
+      "path": "ci/test_staff_auth_postgres.sql",
+      "reason": "Real PostgreSQL migration and RLS verification"
+    },
+    {
+      "path": "ci/test_staff_auth_postgres_concurrency.sh",
+      "reason": "Two-connection issuance serialization verification"
+    },
+    {
+      "path": "SECURITY.md",
+      "reason": "Repository secret and authentication safety authority"
+    }
+  ],
+  "scanned_paths": [
+    ".github",
+    "ai",
+    "ci",
+    "docs",
+    "src",
+    "supabase"
+  ],
+  "commands_run": [
+    {
+      "command": "git rev-parse HEAD",
+      "exit_code": 0,
+      "summary": "Confirmed current reviewed head 950fb06"
+    },
+    {
+      "command": "git diff --name-only origin/main...HEAD",
+      "exit_code": 0,
+      "summary": "Enumerated all changed paths"
+    },
+    {
+      "command": "targeted rg and diff review across authentication, RLS, migration, and CI paths",
+      "exit_code": 0,
+      "summary": "Confirmed Round 3 Must remediation and seven RLS policy tests"
+    },
+    {
+      "command": "git diff --check 25085024...HEAD",
+      "exit_code": 0,
+      "summary": "No whitespace errors in the post-cap remediation"
+    }
+  ],
+  "context_fingerprint": "git-tree:73123f2f694a9ed9ab044c9a449dfae689255a4b",
+  "context_budget": {
+    "max_related_files": 40,
+    "max_context_chars": 180000,
+    "max_file_excerpt_chars": 12000,
+    "max_context_commands": 12
+  },
+  "context_truncated": true,
+  "context_truncated_reason": "Post-cap confirmation was intentionally limited to the Round 3 Must remediation and directly related RLS tests.",
+  "issues": [
+    {
+      "severity": "Must",
+      "category": "stale-intent-fallback",
+      "file": "src/app/auth/confirm/complete/route.ts",
+      "line": 20,
+      "rationale": "A failed new confirmation could fall back to a valid password intent cookie left by another user on a shared browser.",
+      "fix": "Clear any existing password intent before every confirmation branch and only set a new cookie after successful atomic issuance.",
+      "confidence": 0.99,
+      "disposition": "fixed",
+      "disposition_reason": "950fb06 clears the old intent before Origin and OTP handling and tests OTP, identity, RPC, and cross-origin failures."
+    },
+    {
+      "severity": "Should",
+      "category": "linked-email-consistency",
+      "file": "src/app/(authenticated)/owner/staff/page.tsx",
+      "line": 157,
+      "rationale": "Editing a linked staff email can diverge from Auth and user_profiles and prevent recovery.",
+      "fix": "Make linked email immutable or add a compensated coordinated email-change flow.",
+      "confidence": 0.99,
+      "disposition": "backlog",
+      "disposition_reason": "Existing GitHub Issue #16 tracks the coordinated linked-email workflow; Round 3 permits non-blocking Should backlog."
+    },
+    {
+      "severity": "Should",
+      "category": "audit-durability",
+      "file": "src/lib/auth/staff-auth.ts",
+      "line": 298,
+      "rationale": "Security-sensitive audit insert errors are not surfaced to the caller.",
+      "fix": "Fail closed or persist a retryable partial-success audit state.",
+      "confidence": 0.98,
+      "disposition": "backlog",
+      "disposition_reason": "Existing GitHub Issue #16 tracks audit failure handling; it is outside the Round 3 Must remediation."
+    },
+    {
+      "severity": "Should",
+      "category": "rls-integration-coverage",
+      "file": "ci/test_staff_auth_postgres.sql",
+      "line": 234,
+      "rationale": "The first PostgreSQL test only exercised staff RLS and did not populate every policy changed by the migration.",
+      "fix": "Populate two organizations and assert row isolation for all changed RLS policy groups.",
+      "confidence": 0.98,
+      "disposition": "fixed",
+      "disposition_reason": "950fb06 adds two-organization rows and assertions for attendance records, events, requests, shifts, submissions, items, and notifications."
+    },
+    {
+      "severity": "Should",
+      "category": "test-explicitness",
+      "file": "src/app/auth/confirm/complete/route.test.ts",
+      "line": 109,
+      "rationale": "The cross-origin regression asserts old-cookie clearing and early OTP rejection but does not explicitly assert that the new-cookie setter was not called.",
+      "fix": "Add an explicit not-to-have-been-called assertion for setStaffPasswordIntentCookie.",
+      "confidence": 0.9,
+      "disposition": "backlog",
+      "disposition_reason": "POSTCAP-001: implementation returns before token generation and setter access; retained as a non-blocking Round 3 test-clarity follow-up without opening another review round."
+    },
+    {
+      "severity": "Nice",
+      "category": "accessibility",
+      "file": "src/app/(authenticated)/owner/staff/page.tsx",
+      "line": 396,
+      "rationale": "Invite and reset result messages do not expose status or alert semantics to assistive technology.",
+      "fix": "Use role=status for success and role=alert for failure.",
+      "confidence": 0.95,
+      "disposition": "backlog",
+      "disposition_reason": "Existing GitHub Issue #16 tracks this accessibility follow-up."
+    }
+  ]
+}
+

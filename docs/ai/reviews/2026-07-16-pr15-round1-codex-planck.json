@@ -1,0 +1,229 @@
+{
+  "schema_version": 2,
+  "phase": "post_push",
+  "provider": "codex",
+  "reviewer_id": "codex-gpt5-pr15-security-20260716-b",
+  "review_session_id": "019f6917-444a-71a2-b4ea-55274b875fd1",
+  "implementation_session_id": "codex-main-pr15-restart-20260716",
+  "head_sha": "613c1f55f09928d0a45fe38066aa8a1e1968380d",
+  "diff_fingerprint": "sha256:f66831a3506e784606bff2bc24cfb55ca318775fcc0f88db9dd04756e4621c19",
+  "risk_tier": "red",
+  "round": 1,
+  "review_status": "completed",
+  "secondary_verification": {
+    "required": true,
+    "method": "dedicated_tests",
+    "status": "passed",
+    "evidence": "Python 35 tests, Vitest 57 tests, policy, lint, build, and diff checks passed.",
+    "commands": [
+      {
+        "command": "python3 -m unittest ci.test_policy_check ci.test_supabase_advisor_migrations",
+        "exit_code": 0,
+        "summary": "35 tests passed",
+        "covered_paths": [
+          "**"
+        ]
+      },
+      {
+        "command": "npm test",
+        "exit_code": 0,
+        "summary": "57 tests passed",
+        "covered_paths": [
+          "**"
+        ]
+      },
+      {
+        "command": "python3 ci/policy_check.py",
+        "exit_code": 0,
+        "summary": "Policy check passed",
+        "covered_paths": [
+          "**"
+        ]
+      },
+      {
+        "command": "npm run lint",
+        "exit_code": 0,
+        "summary": "No ESLint warnings or errors",
+        "covered_paths": [
+          "**"
+        ]
+      },
+      {
+        "command": "npm run build",
+        "exit_code": 0,
+        "summary": "Production build completed",
+        "covered_paths": [
+          "**"
+        ]
+      }
+    ]
+  },
+  "summary": "Round 1 found one Must, two Should, and one Nice security issue in temporary Auth session handling, intent issuance concurrency, database verification, and token-page headers. All findings were fixed in later reviewed heads.",
+  "repository_context_mode": "full_repo_agentic",
+  "diff_only_reason": "",
+  "changed_files": [
+    "CHANGELOG.md",
+    "FINISHED.md",
+    "NEXT.md",
+    "ci/test_supabase_advisor_migrations.py",
+    "docs/ai/decision-ledger.md",
+    "docs/ai/execution-ledger.md",
+    "docs/ai/pre-pr-critical-review.md",
+    "docs/implementation-decisions.md",
+    "docs/operations-maintenance.md",
+    "src/app/(authenticated)/owner/audit-logs/page.tsx",
+    "src/app/(authenticated)/owner/sr-accounts/page.tsx",
+    "src/app/(authenticated)/owner/staff/page.tsx",
+    "src/app/(authenticated)/owner/stores/page.tsx",
+    "src/app/(manager)/manager/[storeId]/page.tsx",
+    "src/app/(manager)/manager/[storeId]/requests/page.tsx",
+    "src/app/(manager)/manager/[storeId]/shifts/page.tsx",
+    "src/app/(public)/line/link/page.tsx",
+    "src/app/(public)/stamp/[shopId]/page.tsx",
+    "src/app/(public)/stamp/mobile/page.tsx",
+    "src/app/(public)/stamp/page.tsx",
+    "src/app/api/auth/staff-password/route.test.ts",
+    "src/app/api/auth/staff-password/route.ts",
+    "src/app/auth/confirm/complete/route.test.ts",
+    "src/app/auth/confirm/complete/route.ts",
+    "src/app/auth/confirm/page.tsx",
+    "src/app/auth/staff-password/page.tsx",
+    "src/components/auth/PrivilegedLogin.tsx",
+    "src/components/reports/AttendanceReportView.tsx",
+    "src/lib/attendance/stamp.ts",
+    "src/lib/auth/session-context.test.ts",
+    "src/lib/auth/session.test.ts",
+    "src/lib/auth/session.ts",
+    "src/lib/auth/staff-auth-confirmation.test.ts",
+    "src/lib/auth/staff-auth-confirmation.ts",
+    "src/lib/auth/staff-auth-identity.ts",
+    "src/lib/auth/staff-auth-templates.test.ts",
+    "src/lib/auth/staff-auth.test.ts",
+    "src/lib/auth/staff-auth.ts",
+    "src/lib/auth/staff-password-intent.test.ts",
+    "src/lib/auth/staff-password-intent.ts",
+    "src/lib/auth/staff-password-update.test.ts",
+    "src/lib/auth/staff-password-update.ts",
+    "src/lib/supabase/database.types.ts",
+    "supabase/migrations/20260716034432_secure_staff_password_intents.sql",
+    "supabase/templates/invite.html",
+    "supabase/templates/recovery.html"
+  ],
+  "related_files": [
+    {
+      "path": "src/app/auth/confirm/complete/route.ts",
+      "reason": "Invite and recovery OTP confirmation boundary"
+    },
+    {
+      "path": "src/app/api/auth/staff-password/route.ts",
+      "reason": "Single-use password update boundary"
+    },
+    {
+      "path": "supabase/migrations/20260716034432_secure_staff_password_intents.sql",
+      "reason": "Tenant integrity, RLS, and intent database contract"
+    },
+    {
+      "path": "ci/test_staff_auth_postgres.sql",
+      "reason": "Real PostgreSQL migration and RLS verification"
+    },
+    {
+      "path": "SECURITY.md",
+      "reason": "Repository secret and authentication safety authority"
+    },
+    {
+      "path": ".github/instructions/review-loop.instructions.md",
+      "reason": "Independent review and round handling authority"
+    }
+  ],
+  "scanned_paths": [
+    ".github",
+    "ai",
+    "ci",
+    "docs",
+    "src",
+    "supabase"
+  ],
+  "commands_run": [
+    {
+      "command": "git diff --name-status origin/main...613c1f5",
+      "exit_code": 0,
+      "summary": "Enumerated the full PR scope"
+    },
+    {
+      "command": "authentication, session, migration, and RLS path review",
+      "exit_code": 0,
+      "summary": "Traced attack and failure paths across related repository context"
+    },
+    {
+      "command": "python3 -m unittest ci.test_policy_check ci.test_supabase_advisor_migrations",
+      "exit_code": 0,
+      "summary": "35 Python tests passed"
+    },
+    {
+      "command": "npm test",
+      "exit_code": 0,
+      "summary": "57 Vitest tests passed"
+    },
+    {
+      "command": "npm run build",
+      "exit_code": 0,
+      "summary": "Production build passed"
+    }
+  ],
+  "context_fingerprint": "git-tree:68eb89f9dde0b5dacdeb4b3d3e069570d0a4ffe6",
+  "context_budget": {
+    "max_related_files": 40,
+    "max_context_chars": 180000,
+    "max_file_excerpt_chars": 12000,
+    "max_context_commands": 12
+  },
+  "context_truncated": false,
+  "context_truncated_reason": "",
+  "issues": [
+    {
+      "severity": "Must",
+      "category": "auth-session-boundary",
+      "file": "src/lib/auth/staff-auth-confirmation.ts",
+      "line": 38,
+      "rationale": "A failed callback logout left an Auth session usable after deleting the client-controlled flow guard cookie.",
+      "fix": "Verify OTP with a transient non-persisting server client so no browser Auth session is issued.",
+      "confidence": 0.99,
+      "disposition": "fixed",
+      "disposition_reason": "45fd18d introduced createSupabaseTransientAuthClient with persistence and URL detection disabled and removed the cookie authorization guard."
+    },
+    {
+      "severity": "Should",
+      "category": "intent-issuance-concurrency",
+      "file": "src/app/auth/confirm/complete/route.ts",
+      "line": 46,
+      "rationale": "Cleanup and insert were separate queries and allowed concurrent active intents for one user.",
+      "fix": "Serialize issuance in one database function and enforce one active row per user.",
+      "confidence": 0.99,
+      "disposition": "fixed",
+      "disposition_reason": "45fd18d added an advisory-lock RPC and a partial unique user_id index plus a two-connection PostgreSQL test."
+    },
+    {
+      "severity": "Should",
+      "category": "database-boundary-verification",
+      "file": "ci/test_supabase_advisor_migrations.py",
+      "line": 137,
+      "rationale": "String contract tests did not execute foreign keys, deletion behavior, grants, RLS, or claims in PostgreSQL.",
+      "fix": "Apply all migrations to a real temporary PostgreSQL instance and exercise authorization boundaries.",
+      "confidence": 0.98,
+      "disposition": "fixed",
+      "disposition_reason": "45fd18d added CI PostgreSQL 16 integration and 950fb06 expanded it across all seven changed RLS policy groups."
+    },
+    {
+      "severity": "Nice",
+      "category": "token-confidentiality",
+      "file": "next.config.mjs",
+      "line": 3,
+      "rationale": "The confirmation URL contains a bearer token and lacked explicit cache and referrer controls.",
+      "fix": "Set no-store and no-referrer headers for the confirmation route.",
+      "confidence": 0.96,
+      "disposition": "fixed",
+      "disposition_reason": "45fd18d added private no-store and no-referrer headers for /auth/confirm and descendants."
+    }
+  ]
+}
+
