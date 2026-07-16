@@ -56,7 +56,8 @@ describe('staff Auth confirmation route', () => {
   it('uses transient OTP verification and atomically issues a DB-backed browser intent', async () => {
     const response = await POST(confirmationRequest());
 
-    expect(response.status).toBe(307);
+    expect(response.status).toBe(303);
+    expect(response.headers.get('location')).toBe(`${appOrigin}/auth/staff-password`);
     expect(mocks.verifyOtp).toHaveBeenCalledWith({ token_hash: 'token-hash', type: 'invite' });
     expect(mocks.issueIntent).toHaveBeenCalledWith('issue_staff_password_intent', {
       p_user_id: 'auth-user-1',
@@ -72,7 +73,10 @@ describe('staff Auth confirmation route', () => {
 
     const response = await POST(confirmationRequest('recovery'));
 
-    expect(response.status).toBe(307);
+    expect(response.status).toBe(303);
+    expect(response.headers.get('location')).toBe(
+      `${appOrigin}/auth/staff-password?invalid=1`
+    );
     expect(mocks.setIntentCookie).not.toHaveBeenCalled();
   });
 
@@ -86,7 +90,10 @@ describe('staff Auth confirmation route', () => {
       body: form,
     }));
 
-    expect(response.status).toBe(307);
+    expect(response.status).toBe(303);
+    expect(response.headers.get('location')).toBe(
+      `${appOrigin}/auth/staff-password?invalid=1`
+    );
     expect(mocks.verifyOtp).not.toHaveBeenCalled();
   });
 });

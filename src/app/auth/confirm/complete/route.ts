@@ -18,7 +18,10 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: Request) {
   const requestOrigin = request.headers.get('origin');
   if (requestOrigin && requestOrigin !== new URL(request.url).origin) {
-    return NextResponse.redirect(new URL('/auth/staff-password?invalid=1', request.url));
+    return NextResponse.redirect(
+      new URL('/auth/staff-password?invalid=1', request.url),
+      303
+    );
   }
 
   const form = await request.formData();
@@ -56,5 +59,5 @@ export async function POST(request: Request) {
   const destination = result.ok
     ? new URL('/auth/staff-password', request.url)
     : new URL('/auth/staff-password?invalid=1', request.url);
-  return NextResponse.redirect(destination);
+  return NextResponse.redirect(destination, 303);
 }

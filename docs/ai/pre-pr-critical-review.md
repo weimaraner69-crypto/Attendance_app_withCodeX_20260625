@@ -25,6 +25,7 @@ PR 作成前の spec、security、reliability 観点のレビュー結果を記�
 - Must: 旧指摘の対応後もフローガードCookie削除でcallback Authセッションを通常利用できるとの再指摘に対し、`verifyOtp` をCookie/storage非永続のリクエスト内専用クライアントへ分離し、通常利用可能なセッションの発行自体を廃止
 - Should: intentのcleanup/insert競合をadvisory lock付きDB関数と未消費ユーザー部分一意索引で原子化。CIで実Postgresへ全マイグレーションを適用し、FK・削除・権限・RLS・intent境界を検証
 - Nice: `/auth/confirm` と配下に `Cache-Control: private, no-store` と `Referrer-Policy: no-referrer` を追加
+- 最終レビューMust: POST後の既定307 redirectがメソッドを保持する問題を修正。正常・異常とも303 See OtherとLocationをテストし、遷移先のGET表示を保証
 - Nice: Issue #16のメール同期、audit log失敗検出、アクセシビリティ改善は別PRで継続
 - 残リスク: hosted SupabaseへのEmail Templates反映と実メールE2Eは本番運用工程のため未実施
 - 結論: 全品質ゲート完了後、別reviewer/sessionによる`full_repo_agentic`独立レビューへ進む

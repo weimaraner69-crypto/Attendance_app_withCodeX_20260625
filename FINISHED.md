@@ -38,6 +38,7 @@
 - 旧Round 3のMustに対し、SSR/PKCE用callback、staff/profile組織境界、invite/recovery intentの検証・消費を追加。
 - 独立セキュリティレビューのMust/Should/Niceに対し、一時Authセッションの非発行化、DBによるintent同時発行/再利用防止、DB/RLS組織境界、確認POSTとセキュリティヘッダーを追加。
 - token検証、セッション非永続化、同時発行/消費、通常セッション分離、リンクスキャナ、メールテンプレートを専用回帰テストで固定。
+- 確認POST後のredirectを303に固定し、正常・異常とも遷移先へGETで移動するPRGフローを回帰テストで固定。
 - 一時Postgresに全マイグレーションを適用し、複合FK、Auth/組織削除、intent権限・再発行・二重claim、staff RLS組織分離を実DBで確認。
 - Python回帰35件、Vitest 57件、policy check、lint、build、`git diff --check` がすべて成功。
 - `.env.local` の値は読み取り・表示していない。

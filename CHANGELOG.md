@@ -12,6 +12,7 @@
 - Supabase Authのinvite/recoveryメールを、`token_hash`をサーバー検証する `/auth/confirm` へ統一し、メールリンクスキャナがGETだけでトークンを消費しない確認POSTを追加。
 - 検証成功時だけ、Authユーザーと同じ組織の有効なstaff紐付けを確認し、DBにハッシュだけを保存する10分有効・単回利用のHttpOnly設定権限を発行。
 - `verifyOtp` をCookie/storageに永続化しないリクエスト内専用Supabaseクライアントで実行し、callback用Authセッションをブラウザへ発行しない構成へ変更。
+- 確認POST後の正常・異常redirectを303 See Otherに固定し、遷移先のパスワード設定画面へGETで移動するPRGフローを保証。
 - intent発行はadvisory lock付きDB関数と未消費 `user_id` 部分一意索引で原子化し、パスワード更新はDB上の設定権限を原子的に消費した1リクエストだけがAdmin APIで実行できるよう変更。
 - スタッフセッション解決へ `staff.organization_id = user_profiles.organization_id` の境界条件を追加。
 - `staff.auth_user_id` と組織の整合性を複合外部キーで固定し、staff本人参照を行うRLSに組織照合を追加。
