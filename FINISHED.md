@@ -21,8 +21,9 @@
 - Supabase Admin APIの招待応答IDだけを使い、同一組織の `staff` プロファイルとAuthユーザーを紐付けるサービスを追加。
 - 手動Auth UUID入力を廃止し、他組織・他ロール・無効・重複・紐付け済みを拒否。
 - 紐付け途中の失敗時は作成直後のAuthユーザーを削除する補償処理を追加。
-- `/auth/confirm` でinvite/recoveryの `token_hash` をサーバー検証し、同一組織のstaff紐付けを確認してから署名付き・短寿命のパスワード設定権限を発行。
-- `/api/auth/staff-password` で設定権限を再検証してパスワードを更新し、成功後は権限とローカルAuthセッションを消費して再ログインさせるようにした。
+- `/auth/confirm` で明示的なPOST後にinvite/recoveryの `token_hash` をサーバー検証し、同一組織のstaff紐付けを確認してからDB-backedの短寿命・単回利用パスワード設定権限を発行。
+- callbackで作られたAuthセッションを権限発行前に破棄し、`/api/auth/staff-password` で設定権限を原子的に消費してAdmin API経由で更新するようにした。
+- `staff` と `user_profiles` のAuthユーザー/組織整合性を複合外部キーで固定し、関連RLSでも組織一致を必須化。
 - Supabase Authのinvite/recoveryメールテンプレートを `supabase/templates/` へ追加。
 - 招待と受け入れ先を別PRにする行き止まりリスクを避けるため、Issue #13の3工程を1PRへ統合。
 
@@ -35,8 +36,9 @@
 - `.ilike()` の利用は対応済み2箇所だけであり、同種の未対応箇所がないことを横断確認。
 - `Link` または通常アンカーの子に `Button` を置く同種パターンが残っていないことを横断確認。
 - 旧Round 3のMustに対し、SSR/PKCE用callback、staff/profile組織境界、invite/recovery intentの検証・消費を追加。
-- token検証、組織境界、署名改ざん・期限切れ、通常セッション拒否、成功時消費、メールテンプレートを専用回帰テストで固定。
-- Python回帰32件、Vitest 49件、policy check、lint、build、`git diff --check` がすべて成功。
+- 独立セキュリティレビューのMust/Should/Niceに対し、一時Authセッションの即時破棄、DBによる同時再利用防止、DB/RLS組織境界、確認POSTを追加。
+- token検証、組織境界、ログアウト失敗、同時消費、通常セッション拒否、リンクスキャナ、メールテンプレートを専用回帰テストで固定。
+- Python回帰35件、Vitest 57件、policy check、lint、build、`git diff --check` がすべて成功。
 - `.env.local` の値は読み取り・表示していない。
 
 ### 残作業
@@ -49,11 +51,14 @@
 - `src/lib/auth/staff-auth.test.ts`
 - `src/app/(authenticated)/owner/staff/page.tsx`
 - `src/app/auth/staff-password/page.tsx`
-- `src/app/auth/confirm/route.ts`
+- `src/app/auth/confirm/page.tsx`
+- `src/app/auth/confirm/complete/route.ts`
 - `src/app/api/auth/staff-password/route.ts`
 - `src/lib/auth/staff-auth-confirmation.ts`
 - `src/lib/auth/staff-password-intent.ts`
+- `src/lib/auth/staff-password-update.ts`
 - `src/lib/auth/session.ts`
+- `supabase/migrations/20260716034432_secure_staff_password_intents.sql`
 - `supabase/templates/invite.html`
 - `supabase/templates/recovery.html`
 - `NEXT.md`

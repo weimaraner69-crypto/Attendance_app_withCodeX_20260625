@@ -21,9 +21,10 @@ PR 作成前の spec、security、reliability 観点のレビュー結果を記�
 - 実施日: 2026-07-16
 - 実施者 / provider: Codex実装セッション（独立レビューには算入しない）
 - 確認した文書・差分: Supabase Auth email template/SSR資料、旧Round 3レビュー、Issue #13、認証Route Handler、セッション解決、専用回帰テスト
-- 実行した検証: 認証関連Vitest 30件、全Vitest 49件、Python回帰32件、policy check、lint、build、`git diff --check`
-- Must: 旧3件を修正。`verifyOtp` callback、profile/staff組織一致、署名付き短寿命intentと成功時消費を実装
-- Should: 0件。通常ログインセッションとcross-origin POSTも拒否する回帰テストを追加
+- 実行した検証: 認証専用Vitest 24件、全Vitest 57件、Python回帰35件、policy check、lint、build、`git diff --check`
+- Must: 旧3件に加え、Round 1独立レビューで検出したcallbackの一時Authセッションが通常利用できる問題を修正。設定権限発行前のログアウトとフローガードを必須化
+- Should: Round 1の2件を修正。設定権限をDB-backedのハッシュトークンと原子的claimへ変更し、staff/profile組織整合性をDB制約とRLSで固定
+- Nice: メールリンクスキャナがGETでOTPを消費しないよう、ユーザーの確認POSTを必須化
 - Nice: Issue #16のメール同期、audit log失敗検出、アクセシビリティ改善は別PRで継続
 - 残リスク: hosted SupabaseへのEmail Templates反映と実メールE2Eは本番運用工程のため未実施
 - 結論: 全品質ゲート完了後、別reviewer/sessionによる`full_repo_agentic`独立レビューへ進む

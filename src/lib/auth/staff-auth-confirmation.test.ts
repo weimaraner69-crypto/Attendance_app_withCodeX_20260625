@@ -11,8 +11,10 @@ function operations(
   return {
     verifyOtp: vi.fn(async () => 'auth-user-1'),
     hasValidStaffIdentity: vi.fn(async () => true),
-    startIntent: vi.fn(),
-    signOut: vi.fn(async () => undefined),
+    startFlowGuard: vi.fn(),
+    clearFlowGuard: vi.fn(),
+    signOut: vi.fn(async () => true),
+    createIntent: vi.fn(async () => true),
     ...overrides,
   };
 }
@@ -27,7 +29,10 @@ describe('staff Auth email confirmation', () => {
         deps
       )).resolves.toEqual({ ok: true, type, userId: 'auth-user-1' });
       expect(deps.verifyOtp).toHaveBeenCalledWith('token-hash', type);
-      expect(deps.startIntent).toHaveBeenCalledWith('auth-user-1', type);
+      expect(deps.startFlowGuard).toHaveBeenCalledOnce();
+      expect(deps.signOut).toHaveBeenCalledOnce();
+      expect(deps.createIntent).toHaveBeenCalledWith('auth-user-1', type);
+      expect(deps.clearFlowGuard).toHaveBeenCalledOnce();
     }
   );
 
@@ -44,7 +49,7 @@ describe('staff Auth email confirmation', () => {
       'https://attendance.example.com/auth/confirm?token_hash=used&type=recovery',
       invalidToken
     )).resolves.toEqual({ ok: false, code: 'invalid_token' });
-    expect(invalidToken.startIntent).not.toHaveBeenCalled();
+    expect(invalidToken.createIntent).not.toHaveBeenCalled();
   });
 
   it('fails closed and signs out when staff and profile are not in the same organization', async () => {
@@ -54,6 +59,17 @@ describe('staff Auth email confirmation', () => {
       deps
     )).resolves.toEqual({ ok: false, code: 'invalid_identity' });
     expect(deps.signOut).toHaveBeenCalledOnce();
-    expect(deps.startIntent).not.toHaveBeenCalled();
+    expect(deps.createIntent).not.toHaveBeenCalled();
+  });
+
+  it('keeps the flow guard active and creates no intent when callback logout fails', async () => {
+    const deps = operations({ signOut: vi.fn(async () => false) });
+    await expect(confirmStaffAuthLink(
+      'https://attendance.example.com/auth/confirm?token_hash=token-hash&type=recovery',
+      deps
+    )).resolves.toEqual({ ok: false, code: 'signout_failed' });
+    expect(deps.startFlowGuard).toHaveBeenCalledOnce();
+    expect(deps.clearFlowGuard).not.toHaveBeenCalled();
+    expect(deps.createIntent).not.toHaveBeenCalled();
   });
 });

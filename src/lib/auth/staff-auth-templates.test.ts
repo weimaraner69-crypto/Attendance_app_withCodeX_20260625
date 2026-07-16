@@ -16,4 +16,13 @@ describe('staff Auth email templates', () => {
     expect(html).toContain(`type=${type}`);
     expect(html).not.toContain('/auth/staff-password?token_hash=');
   });
+
+  it('requires an explicit POST before consuming the one-time token', () => {
+    const page = readFileSync(
+      resolve(process.cwd(), 'src', 'app', 'auth', 'confirm', 'page.tsx'),
+      'utf8'
+    );
+    expect(page).toContain('action="/auth/confirm/complete"');
+    expect(page).toContain('method="post"');
+  });
 });

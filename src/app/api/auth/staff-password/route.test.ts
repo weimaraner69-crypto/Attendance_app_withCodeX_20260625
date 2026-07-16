@@ -2,46 +2,42 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   clearIntent: vi.fn(),
-  getIntent: vi.fn(),
-  getRawAuthContext: vi.fn(),
-  updateUser: vi.fn(),
-  signOut: vi.fn(),
+  getIntentToken: vi.fn(),
+  validateIntent: vi.fn(),
+  updateWithIntent: vi.fn(),
+  createAdminClient: vi.fn(),
 }));
 
 vi.mock('@/lib/auth/staff-password-intent', () => ({
   clearStaffPasswordIntent: mocks.clearIntent,
-  getStaffPasswordIntent: mocks.getIntent,
+  getStaffPasswordIntentToken: mocks.getIntentToken,
 }));
-vi.mock('@/lib/auth/session', () => ({
-  getRawAuthContext: mocks.getRawAuthContext,
+vi.mock('@/lib/auth/staff-password-update', () => ({
+  validateStaffPasswordIntent: mocks.validateIntent,
+  updateStaffPasswordWithIntent: mocks.updateWithIntent,
+}));
+vi.mock('@/lib/auth/staff-auth-identity', () => ({
+  hasValidStaffAuthIdentity: vi.fn(async () => true),
 }));
 vi.mock('@/lib/supabase', () => ({
-  createSupabaseServerClient: () => ({
-    auth: { updateUser: mocks.updateUser, signOut: mocks.signOut },
-  }),
+  createSupabaseAdminClient: mocks.createAdminClient,
 }));
 
 import { GET, POST } from './route';
 
 const apiOrigin = ['https:', '', 'attendance.example'].join('/');
-const staffContext = {
-  user: { id: 'auth-user-1' },
-  profile: { role: 'staff' },
-  staff: { id: 'staff-1' },
-};
 
 describe('staff password update API', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.getRawAuthContext.mockResolvedValue(staffContext);
-    mocks.getIntent.mockReturnValue({ type: 'invite' });
-    mocks.updateUser.mockResolvedValue({ error: null });
-    mocks.signOut.mockResolvedValue({ error: null });
+    mocks.getIntentToken.mockReturnValue('opaque-token');
+    mocks.validateIntent.mockResolvedValue({ id: 'intent-1', user_id: 'auth-user-1' });
+    mocks.updateWithIntent.mockResolvedValue({ ok: true, code: 'updated' });
+    mocks.createAdminClient.mockReturnValue({});
   });
 
-  it('rejects an ordinary staff session without a verified email intent', async () => {
-    mocks.getIntent.mockReturnValue(null);
-
+  it('rejects an ordinary request without a callback-issued intent cookie', async () => {
+    mocks.getIntentToken.mockReturnValue(null);
     const response = await POST(new Request(`${apiOrigin}/api/auth/staff-password`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Origin: apiOrigin },
@@ -49,11 +45,10 @@ describe('staff password update API', () => {
     }));
 
     expect(response.status).toBe(401);
-    expect(mocks.updateUser).not.toHaveBeenCalled();
-    expect(mocks.clearIntent).not.toHaveBeenCalled();
+    expect(mocks.updateWithIntent).not.toHaveBeenCalled();
   });
 
-  it('updates the password and consumes the intent exactly after success', async () => {
+  it('delegates to the atomic DB-backed update and consumes the browser token', async () => {
     const response = await POST(new Request(`${apiOrigin}/api/auth/staff-password`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Origin: apiOrigin },
@@ -61,14 +56,15 @@ describe('staff password update API', () => {
     }));
 
     expect(response.status).toBe(200);
-    expect(mocks.updateUser).toHaveBeenCalledWith({ password: 'new-password' });
+    expect(mocks.updateWithIntent).toHaveBeenCalledWith(expect.objectContaining({
+      token: 'opaque-token',
+      password: 'new-password',
+    }));
     expect(mocks.clearIntent).toHaveBeenCalledOnce();
-    expect(mocks.signOut).toHaveBeenCalledWith({ scope: 'local' });
   });
 
-  it('keeps the intent available for a safe retry when Auth rejects the update', async () => {
-    mocks.updateUser.mockResolvedValue({ error: new Error('rejected') });
-
+  it('clears a consumed token when the Admin password update fails', async () => {
+    mocks.updateWithIntent.mockResolvedValue({ ok: false, code: 'update_failed' });
     const response = await POST(new Request(`${apiOrigin}/api/auth/staff-password`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Origin: apiOrigin },
@@ -76,8 +72,7 @@ describe('staff password update API', () => {
     }));
 
     expect(response.status).toBe(400);
-    expect(mocks.clearIntent).not.toHaveBeenCalled();
-    expect(mocks.signOut).not.toHaveBeenCalled();
+    expect(mocks.clearIntent).toHaveBeenCalledOnce();
   });
 
   it('rejects cross-origin password update requests', async () => {
@@ -89,13 +84,13 @@ describe('staff password update API', () => {
     }));
 
     expect(response.status).toBe(403);
-    expect(mocks.updateUser).not.toHaveBeenCalled();
+    expect(mocks.updateWithIntent).not.toHaveBeenCalled();
   });
 
-  it('reports whether the callback-issued intent is still valid', async () => {
-    await expect((await GET()).json()).resolves.toEqual({ authorized: true });
-    mocks.getIntent.mockReturnValue(null);
-    const unauthorized = await GET();
-    expect(unauthorized.status).toBe(401);
+  it('reports and clears an invalid or expired DB intent', async () => {
+    mocks.validateIntent.mockResolvedValue(null);
+    const response = await GET();
+    expect(response.status).toBe(401);
+    expect(mocks.clearIntent).toHaveBeenCalledOnce();
   });
 });

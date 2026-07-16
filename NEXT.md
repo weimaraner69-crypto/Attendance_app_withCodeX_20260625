@@ -20,7 +20,7 @@
 - 今回は次の順序で、1PRで理解できる粒度に分けて進める。
   1. 計画、連携仕様、GitHub Issueの状態を実装実態へ同期する。2026-07-14完了。
   2. `A-006` Supabase Performance Advisor最適化と `A-007` 自動テスト・CI強化を進める。2026-07-13完了。
-  3. `A-001` のスタッフAuthユーザー招待、紐付け、パスワード再設定をIssue #13で実装する。コード実装と回帰テストはPRレビュー中。
+  3. `A-001` のスタッフAuthユーザー招待、紐付け、パスワード再設定をIssue #13で実装する。独立レビュー指摘の認証セッション、単回利用、DB/RLS組織境界、リンクスキャナ対策を修正し、最終レビュー中。
   4. `A-000` のうち日報側の画面実装を必要としない #7 レート制限・アクセスログ、#6 APIキー管理の順で進める。
   5. `C-004` LINE連携の運用設定と実機確認は、本番運用作業として明示的な再開指示まで保留する。
 - 各PRはfeature/choreブランチから作成し、実装担当から独立した Codex または Claude の repo-aware review を必須とする。Copilotは利用可能時の任意の追加レビューとし、対応ラウンド、高リスク変更の二重確認、Round 3後の扱いは `.github/instructions/review-loop.instructions.md` の正本手順に従う。
@@ -148,10 +148,12 @@
 - [x] オーナーがスタッフ管理画面からAuthユーザーを招待できるようにする。
 - [x] Supabase Admin APIが返したAuth IDだけを使い、同一組織・スタッフロール・有効状態を検証して紐付ける。
 - [x] 他組織、他ロール、無効スタッフ、重複メール、紐付け済みを拒否する。
-- [x] invite/recoveryメールを `/auth/confirm` のサーバー側 `token_hash` 検証へ通し、検証済みの短寿命設定権限で初回パスワード設定と再設定を実行する。
+- [x] invite/recoveryメールを `/auth/confirm` の確認POSTとサーバー側 `token_hash` 検証へ通し、DB-backedの短寿命・単回利用設定権限で初回パスワード設定と再設定を実行する。
+- [x] callbackの一時Authセッションを破棄し、設定中の通常画面・打刻利用をfail-closeする。
+- [x] `staff`/`user_profiles` のAuthユーザー・組織一致をDB制約とstaff本人参照RLSの両方で固定する。
 - [x] 無効、他組織、ロール不一致、重複、期限切れ/再利用、通常ログインセッションで設定権限がない境界の回帰テストを追加する。
 - 招待と受諾画面を別PRにすると送信済みメールが行き止まりになるため、テスト・運用記録を含む1PRに統合した。
-- [ ] ステージング/本番反映前にSupabase AuthのSite URL・Redirect URLsを設定し、`supabase/templates/invite.html` と `recovery.html` をEmail Templatesへ反映して、実メールで初回設定・再設定を確認する。本番運用作業のため今回は未実施。
+- [ ] ステージング/本番反映前に `20260716034432_secure_staff_password_intents.sql` を適用し、Supabase AuthのSite URL・Redirect URLsを設定し、`supabase/templates/invite.html` と `recovery.html` をEmail Templatesへ反映して、実メールで初回設定・再設定を確認する。本番運用作業のため今回は未実施。
 - 完了条件: オーナーが平文パスワードを扱わずスタッフを招待でき、スタッフ本人が初回設定・再設定後に `/stamp/mobile` へ安全にログインできる。
 
 ### A-002 店舗管理の実装（完了）

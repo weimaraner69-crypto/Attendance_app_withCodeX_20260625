@@ -47,6 +47,15 @@ export type Database = {
         created_at: Timestamp;
         updated_at: Timestamp;
       }>;
+      staff_password_intents: Table<{
+        id: string;
+        user_id: string;
+        token_hash: string;
+        intent_type: 'invite' | 'recovery';
+        expires_at: Timestamp;
+        consumed_at: Timestamp | null;
+        created_at: Timestamp;
+      }>;
       stores: Table<{
         id: string;
         organization_id: string;

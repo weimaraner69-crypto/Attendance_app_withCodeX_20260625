@@ -9,21 +9,26 @@
 
 ### 修正
 
-- Supabase Authのinvite/recoveryメールを、`token_hash`をサーバー検証する `/auth/confirm` Route Handlerへ統一。
-- 検証成功時だけ、Authユーザーと同じ組織の有効なstaff紐付けを確認し、署名付き・10分有効のHttpOnly設定権限を発行。
-- パスワード更新を `/api/auth/staff-password` へ集約し、通常ログイン済みセッションだけでは更新できず、成功後に設定権限とローカルAuthセッションを消費するよう変更。
+- Supabase Authのinvite/recoveryメールを、`token_hash`をサーバー検証する `/auth/confirm` へ統一し、メールリンクスキャナがGETだけでトークンを消費しない確認POSTを追加。
+- 検証成功時だけ、Authユーザーと同じ組織の有効なstaff紐付けを確認し、DBにハッシュだけを保存する10分有効・単回利用のHttpOnly設定権限を発行。
+- callbackが作ったローカルAuthセッションは設定権限発行前に必ず破棄し、破棄失敗時は通常セッション解決と打刻をfail-close。
+- パスワード更新を `/api/auth/staff-password` へ集約し、DB上の設定権限を原子的に消費した1リクエストだけがAdmin APIで更新できるよう変更。
 - スタッフセッション解決へ `staff.organization_id = user_profiles.organization_id` の境界条件を追加。
+- `staff.auth_user_id` と組織の整合性を複合外部キーで固定し、staff本人参照を行うRLSに組織照合を追加。
 - Supabaseのinvite/recoveryメールテンプレートを `supabase/templates/` へ追加。
-- token検証、組織境界、設定権限の改ざん・期限切れ、通常セッション拒否、成功時消費、メールテンプレートを専用回帰テストで固定。
+- token検証、組織境界、ログアウト失敗、同時再利用、リンクスキャナ、RLS/DB制約、メールテンプレートを専用回帰テストで固定。
 
 ### 影響ファイル
 
-- `src/app/auth/confirm/route.ts`
+- `src/app/auth/confirm/page.tsx`
+- `src/app/auth/confirm/complete/route.ts`
 - `src/app/auth/staff-password/page.tsx`
 - `src/app/api/auth/staff-password/route.ts`
 - `src/lib/auth/staff-auth-confirmation.ts`
 - `src/lib/auth/staff-password-intent.ts`
+- `src/lib/auth/staff-password-update.ts`
 - `src/lib/auth/session.ts`
+- `supabase/migrations/20260716034432_secure_staff_password_intents.sql`
 - `supabase/templates/invite.html`
 - `supabase/templates/recovery.html`
 - `NEXT.md`

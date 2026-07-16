@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { createSupabaseAdminClient, createSupabaseServerClient } from '@/lib/supabase';
 import type { Database } from '@/lib/supabase';
 import { isAppUnlocked } from '@/lib/auth/device-session';
+import { hasStaffPasswordFlowCookie } from '@/lib/auth/staff-password-intent';
 
 export type AppRole = Database['public']['Enums']['app_role'];
 
@@ -112,6 +113,7 @@ export async function getRawAuthContext(): Promise<CurrentAuthContext | null> {
 }
 
 export async function getCurrentAuthContext(): Promise<CurrentAuthContext | null> {
+  if (hasStaffPasswordFlowCookie()) return null;
   const context = await getRawAuthContext();
   if (!context) return null;
   if (context.profile.role !== 'staff' && !isAppUnlocked(context.user.id)) return null;

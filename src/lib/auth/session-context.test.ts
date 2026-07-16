@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   createServerClient: vi.fn(),
   createAdminClient: vi.fn(),
+  hasPasswordFlow: vi.fn(),
 }));
 
 vi.mock('@/lib/supabase', () => ({
@@ -12,8 +13,11 @@ vi.mock('@/lib/supabase', () => ({
 vi.mock('@/lib/auth/device-session', () => ({
   isAppUnlocked: vi.fn(() => true),
 }));
+vi.mock('@/lib/auth/staff-password-intent', () => ({
+  hasStaffPasswordFlowCookie: mocks.hasPasswordFlow,
+}));
 
-import { getRawAuthContext } from './session';
+import { getCurrentAuthContext, getRawAuthContext } from './session';
 
 function query(result: unknown) {
   const chain: Record<string, ReturnType<typeof vi.fn>> = {};
@@ -27,6 +31,7 @@ function query(result: unknown) {
 describe('staff session organization boundary', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.hasPasswordFlow.mockReturnValue(false);
     mocks.createServerClient.mockReturnValue({
       auth: {
         getUser: vi.fn().mockResolvedValue({
@@ -81,5 +86,11 @@ describe('staff session organization boundary', () => {
     });
 
     expect((await getRawAuthContext())?.staff).toBeNull();
+  });
+
+  it('blocks ordinary application authorization while a callback flow cookie exists', async () => {
+    mocks.hasPasswordFlow.mockReturnValue(true);
+    await expect(getCurrentAuthContext()).resolves.toBeNull();
+    expect(mocks.createServerClient).not.toHaveBeenCalled();
   });
 });
