@@ -30,6 +30,10 @@ function createOperations(overrides: Partial<StaffAuthOperations> = {}): StaffAu
       email: 'staff@example.com',
       is_active: true,
     })),
+    getAuthUser: vi.fn(async () => ({
+      id: 'auth-1',
+      email: 'staff@example.com',
+    })),
     findProfilesByEmail: vi.fn(async () => []),
     findStaffByEmail: vi.fn(async () => [{ id: staffId, auth_user_id: null }]),
     inviteAuthUser: vi.fn(async () => ({ id: 'auth-1' })),
@@ -37,7 +41,7 @@ function createOperations(overrides: Partial<StaffAuthOperations> = {}): StaffAu
     linkStaff: vi.fn(async () => true),
     deleteAuthUser: vi.fn(async () => true),
     sendPasswordReset: vi.fn(async () => true),
-    writeAuditLog: vi.fn(async () => undefined),
+    writeAuditLog: vi.fn(async () => true),
     ...overrides,
   };
 }
@@ -68,6 +72,7 @@ describe('staff invitation and linking', () => {
       staffId,
       organizationId,
       authUserId: 'auth-1',
+      expectedStaffEmail: ' Staff@Example.com ',
     });
     expect(operations.deleteAuthUser).not.toHaveBeenCalled();
   });
@@ -175,6 +180,23 @@ describe('staff invitation and linking', () => {
     expect(operations.writeAuditLog).not.toHaveBeenCalled();
   });
 
+  it('fails linking when the staff email changes after the invitation starts', async () => {
+    let currentStaffEmail = ' Staff@Example.com ';
+    const operations = createOperations({
+      inviteAuthUser: vi.fn(async () => {
+        currentStaffEmail = 'changed@example.com';
+        return { id: 'auth-1' };
+      }),
+      linkStaff: vi.fn(async ({ expectedStaffEmail }) => (
+        expectedStaffEmail === currentStaffEmail
+      )),
+    });
+
+    await expect(invite(operations)).resolves.toEqual({ ok: false, code: 'link_failed' });
+    expect(operations.deleteAuthUser).toHaveBeenCalledWith('auth-1');
+    expect(operations.writeAuditLog).not.toHaveBeenCalled();
+  });
+
   it('reports a cleanup failure when a partially created Auth user remains', async () => {
     const operations = createOperations({
       createStaffProfile: vi.fn(async () => false),
@@ -183,6 +205,19 @@ describe('staff invitation and linking', () => {
 
     await expect(invite(operations)).resolves.toEqual({ ok: false, code: 'cleanup_failed' });
     expect(operations.deleteAuthUser).toHaveBeenCalledWith('auth-1');
+  });
+
+  it.each([
+    ['returns a partial success when the audit insert reports failure', vi.fn(async () => false)],
+    ['returns a partial success when the audit insert throws', vi.fn(async () => {
+      throw new Error('audit unavailable');
+    })],
+  ])('%s', async (_description, writeAuditLog) => {
+    const operations = createOperations({ writeAuditLog });
+
+    await expect(invite(operations)).resolves.toEqual({ ok: false, code: 'invite_audit_failed' });
+    expect(operations.inviteAuthUser).toHaveBeenCalled();
+    expect(operations.linkStaff).toHaveBeenCalled();
   });
 });
 
@@ -236,6 +271,61 @@ describe('staff password reset', () => {
       operations,
     })).resolves.toEqual({ ok: false, code: 'wrong_role' });
     expect(operations.sendPasswordReset).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['a missing Auth user', null],
+    ['an Auth user with a different ID', { id: 'auth-2', email: 'staff@example.com' }],
+    ['an Auth user with a different email', { id: 'auth-1', email: 'other@example.com' }],
+  ])('rejects %s before sending a reset', async (_description, authUser) => {
+    const operations = createOperations({
+      getStaff: vi.fn(async () => ({
+        id: staffId,
+        organization_id: organizationId,
+        auth_user_id: 'auth-1',
+        name: '田中 太郎',
+        email: 'staff@example.com',
+        is_active: true,
+      })),
+      getAuthUser: vi.fn(async () => authUser),
+    });
+
+    await expect(requestStaffPasswordReset({
+      organizationId,
+      actorUserId,
+      staffId,
+      redirectTo,
+      operations,
+    })).resolves.toEqual({ ok: false, code: 'inconsistent_profile' });
+    expect(operations.sendPasswordReset).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['returns a partial success when the audit insert reports failure', vi.fn(async () => false)],
+    ['returns a partial success when the audit insert throws', vi.fn(async () => {
+      throw new Error('audit unavailable');
+    })],
+  ])('%s', async (_description, writeAuditLog) => {
+    const operations = createOperations({
+      getStaff: vi.fn(async () => ({
+        id: staffId,
+        organization_id: organizationId,
+        auth_user_id: 'auth-1',
+        name: '田中 太郎',
+        email: 'staff@example.com',
+        is_active: true,
+      })),
+      writeAuditLog,
+    });
+
+    await expect(requestStaffPasswordReset({
+      organizationId,
+      actorUserId,
+      staffId,
+      redirectTo,
+      operations,
+    })).resolves.toEqual({ ok: false, code: 'reset_audit_failed' });
+    expect(operations.sendPasswordReset).toHaveBeenCalledWith('staff@example.com', redirectTo);
   });
 });
 

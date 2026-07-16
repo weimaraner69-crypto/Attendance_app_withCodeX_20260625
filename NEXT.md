@@ -155,6 +155,14 @@
 - [x] intent発行をadvisory lock付きDB関数と未消費ユーザー部分一意索引で原子化する。
 - [x] `staff`/`user_profiles` のAuthユーザー・組織一致をDB制約とstaff本人参照RLSの両方で固定する。
 - [x] 無効、他組織、ロール不一致、重複、期限切れ/再利用、通常ログインセッションで設定権限がない境界の回帰テストを追加する。
+- [x] Issue #16: A-001スタッフAuth運用のフォローアップを完了する。
+  - [x] Auth紐付け済みスタッフのメールをUIとサーバー処理の両方で変更不可にする。
+  - [x] 招待・再設定メール送信後の監査ログ失敗を検出し、主処理成功・監査失敗の部分成功として表示する。
+  - [x] 招待・再設定ボタンのaccessible nameへ対象スタッフ名を含め、結果を成功時`status`、失敗・部分成功時`alert`で通知する。
+  - 受入条件: 直接POSTでも紐付け済みメールが変化せず、監査insertのerror/例外が部分成功コードになり、アクセシビリティ属性を自動テストで確認できる。
+  - 検証: `npm test`、`npm run lint`、`npm run build`、`python3 ci/policy_check.py`、`git diff --check`。
+  - Runtime smoke: スタッフAuth結果コンポーネントをSSR描画し、成功/警告/失敗のroleと対象者付き操作名を確認する。実メール送信は本番運用工程として行わない。
+  - 2026-07-16: Python 37件、Vitest 97件、policy、lint、build、SSR runtime smoke、`git diff --check` が成功。独立pre-PRレビューのMust/Shouldを解消済み。push後独立レビューとCIを完了後にIssueをクローズする。
 - 招待と受諾画面を別PRにすると送信済みメールが行き止まりになるため、テスト・運用記録を含む1PRに統合した。
 - 2026-07-16: 独立Codexレビュー3件、全GitHub Actions成功、未解決レビュー0件を確認し、PR #15を `main` へマージ済み。Issue #13のコード実装スコープは完了した。
 - [ ] ステージング/本番反映前に `20260716034432_secure_staff_password_intents.sql` を適用し、Supabase AuthのSite URL・Redirect URLsを設定し、`supabase/templates/invite.html` と `recovery.html` をEmail Templatesへ反映して、実メールで初回設定・再設定を確認する。本番運用作業のため今回は未実施。

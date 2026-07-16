@@ -63,6 +63,7 @@ Git、Issue、Pull Request、チャット、ログへ値を貼り付けません
 ### レベル2: アプリ内に残すべき運用ログ
 
 - `audit_logs`: 打刻修正、承認/却下、LINE連携/解除など重要操作。
+- スタッフ招待・再設定で「メール送信済み・監査ログ保存失敗」の警告が表示された場合、同じメールを再送する前に対象スタッフのAuth紐付け状態と同時刻帯のDBエラーを確認し、監査欠落を運用記録へ残す。メール本文、Auth UUID、トークンは記録しない。
 - `notifications.line_delivery_status`: LINE Push送信の `pending` / `delivered` / `failed`。
 - `external_api_access_logs`: 日報アプリ向け外部APIのキーID、パス、HTTP状態、実行時刻。APIキー、クエリ文字列、本文は記録しない。429はキー・パス・固定1分窓ごとに1行へ集約する。
 

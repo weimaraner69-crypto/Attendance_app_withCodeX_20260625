@@ -5,6 +5,28 @@
 
 ---
 
+## [2026-07-16] A-001スタッフAuth運用とアクセシビリティを改善
+
+### 変更
+
+- Auth紐付け済みスタッフのメールを読み取り専用表示にし、直接POSTでも現在メールと`auth_user_id`が一致する場合だけ他項目を更新する二重防御を追加。
+- 招待開始後のメール変更を楽観ロックで検出し、古いメールで作成したAuthユーザーを紐付けず補償削除するように変更。
+- パスワード再設定前にSupabase Authの実ユーザーID・メールまで照合し、未紐付けメールの作成・更新時には既存profileと同一組織staffの重複を拒否。
+- 招待・再設定メールの送信後に監査ログinsertがerrorまたは例外になった場合、送信失敗と混同せず専用の部分成功状態を返すように変更。
+- 招待・再設定ボタンのaccessible nameへ対象スタッフ名を追加し、成功結果を`role=status`、失敗・部分成功を`role=alert`で通知。
+- 純粋関数とReact SSRで、メール不変条件、招待競合、Auth実体不一致、監査失敗、read-only表示、live regionを回帰テストへ固定。
+
+### 影響ファイル
+
+- `src/app/(authenticated)/owner/staff/page.tsx`
+- `src/lib/auth/staff-auth.ts`
+- `src/lib/auth/staff-email-update.ts`
+- `src/components/staff/StaffAuthStatus.tsx`
+- `src/components/staff/StaffEmailInput.tsx`
+- `docs/specs/issue-16-staff-auth-followups.md`
+- `NEXT.md`
+- `FINISHED.md`
+
 ## [2026-07-16] A-000 外部APIのレート制限とアクセスログを実装
 
 ### 追加
