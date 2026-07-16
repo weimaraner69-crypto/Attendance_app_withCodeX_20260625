@@ -328,6 +328,7 @@ export type Database = {
         key_id: string;
         endpoint: string;
         status_code: number;
+        rate_limit_window_started_at: Timestamp | null;
         at: Timestamp;
       }>;
     };

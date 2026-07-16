@@ -5,6 +5,7 @@ export type ExternalApiErrorCode =
   | 'INVALID_DATE_RANGE'
   | 'UNAUTHENTICATED'
   | 'FORBIDDEN'
+  | 'METHOD_NOT_ALLOWED'
   | 'NOT_FOUND'
   | 'RATE_LIMITED'
   | 'INTERNAL_ERROR';

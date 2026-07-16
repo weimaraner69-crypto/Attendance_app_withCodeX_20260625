@@ -1,0 +1,202 @@
+{
+  "schema_version": 2,
+  "phase": "post_push",
+  "provider": "codex",
+  "reviewer_id": "codex-full-repo-019f6996",
+  "review_session_id": "019f6996-4f82-77c0-a6ca-a1d075444589",
+  "implementation_session_id": "codex-main-pr19-20260716",
+  "head_sha": "897a9491dfa76685e2f0bd8ab341a03e1144d9d7",
+  "diff_fingerprint": "sha256:0863215670fc73313feed8dda3acd8201de61cd5153e8bef50d0129c0c5facc8",
+  "risk_tier": "red",
+  "round": 1,
+  "review_status": "completed",
+  "secondary_verification": {
+    "required": true,
+    "method": "dedicated_tests",
+    "status": "passed",
+    "evidence": "Python 37 tests, Vitest 72 tests, policy, lint, build, fresh PostgreSQL migration and boundary tests, and 61-request concurrency tests passed after the fixes.",
+    "commands": [
+      {
+        "command": "python3 -m unittest ci.test_policy_check ci.test_supabase_advisor_migrations",
+        "exit_code": 0,
+        "summary": "37 tests passed",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "python3 ci/policy_check.py",
+        "exit_code": 0,
+        "summary": "Policy check passed",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "npm test",
+        "exit_code": 0,
+        "summary": "72 tests passed",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "npm run lint",
+        "exit_code": 0,
+        "summary": "No ESLint warnings or errors",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "npm run build",
+        "exit_code": 0,
+        "summary": "Production build completed",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "psql --set ON_ERROR_STOP=1 --file ci/test_external_api_rate_limit_postgres.sql",
+        "exit_code": 0,
+        "summary": "Rate boundary, stale-window, saturation, privilege matrix, and 429 aggregation checks passed",
+        "covered_paths": ["ci/**", "supabase/migrations/**"]
+      },
+      {
+        "command": "bash ci/test_external_api_rate_limit_concurrency.sh",
+        "exit_code": 0,
+        "summary": "61 concurrent requests produced 60 allowed and one denied",
+        "covered_paths": ["ci/**", "supabase/migrations/**"]
+      }
+    ]
+  },
+  "summary": "Round 1 found two Must, three Should, and one Nice issue. The stale-window race, method bypass, log latency, write amplification, ledger drift, and privilege-matrix coverage were all corrected and verified.",
+  "repository_context_mode": "full_repo_agentic",
+  "diff_only_reason": "",
+  "changed_files": [
+    ".github/workflows/ci.yml",
+    "CHANGELOG.md",
+    "FINISHED.md",
+    "NEXT.md",
+    "ci/test_external_api_rate_limit_concurrency.sh",
+    "ci/test_external_api_rate_limit_postgres.sql",
+    "ci/test_staff_auth_postgres.sql",
+    "ci/test_supabase_advisor_migrations.py",
+    "docs/ai/decision-ledger.md",
+    "docs/ai/execution-ledger.md",
+    "docs/ai/pre-pr-critical-review.md",
+    "docs/implementation-decisions.md",
+    "docs/integrations/attendance-api-spec.md",
+    "docs/operations-maintenance.md",
+    "src/app/api/external/v1/attendance/route.ts",
+    "src/app/api/external/v1/health/route.ts",
+    "src/app/api/external/v1/staff/route.ts",
+    "src/app/api/external/v1/stores/route.ts",
+    "src/lib/external-api/request.test.ts",
+    "src/lib/external-api/request.ts",
+    "src/lib/external-api/routes.test.ts",
+    "src/lib/supabase/database.types.ts",
+    "supabase/migrations/20260716055206_external_api_rate_limit_access_logs.sql"
+  ],
+  "related_files": [
+    {
+      "path": "src/lib/external-api/auth.ts",
+      "reason": "API key authentication, organization loading, and last-used write order"
+    },
+    {
+      "path": "src/lib/external-api/request.ts",
+      "reason": "Shared rate limiting, access logging, and method guard"
+    },
+    {
+      "path": "supabase/migrations/20260716055206_external_api_rate_limit_access_logs.sql",
+      "reason": "Atomic counter and server-only access-log database contract"
+    },
+    {
+      "path": "ci/test_external_api_rate_limit_postgres.sql",
+      "reason": "Real PostgreSQL boundary and authorization verification"
+    },
+    {
+      "path": "SECURITY.md",
+      "reason": "Repository secret-handling authority"
+    },
+    {
+      "path": ".github/instructions/review-loop.instructions.md",
+      "reason": "Independent review and evidence authority"
+    }
+  ],
+  "scanned_paths": [".github", "ai", "ci", "docs", "src", "supabase"],
+  "commands_run": [
+    {
+      "command": "full repository review of the PR diff and relevant API, SQL, CI, and operations paths",
+      "exit_code": 0,
+      "summary": "Traced concurrency, authorization, method handling, logging, and operational state"
+    }
+  ],
+  "context_fingerprint": "git-tree:29bf61e42141429338dc66599598d0bc5bc9da9f",
+  "context_budget": {
+    "max_related_files": 40,
+    "max_context_chars": 180000,
+    "max_file_excerpt_chars": 12000,
+    "max_context_commands": 12
+  },
+  "context_truncated": false,
+  "context_truncated_reason": "",
+  "issues": [
+    {
+      "severity": "Must",
+      "category": "rate-limit-window-concurrency",
+      "file": "supabase/migrations/20260716055206_external_api_rate_limit_access_logs.sql",
+      "line": 79,
+      "rationale": "A delayed old-window call could overwrite a newer fixed window and reset its counter.",
+      "fix": "Only advance the window when the candidate is newer and keep stale calls on the current window.",
+      "confidence": 0.99,
+      "disposition": "fixed",
+      "disposition_reason": "The upsert now compares windows with a strict greater-than condition; PostgreSQL regression tests prove a stale call cannot roll the current window back."
+    },
+    {
+      "severity": "Must",
+      "category": "http-method-guard-bypass",
+      "file": "src/app/api/external/v1/health/route.ts",
+      "line": 8,
+      "rationale": "Unsupported methods and framework-provided HEAD or OPTIONS behavior could bypass the shared authentication, rate-limit, and logging guard.",
+      "fix": "Export explicit guarded handlers for HEAD and every unsupported method on all external API routes.",
+      "confidence": 0.99,
+      "disposition": "fixed",
+      "disposition_reason": "All four routes now send HEAD through guarded GET and DELETE, OPTIONS, PATCH, POST, and PUT through a guarded 405 response; route and production-build checks passed."
+    },
+    {
+      "severity": "Should",
+      "category": "access-log-latency",
+      "file": "src/lib/external-api/request.ts",
+      "line": 38,
+      "rationale": "Awaiting the best-effort access-log query without a deadline could delay every API response indefinitely.",
+      "fix": "Bound the logging wait and preserve the original API response on timeout.",
+      "confidence": 0.98,
+      "disposition": "fixed",
+      "disposition_reason": "Access-log waiting is capped at 250ms with a regression test for a never-resolving query."
+    },
+    {
+      "severity": "Should",
+      "category": "rate-limit-write-amplification",
+      "file": "src/lib/external-api/request.ts",
+      "line": 101,
+      "rationale": "Organization lookup, last-used updates, unbounded counter updates, and one log row per denied request amplified database writes after the limit was exceeded.",
+      "fix": "Reject before organization loading, saturate the counter, and aggregate 429 logs per key, endpoint, and window.",
+      "confidence": 0.98,
+      "disposition": "fixed",
+      "disposition_reason": "The counter saturates at 61, 429 returns before organization and last-used operations, and a unique window key aggregates denied logs."
+    },
+    {
+      "severity": "Should",
+      "category": "execution-ledger-drift",
+      "file": "docs/ai/execution-ledger.md",
+      "line": 25,
+      "rationale": "The ledger still described PR creation as the next task even though PR 19 and Round 1 review already existed.",
+      "fix": "Record the active PR, review baseline, dispositions, validation, and next review round.",
+      "confidence": 0.99,
+      "disposition": "fixed",
+      "disposition_reason": "The latest ledger entry now records PR 19, the Noether baseline, all Round 1 fixes, completed validation, and the Round 2 transition."
+    },
+    {
+      "severity": "Nice",
+      "category": "database-permission-coverage",
+      "file": "ci/test_external_api_rate_limit_postgres.sql",
+      "line": 26,
+      "rationale": "The database test sampled only a subset of anon and authenticated table, sequence, and RPC privileges.",
+      "fix": "Exercise the complete role and operation matrix for both server-only tables, the identity sequence, and the RPC.",
+      "confidence": 0.97,
+      "disposition": "fixed",
+      "disposition_reason": "The PostgreSQL test now checks SELECT, INSERT, UPDATE, and DELETE for both roles and tables plus sequence and RPC privileges."
+    }
+  ]
+}

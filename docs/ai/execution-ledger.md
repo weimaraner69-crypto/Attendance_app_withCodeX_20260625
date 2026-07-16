@@ -22,8 +22,9 @@
 - 現在の mode: `daily_development`（Issue #7実装）
 - active branch: `feat/issue-7-external-api-rate-limit`
 - 直近完了 PR: PR #18（PR #15完了記録整合）を独立レビュー、全CI成功、未解決レビュー0件で `main` へマージし、Issue #13をcompletedでクローズ済み
-- 現在タスク: APIキー単位60 req/minの原子的レート制限、全応答ヘッダー、429、service role限定アクセスログ、専用回帰テストを実装する
-- 次タスク: 全品質ゲート、独立repo-aware review、PR作成・レビュー完了後にIssue #16へ進む
+- 現在タスク: PR #19の独立Round 1レビュー5件を全て反映し、Python 37件、Vitest 72件、policy、lint、build、空の一時PostgreSQLへの全migration・旧窓・権限・429集約・61並行回帰が成功。修正コミットとpushを行う
+- review baseline: PR #19初回head `897a9491dfa76685e2f0bd8ab341a03e1144d9d7` を独立reviewer Noetherが `full_repo_agentic` で確認し、Must 2件・Should 3件を提示。全件を修正して別reviewer/sessionのRound 2へ進む
+- 次タスク: Round 1修正の全品質ゲート、push、独立Round 2レビューと証跡JSON、CI成功・未解決0件を確認後にIssue #16へ進む
 - レビュー条件: 外部API・migration・workflowを含むred tierとして `full_repo_agentic` 独立レビューと専用PostgreSQL/契約テストによる二重確認を必須とする
 - 安全床: `.env.local`を読まない。秘密情報を表示しない。本番Supabase適用、日報側実接続、本番デプロイ、実店舗データ投入、LINE本番設定、Go-Liveは対象外
 - 最終更新: 2026-07-16

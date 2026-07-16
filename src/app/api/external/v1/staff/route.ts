@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 
 import { parseBooleanParam, parseUuidParam } from '@/lib/external-api/params';
-import { withExternalApiRequest } from '@/lib/external-api/request';
+import {
+  externalApiMethodNotAllowed,
+  withExternalApiRequest,
+} from '@/lib/external-api/request';
 import { externalApiError, internalError } from '@/lib/external-api/responses';
 
 export const dynamic = 'force-dynamic';
@@ -62,3 +65,16 @@ export async function GET(request: Request) {
     });
   });
 }
+
+export async function HEAD(request: Request) {
+  const response = await GET(request);
+  return new Response(null, { status: response.status, headers: response.headers });
+}
+
+export {
+  externalApiMethodNotAllowed as DELETE,
+  externalApiMethodNotAllowed as OPTIONS,
+  externalApiMethodNotAllowed as PATCH,
+  externalApiMethodNotAllowed as POST,
+  externalApiMethodNotAllowed as PUT,
+};

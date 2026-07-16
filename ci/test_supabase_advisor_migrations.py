@@ -196,7 +196,18 @@ class ExternalApiRateLimitMigrationTest(TestCase):
 
         self.assertIn("create table public.external_api_rate_limit_windows", migration)
         self.assertIn("on conflict (key_id) do update", migration)
-        self.assertIn("public.external_api_rate_limit_windows.request_count + 1", migration)
+        self.assertIn(
+            "least(public.external_api_rate_limit_windows.request_count + 1, 61)",
+            migration,
+        )
+        self.assertIn(
+            "excluded.window_started_at > public.external_api_rate_limit_windows.window_started_at",
+            migration,
+        )
+        self.assertIn(
+            "public.external_api_rate_limit_windows.request_count < 61",
+            migration,
+        )
         self.assertIn("create or replace function public.consume_external_api_rate_limit", migration)
         self.assertIn("security definer", migration)
         self.assertIn("set search_path = ''", migration)
@@ -215,6 +226,10 @@ class ExternalApiRateLimitMigrationTest(TestCase):
         self.assertIn("at timestamptz not null default now()", migration)
         self.assertIn("idx_external_api_access_logs_key_at", migration)
         self.assertIn("idx_external_api_access_logs_at", migration)
+        self.assertIn(
+            "idx_external_api_access_logs_rate_limited_window",
+            migration,
+        )
         self.assertIn("enable row level security", migration)
         self.assertIn(
             "revoke all on public.external_api_access_logs from public, anon, authenticated;",

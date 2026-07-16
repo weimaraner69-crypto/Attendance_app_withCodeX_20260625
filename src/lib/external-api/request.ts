@@ -1,8 +1,9 @@
-import type { ExternalApiContext } from './auth';
-import { authenticateExternalApiRequest } from './auth';
+import type { ExternalApiContext, ExternalApiKeyContext } from './auth';
+import { authenticateExternalApiRequest, loadExternalApiContext } from './auth';
 import { externalApiError, internalError } from './responses';
 
 const RATE_LIMIT = 60;
+const ACCESS_LOG_TIMEOUT_MS = 250;
 
 type RateLimitState = {
   limit: number;
@@ -35,29 +36,51 @@ function applyRateLimitHeaders(response: Response, state: RateLimitState) {
 }
 
 async function recordExternalApiAccess(
-  context: ExternalApiContext,
+  context: ExternalApiKeyContext,
   endpoint: string,
-  statusCode: number
+  statusCode: number,
+  rateLimit: RateLimitState
 ) {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
   try {
-    await context.supabase.from('external_api_access_logs').insert({
+    const entry = {
       key_id: context.apiKey.id,
       endpoint,
       status_code: statusCode,
-    });
+      rate_limit_window_started_at:
+        statusCode === 429
+          ? new Date(new Date(rateLimit.resetAt).getTime() - 60_000).toISOString()
+          : null,
+    };
+    const query =
+      statusCode === 429
+        ? context.supabase.from('external_api_access_logs').upsert(entry, {
+            onConflict: 'key_id,endpoint,status_code,rate_limit_window_started_at',
+            ignoreDuplicates: true,
+          })
+        : context.supabase.from('external_api_access_logs').insert(entry);
+
+    await Promise.race([
+      query,
+      new Promise<void>((resolve) => {
+        timeoutId = setTimeout(resolve, ACCESS_LOG_TIMEOUT_MS);
+      }),
+    ]);
   } catch {
     // Access logging is best-effort and must not replace the API response.
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
   }
 }
 
 async function finalizeResponse(
-  context: ExternalApiContext,
+  context: ExternalApiKeyContext,
   endpoint: string,
   response: Response,
   rateLimit: RateLimitState
 ) {
   applyRateLimitHeaders(response, rateLimit);
-  await recordExternalApiAccess(context, endpoint, response.status);
+  await recordExternalApiAccess(context, endpoint, response.status, rateLimit);
   return response;
 }
 
@@ -75,18 +98,18 @@ export async function withExternalApiRequest(
 
   if (!auth.ok) return applyRateLimitHeaders(auth.response, fallback);
 
-  const { context } = auth;
+  const keyContext = auth.context;
   const endpoint = new URL(request.url).pathname;
 
   try {
-    const { data, error } = await context.supabase.rpc(
+    const { data, error } = await keyContext.supabase.rpc(
       'consume_external_api_rate_limit',
-      { p_key_id: context.apiKey.id }
+      { p_key_id: keyContext.apiKey.id }
     );
     const rateLimitRow = data?.[0];
 
     if (error || !rateLimitRow) {
-      return finalizeResponse(context, endpoint, internalError(), fallback);
+      return finalizeResponse(keyContext, endpoint, internalError(), fallback);
     }
 
     const rateLimit: RateLimitState = {
@@ -97,22 +120,39 @@ export async function withExternalApiRequest(
 
     if (!rateLimitRow.allowed) {
       return finalizeResponse(
-        context,
+        keyContext,
         endpoint,
         externalApiError(429, 'RATE_LIMITED', 'レート制限を超過しました'),
         rateLimit
       );
     }
 
+    const loaded = await loadExternalApiContext(keyContext);
+    if (!loaded.ok) {
+      return finalizeResponse(keyContext, endpoint, loaded.response, rateLimit);
+    }
+
     let response: Response;
     try {
-      response = await handler(context);
+      response = await handler(loaded.context);
     } catch {
       response = internalError();
     }
 
-    return finalizeResponse(context, endpoint, response, rateLimit);
+    return finalizeResponse(keyContext, endpoint, response, rateLimit);
   } catch {
-    return finalizeResponse(context, endpoint, internalError(), fallback);
+    return finalizeResponse(keyContext, endpoint, internalError(), fallback);
   }
+}
+
+export function externalApiMethodNotAllowed(request: Request) {
+  return withExternalApiRequest(request, async () => {
+    const response = externalApiError(
+      405,
+      'METHOD_NOT_ALLOWED',
+      'このHTTPメソッドは利用できません'
+    );
+    response.headers.set('Allow', 'GET, HEAD');
+    return response;
+  });
 }

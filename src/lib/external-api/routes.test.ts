@@ -1,15 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { withExternalApiRequestMock } = vi.hoisted(() => ({
+const { externalApiMethodNotAllowedMock, withExternalApiRequestMock } = vi.hoisted(() => ({
+  externalApiMethodNotAllowedMock: vi.fn(),
   withExternalApiRequestMock: vi.fn(),
 }));
 
 vi.mock('@/lib/external-api/request', () => ({
+  externalApiMethodNotAllowed: externalApiMethodNotAllowedMock,
   withExternalApiRequest: withExternalApiRequestMock,
 }));
 
 import { GET as getAttendance } from '@/app/api/external/v1/attendance/route';
-import { GET as getHealth } from '@/app/api/external/v1/health/route';
+import {
+  GET as getHealth,
+  HEAD as headHealth,
+  OPTIONS as optionsHealth,
+  POST as postHealth,
+} from '@/app/api/external/v1/health/route';
 
 const organization = {
   id: '11111111-1111-4111-8111-111111111111',
@@ -44,6 +51,12 @@ function chainWithResult(result: unknown) {
 
 describe('Phase 1 external API contracts', () => {
   beforeEach(() => {
+    externalApiMethodNotAllowedMock.mockReset();
+    externalApiMethodNotAllowedMock.mockImplementation(async () => {
+      const response = new Response('method not allowed', { status: 405 });
+      response.headers.set('Allow', 'GET, HEAD');
+      return response;
+    });
     withExternalApiRequestMock.mockReset();
   });
 
@@ -63,6 +76,32 @@ describe('Phase 1 external API contracts', () => {
     });
     expect(Object.keys(body).sort()).toEqual(['api_key', 'ok', 'organization', 'server_time']);
     expect(new Date(body.server_time).toISOString()).toBe(body.server_time);
+  });
+
+  it('routes HEAD through the guarded GET handler without a body', async () => {
+    authenticatedContext({});
+
+    const response = await headHealth(
+      new Request(`${apiOrigin}/api/external/v1/health`, { method: 'HEAD' })
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe('');
+    expect(withExternalApiRequestMock).toHaveBeenCalledOnce();
+  });
+
+  it('routes POST and OPTIONS through the guarded method rejection', async () => {
+    const postResponse = await postHealth(
+      new Request(`${apiOrigin}/api/external/v1/health`, { method: 'POST' })
+    );
+    const optionsResponse = await optionsHealth(
+      new Request(`${apiOrigin}/api/external/v1/health`, { method: 'OPTIONS' })
+    );
+
+    expect(postResponse.status).toBe(405);
+    expect(optionsResponse.status).toBe(405);
+    expect(postResponse.headers.get('Allow')).toBe('GET, HEAD');
+    expect(externalApiMethodNotAllowedMock).toHaveBeenCalledTimes(2);
   });
 
   it('returns the canonical error envelope for invalid attendance parameters', async () => {

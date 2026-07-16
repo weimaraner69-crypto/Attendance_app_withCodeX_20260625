@@ -135,11 +135,15 @@ Issue #5, #6, #7 を対象にする。
 
 - 認証済みAPIキーごとに、固定1分窓で60リクエストまで許可する。
 - 61件目以降は `429 RATE_LIMITED` を返し、次の1分窓でカウントをリセットする。
+- カウンターは61で飽和させ、拒否リクエストごとの無制限な更新を行わない。遅延した旧窓のリクエストが到着しても、現在の窓を過去へ巻き戻さない。
 - 正常応答とエラー応答の両方に `X-RateLimit-Limit`、`X-RateLimit-Remaining`、`X-RateLimit-Reset` を返す。
 - `X-RateLimit-Reset` は次の窓開始時刻をUnix秒で返す。
 - APIキーを解決できない認証失敗では、内部状態を推測させないよう `Remaining: 0` のfail-closedヘッダーを返す。
-- APIキー解決後の応答は `external_api_access_logs` に `key_id`、パスだけの `endpoint`、`status_code`、`at` を保存する。クエリ文字列、APIキー、レスポンス本文は保存しない。
-- アクセスログ保存失敗は、本来返すAPIレスポンスのステータス・本文・ヘッダーを置き換えない。
+- 429でないAPIキー解決後の応答は `external_api_access_logs` に `key_id`、パスだけの `endpoint`、`status_code`、`at` を保存する。クエリ文字列、APIキー、レスポンス本文は保存しない。
+- 429はキー・パス・固定1分窓ごとに1行へ集約し、拒否リクエスト連打によるログ増幅を抑える。
+- アクセスログ保存は最大250msだけ待つbest-effort処理とし、失敗や遅延で本来返すAPIレスポンスのステータス・本文・ヘッダーを置き換えない。
+- 組織取得と `external_api_keys.last_used_at` 更新はレート制限通過後だけ行い、429応答では実行しない。
+- `GET` と `HEAD` 以外のHTTPメソッドは、認証・レート制限・アクセスログを通したうえで `405 METHOD_NOT_ALLOWED` と `Allow: GET, HEAD` を返す。
 - レートカウンター、アクセスログ、カウンター更新RPCはRLSと権限剥奪でサーバーの `service_role` だけに限定する。
 
 ## 認証
@@ -188,6 +192,7 @@ create table public.external_api_keys (
 | 401 | `UNAUTHENTICATED` | APIキーなし、無効、期限切れ |
 | 403 | `FORBIDDEN` | スコープ不足、無効化済み |
 | 404 | `NOT_FOUND` | 指定リソースなし |
+| 405 | `METHOD_NOT_ALLOWED` | `GET` / `HEAD` 以外のHTTPメソッド |
 | 429 | `RATE_LIMITED` | レート制限超過 |
 | 500 | `INTERNAL_ERROR` | サーバー内部エラー |
 
