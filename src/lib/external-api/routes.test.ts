@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { authenticateExternalApiRequestMock } = vi.hoisted(() => ({
-  authenticateExternalApiRequestMock: vi.fn(),
+const { withExternalApiRequestMock } = vi.hoisted(() => ({
+  withExternalApiRequestMock: vi.fn(),
 }));
 
-vi.mock('@/lib/external-api/auth', () => ({
-  authenticateExternalApiRequest: authenticateExternalApiRequestMock,
+vi.mock('@/lib/external-api/request', () => ({
+  withExternalApiRequest: withExternalApiRequestMock,
 }));
 
 import { GET as getAttendance } from '@/app/api/external/v1/attendance/route';
@@ -26,10 +26,10 @@ const apiKey = {
 const apiOrigin = ['https:', '', 'attendance.example'].join('/');
 
 function authenticatedContext(supabase: unknown) {
-  authenticateExternalApiRequestMock.mockResolvedValue({
-    ok: true,
-    context: { supabase, organization, apiKey },
-  });
+  withExternalApiRequestMock.mockImplementation(
+    async (_request: Request, handler: (context: unknown) => Promise<Response>) =>
+      handler({ supabase, organization, apiKey })
+  );
 }
 
 function chainWithResult(result: unknown) {
@@ -44,7 +44,7 @@ function chainWithResult(result: unknown) {
 
 describe('Phase 1 external API contracts', () => {
   beforeEach(() => {
-    authenticateExternalApiRequestMock.mockReset();
+    withExternalApiRequestMock.mockReset();
   });
 
   it('keeps the health response shape stable', async () => {

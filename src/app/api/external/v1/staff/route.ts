@@ -1,16 +1,13 @@
 import { NextResponse } from 'next/server';
 
-import { authenticateExternalApiRequest } from '@/lib/external-api/auth';
 import { parseBooleanParam, parseUuidParam } from '@/lib/external-api/params';
+import { withExternalApiRequest } from '@/lib/external-api/request';
 import { externalApiError, internalError } from '@/lib/external-api/responses';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
-  try {
-    const auth = await authenticateExternalApiRequest(request);
-    if (!auth.ok) return auth.response;
-
+  return withExternalApiRequest(request, async ({ supabase, organization }) => {
     const url = new URL(request.url);
     const isActive = parseBooleanParam(url.searchParams.get('is_active'), true);
     if (!isActive.ok) return isActive.response;
@@ -24,8 +21,6 @@ export async function GET(request: Request) {
         updated_since: updatedSince,
       });
     }
-
-    const { supabase, organization } = auth.context;
 
     let staffIds: string[] | null = null;
     if (storeId.value) {
@@ -65,7 +60,5 @@ export async function GET(request: Request) {
       staff: data ?? [],
       count: data?.length ?? 0,
     });
-  } catch {
-    return internalError();
-  }
+  });
 }

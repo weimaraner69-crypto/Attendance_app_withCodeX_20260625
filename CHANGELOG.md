@@ -5,6 +5,28 @@
 
 ---
 
+## [2026-07-16] A-000 外部APIのレート制限とアクセスログを実装
+
+### 追加
+
+- APIキー単位で固定1分窓60件を原子的に数えるPostgreSQL関数とサーバー専用カウンターテーブルを追加。
+- 正常・エラー・429・例外へ共通レート制限ヘッダーを付与し、61件目以降を `429 RATE_LIMITED` で拒否するリクエストラッパーを追加。
+- APIキー解決後の応答について、キーID、エンドポイントのパス、HTTP状態、時刻だけを保存する `external_api_access_logs` を追加。
+- ログ保存失敗でAPI本体を壊さない回帰テスト、実PostgreSQLの境界・権限・並行更新テストを追加。
+- pre-PRレビュー指摘を受け、認証処理自体の例外も制御済み500とfail-closedヘッダーへ統一し、並行テストを61件の許可60・拒否1の直接確認へ強化。
+
+### 影響ファイル
+
+- `supabase/migrations/20260716055206_external_api_rate_limit_access_logs.sql`
+- `src/lib/external-api/request.ts`
+- `src/app/api/external/v1/**/route.ts`
+- `ci/test_external_api_rate_limit_postgres.sql`
+- `ci/test_external_api_rate_limit_concurrency.sh`
+- `.github/workflows/ci.yml`
+- `docs/integrations/attendance-api-spec.md`
+- `NEXT.md`
+- `FINISHED.md`
+
 ## [2026-07-16] PR #15の完了状態と次の実行順を同期
 
 ### 変更

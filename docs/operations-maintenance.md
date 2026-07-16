@@ -46,6 +46,7 @@ Git、Issue、Pull Request、チャット、ログへ値を貼り付けません
 - `docs/supabase-setup.md`、`docs/line-setup.md` の未完了手順が残っていない。
 - `/api/internal/supabase/health` が `ok: true` を返す。
 - 外部連携APIを使う場合、APIキーはハッシュ保存し、平文キーは発行直後だけ安全に渡す。
+- 外部連携APIを使う場合、`20260716055206_external_api_rate_limit_access_logs.sql` を適用し、レートヘッダー、61件目の429、`external_api_access_logs` 保存を値非表示で確認する。
 - LINEを使う場合、LINE DevelopersのWebhook検証がHTTP 200になる。
 - スタッフAuthを使う場合、招待と再設定の実メールが `/auth/confirm` の確認POSTで検証された後に `/auth/staff-password` へ到達し、設定前は通常画面と打刻を利用できず、設定後に新しいパスワードで `/stamp/mobile` へログインできる。
 
@@ -63,7 +64,7 @@ Git、Issue、Pull Request、チャット、ログへ値を貼り付けません
 
 - `audit_logs`: 打刻修正、承認/却下、LINE連携/解除など重要操作。
 - `notifications.line_delivery_status`: LINE Push送信の `pending` / `delivered` / `failed`。
-- 将来実装予定の `external_api_access_logs`: 日報アプリ向け外部APIのアクセス記録。
+- `external_api_access_logs`: 日報アプリ向け外部APIのキーID、パス、HTTP状態、実行時刻。APIキー、クエリ文字列、本文は記録しない。
 
 ### レベル3: 導入候補
 

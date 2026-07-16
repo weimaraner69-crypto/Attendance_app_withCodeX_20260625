@@ -80,4 +80,7 @@
 - 外部APIの認証は `X-External-Api-Key` ヘッダによるAPIキー方式とし、APIキーは平文保存しない。
 - Phase 1 は `health`, `stores`, `staff`, `attendance` の読み取りAPIまでを最小リリースとする。
 - `attendance/{id}`, `include_events`, APIキー管理画面、レート制限、APIアクセスログは Phase 2 として扱う。
+- レート制限はAPIキー単位の固定1分窓60件とし、PostgreSQLの原子的upsertを正本にする。アプリプロセス内メモリは、複数インスタンス間で共有できないため使用しない。
+- 認証後の外部API処理は共通ラッパーを通し、正常・エラー・429・例外のすべてへレートヘッダーとアクセスログを一貫して適用する。
+- アクセスログはキーID、パス、HTTP状態、時刻だけを保存し、APIキー、クエリ文字列、本文を保存しない。ログ保存失敗はAPI本体の応答を壊さない。
 - 詳細仕様は `docs/integrations/attendance-api-spec.md` を正とする。

@@ -17,7 +17,18 @@
 
 ## 記録
 
-### 現在状態（2026-07-16 PR #15完了・Issue #7着手準備・最新）
+### 現在状態（2026-07-16 Issue #7レート制限・アクセスログ実装・最新）
+
+- 現在の mode: `daily_development`（Issue #7実装）
+- active branch: `feat/issue-7-external-api-rate-limit`
+- 直近完了 PR: PR #18（PR #15完了記録整合）を独立レビュー、全CI成功、未解決レビュー0件で `main` へマージし、Issue #13をcompletedでクローズ済み
+- 現在タスク: APIキー単位60 req/minの原子的レート制限、全応答ヘッダー、429、service role限定アクセスログ、専用回帰テストを実装する
+- 次タスク: 全品質ゲート、独立repo-aware review、PR作成・レビュー完了後にIssue #16へ進む
+- レビュー条件: 外部API・migration・workflowを含むred tierとして `full_repo_agentic` 独立レビューと専用PostgreSQL/契約テストによる二重確認を必須とする
+- 安全床: `.env.local`を読まない。秘密情報を表示しない。本番Supabase適用、日報側実接続、本番デプロイ、実店舗データ投入、LINE本番設定、Go-Liveは対象外
+- 最終更新: 2026-07-16
+
+### 現在状態（2026-07-16 PR #15完了・Issue #7着手準備・履歴）
 
 - 現在の mode: `daily_development`（PR #15完了同期）
 - active branch: `chore/finalize-pr15-records`

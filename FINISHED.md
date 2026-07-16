@@ -10,6 +10,50 @@
 
 ---
 
+## A-000-7 外部APIのレート制限とアクセスログ
+
+- 実施日: 2026-07-16
+- 種別: 外部API/セキュリティ/監査
+
+### 実施内容
+
+- APIキーごとの固定1分窓をPostgreSQLの原子的upsertで更新し、60件まで許可、61件目以降を拒否するRPCを追加。
+- 全4外部APIを共通リクエストラッパーへ移し、正常・エラー・429・例外にレート制限ヘッダーを付与。
+- APIキー解決後の応答を `external_api_access_logs` へ記録し、ログ障害では本来のAPI応答を維持。
+- カウンター、アクセスログ、RPCをRLS・権限剥奪・service role限定で保護。
+
+### 確認内容
+
+- Vitestで成功、400、429、カウンター障害、ログ障害、認証失敗の応答契約を確認。
+- Python構造テストで原子的upsert、空の `search_path`、service role限定、RLS、索引を確認。
+- ローカル一時PostgreSQLへ全マイグレーションを適用し、60/61件境界、次窓リセット、権限、アクセスログ保存を確認。pre-PRレビュー後は並行テストも61リクエストの許可60件・拒否1件を直接検証するよう強化した。
+- policy check、全Vitest、lint、build、`git diff --check` を実行する。
+- `.env.local` の値は読み取り・表示していない。
+
+### 残作業
+
+- ステージング/本番反映前にマイグレーションを適用し、実環境でヘッダー、429、アクセスログを値非表示で確認する。
+
+### 影響ファイル
+
+- `supabase/migrations/20260716055206_external_api_rate_limit_access_logs.sql`
+- `src/lib/external-api/request.ts`
+- `src/lib/external-api/request.test.ts`
+- `src/app/api/external/v1/health/route.ts`
+- `src/app/api/external/v1/stores/route.ts`
+- `src/app/api/external/v1/staff/route.ts`
+- `src/app/api/external/v1/attendance/route.ts`
+- `ci/test_external_api_rate_limit_postgres.sql`
+- `ci/test_external_api_rate_limit_concurrency.sh`
+- `.github/workflows/ci.yml`
+- `docs/integrations/attendance-api-spec.md`
+- `docs/implementation-decisions.md`
+- `docs/operations-maintenance.md`
+- `NEXT.md`
+- `CHANGELOG.md`
+- `docs/ai/decision-ledger.md`
+- `docs/ai/execution-ledger.md`
+
 ## A-001 スタッフAuth招待・初回設定・再設定
 
 - 実施日: 2026-07-14〜2026-07-16

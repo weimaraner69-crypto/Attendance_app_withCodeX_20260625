@@ -15,6 +15,19 @@ PR 作成前の spec、security、reliability 観点のレビュー結果を記�
 - 残リスク:
 - 結論:
 
+## 2026-07-16 Issue #7 外部APIレート制限・アクセスログ
+
+- 対象: APIキー単位60 req/min、共通レートヘッダー、429、service role限定アクセスログ、PostgreSQL/CI回帰テスト
+- 実施日: 2026-07-16
+- 実施者 / provider: Codex pre-PR reviewer Faraday（push後の独立レビューには算入しない）
+- 確認した文書・差分: Issue #7、外部API契約、共通リクエストラッパー、全4 Route、Supabase migration、database types、Vitest、PostgreSQL/並行テスト、CI workflow、計画・運用文書
+- 実行した検証: Python 37件、Vitest 67件、policy check、lint、build、`git diff --check`、一時PostgreSQLへの全migration適用と60/61境界・次窓・権限・ログ保存・61並行更新
+- 初回Must: 認証処理自体の例外が共通tryの外にあり、制御されない500ではレートヘッダーが欠落する問題。認証例外を `500 INTERNAL_ERROR`、`Limit: 60`、`Remaining: 0` へfail-closeし、拒否テストを追加して解消
+- 初回Should: 並行テストが8件のカウントだけを確認していた問題。61並行呼び出しでrequest count 61、許可60、拒否1を直接確認するよう強化して解消
+- 初回Nice: ログinsertがrejectする場合だけでなく、Supabase標準のresolved `{ error }` を返す場合もAPI本体を維持するテストを追加して解消
+- 残リスク: hosted Supabaseへのマイグレーション適用と実APIキーによるヘッダー・429・ログ確認は、本番運用工程として未実施
+- 結論: Must/Should/Niceを全件解消し、pre-PR reviewerは`APPROVE`。push後は別reviewer/sessionの`full_repo_agentic`独立レビューと専用PostgreSQLテストを必須とする
+
 ## 2026-07-16 PR #15 Round 3 Must再開対応
 
 - 対象: 最新`main`取り込み後のスタッフAuth invite/recovery callback、設定権限、組織境界

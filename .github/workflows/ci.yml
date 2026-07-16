@@ -67,6 +67,16 @@ jobs:
           PGUSER: postgres
           PGDATABASE: attendance_test
 
+      - name: External API PostgreSQL integration tests
+        run: |
+          psql --set ON_ERROR_STOP=1 --file ci/test_external_api_rate_limit_postgres.sql
+          bash ci/test_external_api_rate_limit_concurrency.sh
+        env:
+          PGHOST: localhost
+          PGPORT: 5432
+          PGUSER: postgres
+          PGDATABASE: attendance_test
+
       - name: Policy check
         run: python3 ci/policy_check.py
 

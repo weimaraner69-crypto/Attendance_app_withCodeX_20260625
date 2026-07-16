@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
-import { authenticateExternalApiRequest } from '@/lib/external-api/auth';
 import { parseDateRange, parseUuidParam } from '@/lib/external-api/params';
+import { withExternalApiRequest } from '@/lib/external-api/request';
 import { externalApiError, internalError } from '@/lib/external-api/responses';
 import type { Database } from '@/lib/supabase';
 
@@ -36,10 +36,7 @@ type AttendanceRecordRow = {
 };
 
 export async function GET(request: Request) {
-  try {
-    const auth = await authenticateExternalApiRequest(request);
-    if (!auth.ok) return auth.response;
-
+  return withExternalApiRequest(request, async ({ supabase, organization }) => {
     const url = new URL(request.url);
     const storeId = parseUuidParam('store_id', url.searchParams.get('store_id'), true);
     if (!storeId.ok) return storeId.response;
@@ -68,8 +65,6 @@ export async function GET(request: Request) {
         cursor: cursorParam,
       });
     }
-
-    const { supabase, organization } = auth.context;
 
     const { data: store, error: storeError } = await supabase
       .from('stores')
@@ -142,7 +137,5 @@ export async function GET(request: Request) {
       count: pageRows.length,
       next_cursor: nextCursor,
     });
-  } catch {
-    return internalError();
-  }
+  });
 }
