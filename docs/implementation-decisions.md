@@ -73,6 +73,7 @@
 - Auth紐付け後のスタッフメールは直接変更不可とし、将来Auth・`user_profiles`・`staff`を同期する確認付き変更フローを実装するまで現在値を維持する。UIの読み取り専用表示に加え、サーバー更新も`auth_user_id`と更新開始時メールの一致条件で競合をfail-closeする。
 - 招待時のスタッフ紐付けは、招待開始時に読んだメールがDB上で変わっていない場合だけ許可する。競合時は作成したAuthユーザーを補償削除し、古いメールのAuth/profileをスタッフへ紐付けない。
 - パスワード再設定は、`staff`と`user_profiles`だけでなくSupabase Auth Admin APIの実ユーザーID・メールも一致する場合だけ送信する。未紐付けメールの作成・更新は既存profileと同一組織staffの重複検査をfail-closeで行う。
+- メール重複の整合性はアプリの事前SELECTだけに依存しない。staffの旧・新メールを決定順でadvisory transaction lockし、同じ組織のstaffと全profileを再検査するDB triggerを正本とする。招待profile作成も同じメールロックと対象staff再検査を行うservice role限定RPCへ統一する。
 - 招待・再設定の主処理成功後に監査ログ保存が失敗した場合、メール送信失敗として再試行させず、専用の部分成功状態で完了範囲と運用確認の必要性を表示する。
 - スタッフ別の招待・再設定操作は対象スタッフ名をaccessible nameへ含め、結果は成功を`status`、失敗・部分成功を`alert`として通知する。
 

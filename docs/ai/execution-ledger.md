@@ -22,10 +22,12 @@
 - 現在の mode: `daily_development`（Issue #16実装）
 - active branch: `fix/issue-16-staff-auth-followups`
 - 直近完了 PR: PR #19（外部APIレート制限・アクセスログ）を独立レビュー、全CI、release-manager承認後に `main` へマージし、Issue #7はcompletedでクローズ済み
-- 現在タスク: Auth紐付け済みスタッフのメール不変条件、招待中のメール競合防止、再設定前のAuth実体照合、未紐付けメール重複検査、監査ログ部分成功、対象者付きaccessible nameと結果live regionを実装し、Python 37件、Vitest 97件、policy、lint、build、SSR runtime smoke、diff checkが成功
+- 現在タスク: PR #20 Round 1のMust 1件・Should 2件を修正。DB trigger/RPCでメールclaimを直列化し、実アダプタ、補償削除、実PostgreSQL並行競合を回帰テストへ追加
 - requirements/spec: `README.md`、Issue #16、`docs/specs/issue-16-staff-auth-followups.md`、`docs/implementation-decisions.md` A-001
 - pre-PRレビュー: 独立security/reliability reviewerのMust 3件、Should 2件を確認。フォーム誤認1件は別formで非再現と確認してSSR回帰を追加し、招待競合、Auth実体照合、重複検査、完了証跡を修正。独立completion auditorの全ACはSATISFIEDで、検証証跡とruntime smoke範囲を文書化
-- 次タスク: commit/push、PR作成、push後独立repo-aware review、CIへ進む
+- review baseline: PR #20初回head `cd1c728da0b4806cd52454578a1c9fa76b4e4b26`、fingerprint `sha256:ece59e2dec03b7c253785443cf46867090b08211d511d3c3fcaf4a265846f919` を独立reviewer Ramanが`full_repo_agentic`で確認。Must 1件・Should 2件を全て修正
+- 検証: Python 38件、Vitest 102件、policy、lint、build、全migration PostgreSQL統合、Auth/profile補償削除、メール更新・profile作成並行競合、diff checkが成功
+- 次タスク: Round 1修正をcommit/pushし、新headで別reviewer/sessionのRound 2独立レビューとCIへ進む
 - レビュー条件: 認証・監査境界を含むred tierとして、独立peerとpush後`full_repo_agentic`レビュー、専用回帰テストを必須とする
 - 安全床: `.env.local`を読まない。秘密情報を表示しない。本番Supabase変更、実メール送信、本番デプロイ、日報側実接続は対象外
 - 最終更新: 2026-07-16

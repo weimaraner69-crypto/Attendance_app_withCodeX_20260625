@@ -334,6 +334,16 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      create_staff_profile_with_email_guard: {
+        Args: {
+          p_user_id: string;
+          p_staff_id: string;
+          p_organization_id: string;
+          p_display_name: string;
+          p_email: string;
+        };
+        Returns: boolean;
+      };
       issue_staff_password_intent: {
         Args: {
           p_user_id: string;

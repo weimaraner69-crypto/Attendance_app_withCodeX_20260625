@@ -35,6 +35,7 @@ $$;
 \ir ../supabase/migrations/202607130002_performance_advisor_optimization.sql
 \ir ../supabase/migrations/20260716034432_secure_staff_password_intents.sql
 \ir ../supabase/migrations/20260716055206_external_api_rate_limit_access_logs.sql
+\ir ../supabase/migrations/20260716145718_staff_auth_email_serialization.sql
 
 grant select on
   public.staff,
@@ -294,6 +295,52 @@ begin
       and auth_user_id is not null
   ) then
     raise exception 'Auth deletion did not clear the staff link';
+  end if;
+end;
+$$;
+
+insert into auth.users (id) values
+  ('10000000-0000-0000-0000-000000000005');
+insert into public.staff (
+  id, organization_id, name, email
+) values (
+  '20000000-0000-0000-0000-000000000005',
+  '00000000-0000-0000-0000-000000000001',
+  'Compensation Test',
+  'compensation@example.test'
+);
+
+do $$
+begin
+  if not public.create_staff_profile_with_email_guard(
+    '10000000-0000-0000-0000-000000000005',
+    '20000000-0000-0000-0000-000000000005',
+    '00000000-0000-0000-0000-000000000001',
+    'Compensation Test',
+    'compensation@example.test'
+  ) then
+    raise exception 'serialized profile creation failed';
+  end if;
+end;
+$$;
+
+delete from auth.users
+where id = '10000000-0000-0000-0000-000000000005';
+
+do $$
+begin
+  if exists (
+    select 1 from public.user_profiles
+    where id = '10000000-0000-0000-0000-000000000005'
+  ) then
+    raise exception 'compensation deletion did not remove the staff profile';
+  end if;
+  if not exists (
+    select 1 from public.staff
+    where id = '20000000-0000-0000-0000-000000000005'
+      and auth_user_id is null
+  ) then
+    raise exception 'compensation deletion changed the unlinked staff row';
   end if;
 end;
 $$;

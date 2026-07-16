@@ -34,7 +34,7 @@
 - plan queue entry: `NEXT.md` A-001 Issue #16
 - 受入条件: 紐付け済みメールの二重防御、招待中のメール競合防止、再設定前のAuth実体照合、監査失敗の部分成功、対象者付きaccessible name、結果live region、回帰テストと品質ゲート成功
 - Runtime smoke: 結果・メール入力コンポーネントのSSR出力でrole、accessible name、単一メール入力を確認し、未認証owner routeのlogin遷移をブラウザ確認する
-- 結果: 独立pre-PRレビュー指摘を反映し、コード・文書・ローカル検証完了。push後独立レビューとCI待ち
+- 結果: PR #20 Round 1の原子性・統合テスト・文書整合指摘を修正し、実PostgreSQL並行回帰まで成功。Round 2独立レビューとCI待ち
 
 以下は記入例（架空の一般例）である。運用開始後はこの例を残したまま、実際の意図変換エントリを追記する。
 

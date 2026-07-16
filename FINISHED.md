@@ -10,49 +10,6 @@
 
 ---
 
-## A-001-16 スタッフAuth運用とアクセシビリティの改善
-
-- 実施日: 2026-07-16
-- 種別: 認証/監査/アクセシビリティ
-- GitHub Issue: #16
-
-### 実施内容
-
-- Auth紐付け済みスタッフのメールをUIで読み取り専用にし、サーバー側も現在メールを維持して`auth_user_id`の競合条件付きで更新。
-- 招待開始時のメールを紐付け条件へ含め、途中でメールが変わった場合はAuthユーザーを補償削除して不整合を防止。
-- 再設定前にSupabase Authの実ユーザーを照合し、未紐付けメールの作成・更新時に重複を拒否。
-- 招待・再設定の主処理成功後に監査ログ保存が失敗した場合、専用の部分成功コードと警告表示を返すように変更。
-- 招待・再設定ボタンへ対象スタッフ名を含むaccessible nameを追加し、結果を`status`または`alert`で通知。
-
-### 確認内容
-
-- 紐付け済みメールの変更・消去要求を無視し、未紐付けメールの変更・消去を許可する境界テストを追加。
-- 監査insertのresolved errorと例外について、招待・再設定の主処理が完了したまま部分成功になることを確認。
-- React SSRでread-onlyと説明の関連付け、成功/警告/失敗のlive region、対象スタッフ名付き操作名を確認。
-- Python 37件、Vitest 97件、policy、lint、build、`git diff --check` が成功。
-- 独立pre-PRレビューで発見した招待競合とAuth実体照合不足を修正。別フォームのhiddenメールを連絡先フォーム内と誤認した指摘はDOM構造を確認し、単一メール入力のSSR回帰テストを追加して非再現を固定。
-- `.env.local` の値は読み取り・表示していない。本番Supabase変更と実メール送信は行っていない。
-
-### 影響ファイル
-
-- `src/app/(authenticated)/owner/staff/page.tsx`
-- `src/lib/auth/staff-auth.ts`
-- `src/lib/auth/staff-auth.test.ts`
-- `src/lib/auth/staff-email-update.ts`
-- `src/lib/auth/staff-email-update.test.ts`
-- `src/components/staff/StaffAuthStatus.tsx`
-- `src/components/staff/StaffAuthStatus.test.ts`
-- `src/components/staff/StaffEmailInput.tsx`
-- `src/components/staff/StaffEmailInput.test.ts`
-- `docs/specs/issue-16-staff-auth-followups.md`
-- `docs/implementation-decisions.md`
-- `docs/operations-maintenance.md`
-- `README.md`
-- `NEXT.md`
-- `CHANGELOG.md`
-- `docs/ai/expectation-ledger.md`
-- `docs/ai/execution-ledger.md`
-
 ## A-000-7 外部APIのレート制限とアクセスログ
 
 - 実施日: 2026-07-16

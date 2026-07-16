@@ -138,6 +138,9 @@ class StaffAuthSecurityMigrationTest(TestCase):
     SECURITY_MIGRATION = (
         MIGRATIONS / "20260716034432_secure_staff_password_intents.sql"
     )
+    EMAIL_SERIALIZATION_MIGRATION = (
+        MIGRATIONS / "20260716145718_staff_auth_email_serialization.sql"
+    )
 
     def test_staff_auth_link_is_tenant_consistent_in_the_database(self) -> None:
         migration = self.SECURITY_MIGRATION.read_text(encoding="utf-8")
@@ -184,6 +187,22 @@ class StaffAuthSecurityMigrationTest(TestCase):
                 "own_staff.organization_id = private.current_user_organization_id()"
             ),
         )
+
+    def test_staff_auth_email_claims_are_serialized_and_service_role_only(self) -> None:
+        migration = self.EMAIL_SERIALIZATION_MIGRATION.read_text(encoding="utf-8")
+
+        self.assertIn("private.lock_staff_auth_emails", migration)
+        self.assertIn("pg_advisory_xact_lock", migration)
+        self.assertIn("previous_email", migration)
+        self.assertIn("create trigger guard_staff_auth_email", migration)
+        self.assertIn("create_staff_profile_with_email_guard", migration)
+        self.assertIn("security definer", migration)
+        self.assertIn("set search_path = ''", migration)
+        self.assertIn(
+            "grant execute on function public.create_staff_profile_with_email_guard",
+            migration,
+        )
+        self.assertIn("to service_role;", migration)
 
 
 class ExternalApiRateLimitMigrationTest(TestCase):

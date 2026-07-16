@@ -64,6 +64,7 @@ export type StaffAuthOperations = {
   inviteAuthUser: (email: string, redirectTo: string) => Promise<{ id: string } | null>;
   createStaffProfile: (input: {
     id: string;
+    staffId: string;
     organizationId: string;
     displayName: string;
     email: string;
@@ -159,23 +160,36 @@ export async function inviteAndLinkStaff(input: {
   const invitedUser = await operations.inviteAuthUser(email, redirectTo);
   if (!invitedUser) return { ok: false, code: 'invite_failed' };
 
-  const profileCreated = await operations.createStaffProfile({
-    id: invitedUser.id,
-    organizationId,
-    displayName: candidate.name,
-    email,
-  });
-  const staffLinked = profileCreated
-    ? await operations.linkStaff({
+  let profileCreated = false;
+  let staffLinked = false;
+  try {
+    profileCreated = await operations.createStaffProfile({
+      id: invitedUser.id,
+      staffId,
+      organizationId,
+      displayName: candidate.name,
+      email,
+    });
+    if (profileCreated) {
+      staffLinked = await operations.linkStaff({
         staffId,
         organizationId,
         authUserId: invitedUser.id,
         expectedStaffEmail: candidate.email ?? '',
-      })
-    : false;
+      });
+    }
+  } catch {
+    profileCreated = false;
+    staffLinked = false;
+  }
 
   if (!profileCreated || !staffLinked) {
-    const deleted = await operations.deleteAuthUser(invitedUser.id);
+    let deleted = false;
+    try {
+      deleted = await operations.deleteAuthUser(invitedUser.id);
+    } catch {
+      deleted = false;
+    }
     return { ok: false, code: deleted ? 'link_failed' : 'cleanup_failed' };
   }
 
@@ -302,16 +316,15 @@ export function createStaffAuthOperations(
       });
       return error || !data.user ? null : { id: data.user.id };
     },
-    async createStaffProfile({ id, organizationId, displayName, email }) {
-      const { error } = await supabase.from('user_profiles').insert({
-        id,
-        organization_id: organizationId,
-        role: 'staff',
-        display_name: displayName,
-        email,
-        is_active: true,
+    async createStaffProfile({ id, staffId, organizationId, displayName, email }) {
+      const { data, error } = await supabase.rpc('create_staff_profile_with_email_guard', {
+        p_user_id: id,
+        p_staff_id: staffId,
+        p_organization_id: organizationId,
+        p_display_name: displayName,
+        p_email: email,
       });
-      return !error;
+      return !error && data === true;
     },
     async linkStaff({ staffId, organizationId, authUserId, expectedStaffEmail }) {
       const { data, error } = await supabase

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   buildStaffPasswordUrl,
+  createStaffAuthOperations,
   escapePostgrestLikePattern,
   inviteAndLinkStaff,
   requestStaffPasswordReset,
@@ -64,6 +65,7 @@ describe('staff invitation and linking', () => {
     expect(operations.inviteAuthUser).toHaveBeenCalledWith('staff@example.com', redirectTo);
     expect(operations.createStaffProfile).toHaveBeenCalledWith({
       id: 'auth-1',
+      staffId,
       organizationId,
       displayName: '田中 太郎',
       email: 'staff@example.com',
@@ -208,6 +210,37 @@ describe('staff invitation and linking', () => {
   });
 
   it.each([
+    ['profile creation throws', {
+      createStaffProfile: vi.fn(async () => {
+        throw new Error('profile unavailable');
+      }),
+    }],
+    ['staff linking throws', {
+      linkStaff: vi.fn(async () => {
+        throw new Error('staff unavailable');
+      }),
+    }],
+  ])('compensates when %s', async (_description, overrides) => {
+    const operations = createOperations(overrides);
+
+    await expect(invite(operations)).resolves.toEqual({ ok: false, code: 'link_failed' });
+    expect(operations.deleteAuthUser).toHaveBeenCalledWith('auth-1');
+    expect(operations.writeAuditLog).not.toHaveBeenCalled();
+  });
+
+  it('reports cleanup failure when Auth deletion throws', async () => {
+    const operations = createOperations({
+      linkStaff: vi.fn(async () => false),
+      deleteAuthUser: vi.fn(async () => {
+        throw new Error('Auth unavailable');
+      }),
+    });
+
+    await expect(invite(operations)).resolves.toEqual({ ok: false, code: 'cleanup_failed' });
+    expect(operations.writeAuditLog).not.toHaveBeenCalled();
+  });
+
+  it.each([
     ['returns a partial success when the audit insert reports failure', vi.fn(async () => false)],
     ['returns a partial success when the audit insert throws', vi.fn(async () => {
       throw new Error('audit unavailable');
@@ -218,6 +251,71 @@ describe('staff invitation and linking', () => {
     await expect(invite(operations)).resolves.toEqual({ ok: false, code: 'invite_audit_failed' });
     expect(operations.inviteAuthUser).toHaveBeenCalled();
     expect(operations.linkStaff).toHaveBeenCalled();
+  });
+});
+
+describe('staff Auth Supabase adapter', () => {
+  it('pins staff linking to organization, active state, original email, and null Auth ID', async () => {
+    const query = {
+      update: vi.fn(),
+      eq: vi.fn(),
+      is: vi.fn(),
+      select: vi.fn(),
+      maybeSingle: vi.fn(async () => ({ data: { id: staffId }, error: null })),
+    };
+    query.update.mockReturnValue(query);
+    query.eq.mockReturnValue(query);
+    query.is.mockReturnValue(query);
+    query.select.mockReturnValue(query);
+
+    const supabase = {
+      from: vi.fn(() => query),
+      auth: { admin: {}, resetPasswordForEmail: vi.fn() },
+      rpc: vi.fn(),
+    };
+    const operations = createStaffAuthOperations(
+      supabase as unknown as Parameters<typeof createStaffAuthOperations>[0]
+    );
+
+    await expect(operations.linkStaff({
+      staffId,
+      organizationId,
+      authUserId: 'auth-1',
+      expectedStaffEmail: ' Staff@Example.com ',
+    })).resolves.toBe(true);
+
+    expect(query.eq).toHaveBeenCalledWith('id', staffId);
+    expect(query.eq).toHaveBeenCalledWith('organization_id', organizationId);
+    expect(query.eq).toHaveBeenCalledWith('is_active', true);
+    expect(query.eq).toHaveBeenCalledWith('email', ' Staff@Example.com ');
+    expect(query.is).toHaveBeenCalledWith('auth_user_id', null);
+  });
+
+  it('creates a staff profile through the serialized email-guard RPC', async () => {
+    const rpc = vi.fn(async () => ({ data: true, error: null }));
+    const supabase = {
+      from: vi.fn(),
+      auth: { admin: {}, resetPasswordForEmail: vi.fn() },
+      rpc,
+    };
+    const operations = createStaffAuthOperations(
+      supabase as unknown as Parameters<typeof createStaffAuthOperations>[0]
+    );
+
+    await expect(operations.createStaffProfile({
+      id: 'auth-1',
+      staffId,
+      organizationId,
+      displayName: '田中 太郎',
+      email: 'staff@example.com',
+    })).resolves.toBe(true);
+    expect(rpc).toHaveBeenCalledWith('create_staff_profile_with_email_guard', {
+      p_user_id: 'auth-1',
+      p_staff_id: staffId,
+      p_organization_id: organizationId,
+      p_display_name: '田中 太郎',
+      p_email: 'staff@example.com',
+    });
   });
 });
 
