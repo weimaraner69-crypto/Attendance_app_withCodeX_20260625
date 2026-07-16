@@ -12,7 +12,7 @@
 
 ## A-001 スタッフAuth招待・初回設定・再設定
 
-- 実施日: 2026-07-14
+- 実施日: 2026-07-14〜2026-07-16
 - 種別: 認証/アカウント運用
 
 ### 実施内容
@@ -21,7 +21,9 @@
 - Supabase Admin APIの招待応答IDだけを使い、同一組織の `staff` プロファイルとAuthユーザーを紐付けるサービスを追加。
 - 手動Auth UUID入力を廃止し、他組織・他ロール・無効・重複・紐付け済みを拒否。
 - 紐付け途中の失敗時は作成直後のAuthユーザーを削除する補償処理を追加。
-- `/auth/staff-password` で招待受諾・再設定セッションを検証し、パスワード更新後はローカルセッションを破棄して再ログインさせるようにした。
+- `/auth/confirm` でinvite/recoveryの `token_hash` をサーバー検証し、同一組織のstaff紐付けを確認してから署名付き・短寿命のパスワード設定権限を発行。
+- `/api/auth/staff-password` で設定権限を再検証してパスワードを更新し、成功後は権限とローカルAuthセッションを消費して再ログインさせるようにした。
+- Supabase Authのinvite/recoveryメールテンプレートを `supabase/templates/` へ追加。
 - 招待と受け入れ先を別PRにする行き止まりリスクを避けるため、Issue #13の3工程を1PRへ統合。
 
 ### 確認内容
@@ -32,12 +34,14 @@
 - Copilot Round 2の5指摘に対し、LIKE用変数名を明確化し、レビュー対象と横断確認で検出したリンク内ボタンをすべて意味の正しいアンカーへ修正。
 - `.ilike()` の利用は対応済み2箇所だけであり、同種の未対応箇所がないことを横断確認。
 - `Link` または通常アンカーの子に `Button` を置く同種パターンが残っていないことを横断確認。
-- `npm test`、`npm run lint`、`npm run build`、policy/Python回帰テスト、`git diff --check` をPR前に実行する。
+- 旧Round 3のMustに対し、SSR/PKCE用callback、staff/profile組織境界、invite/recovery intentの検証・消費を追加。
+- token検証、組織境界、署名改ざん・期限切れ、通常セッション拒否、成功時消費、メールテンプレートを専用回帰テストで固定。
+- Python回帰32件、Vitest 49件、policy check、lint、build、`git diff --check` がすべて成功。
 - `.env.local` の値は読み取り・表示していない。
 
 ### 残作業
 
-- ステージング/本番反映前にSupabase AuthのRedirect URLsへ `/auth/staff-password` を追加し、実メールの初回設定・再設定を確認する。
+- ステージング/本番反映前にSupabase AuthのSite URL・Redirect URLsとinvite/recovery Email Templatesを設定し、実メールの初回設定・再設定を確認する。
 
 ### 影響ファイル
 
@@ -45,7 +49,13 @@
 - `src/lib/auth/staff-auth.test.ts`
 - `src/app/(authenticated)/owner/staff/page.tsx`
 - `src/app/auth/staff-password/page.tsx`
+- `src/app/auth/confirm/route.ts`
+- `src/app/api/auth/staff-password/route.ts`
+- `src/lib/auth/staff-auth-confirmation.ts`
+- `src/lib/auth/staff-password-intent.ts`
 - `src/lib/auth/session.ts`
+- `supabase/templates/invite.html`
+- `supabase/templates/recovery.html`
 - `NEXT.md`
 - `CHANGELOG.md`
 - `docs/implementation-decisions.md`

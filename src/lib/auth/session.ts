@@ -87,6 +87,7 @@ export async function getRawAuthContext(): Promise<CurrentAuthContext | null> {
       .from('staff')
       .select('id, default_store_id')
       .eq('auth_user_id', user.id)
+      .eq('organization_id', profile.organization_id)
       .eq('is_active', true)
       .maybeSingle();
 

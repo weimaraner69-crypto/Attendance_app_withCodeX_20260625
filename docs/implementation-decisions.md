@@ -64,9 +64,10 @@
 - `staff.auth_user_id` にはSupabase Admin APIの招待応答が返したユーザーIDだけを使う。
 - 招待前に同一組織、`staff` ロール、有効状態、メール重複、既存紐付けを検証する。
 - Auth招待後の `user_profiles` 作成または `staff` 紐付けが失敗した場合、作成直後のAuthユーザーを削除して中途状態を残さない。
-- 招待とパスワード再設定は `NEXT_PUBLIC_APP_URL` 配下の `/auth/staff-password` だけへ戻す。HTTPSのOriginとlocalhost以外は拒否する。
-- 期限切れ・再利用リンクはSupabase Authのトークン検証に委譲し、有効なAuthセッション、`staff` ロール、有効な本人 `staff` 紐付けがそろわない場合はパスワード更新画面を開かない。
-- パスワード更新後はローカルセッションを破棄し、新しいパスワードで再ログインさせる。
+- invite/recoveryメールは `/auth/confirm` へ戻し、Route Handlerで `token_hash` と種別を `verifyOtp` してSSR Cookieセッションへ交換する。許可する種別は `invite` と `recovery` だけとする。
+- Authユーザー、`user_profiles(role = staff)`、有効な `staff.auth_user_id` の組織が一致した場合だけ、署名付きHttpOnly Cookieで10分有効のパスワード設定権限を発行する。
+- パスワード更新は設定権限を検証する同一OriginのサーバーAPIだけで行い、通常ログイン済みstaffセッションからの直接アクセスを拒否する。
+- 更新成功後は設定権限とローカルAuthセッションを消費し、新しいパスワードで再ログインさせる。期限切れ・改ざん・再利用済みリンクはfail-closeする。
 - 送信した招待・再設定操作は `audit_logs` へ記録するが、メール本文、トークン、Auth UUIDは記録しない。
 
 ## A-000 日報アプリ向け外部連携API

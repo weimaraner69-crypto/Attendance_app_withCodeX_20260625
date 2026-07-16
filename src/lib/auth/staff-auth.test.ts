@@ -4,7 +4,6 @@ import {
   buildStaffPasswordUrl,
   escapePostgrestLikePattern,
   inviteAndLinkStaff,
-  isValidStaffPasswordSession,
   requestStaffPasswordReset,
   type StaffAuthOperations,
 } from './staff-auth';
@@ -254,19 +253,6 @@ describe('staff password redirect URL', () => {
     expect(buildStaffPasswordUrl(undefined)).toBeNull();
   });
 
-  it('rejects expired, reused, and non-staff link sessions', () => {
-    expect(isValidStaffPasswordSession({ authenticated: false })).toBe(false);
-    expect(isValidStaffPasswordSession({
-      authenticated: true,
-      profile: { role: 'owner' },
-      staff: null,
-    })).toBe(false);
-    expect(isValidStaffPasswordSession({
-      authenticated: true,
-      profile: { role: 'staff' },
-      staff: { id: 'staff-1' },
-    })).toBe(true);
-  });
 });
 
 describe('case-insensitive email lookup', () => {

@@ -5,6 +5,33 @@
 
 ---
 
+## [2026-07-16] A-001 招待・再設定リンクをSSR/PKCE対応へ修正
+
+### 修正
+
+- Supabase Authのinvite/recoveryメールを、`token_hash`をサーバー検証する `/auth/confirm` Route Handlerへ統一。
+- 検証成功時だけ、Authユーザーと同じ組織の有効なstaff紐付けを確認し、署名付き・10分有効のHttpOnly設定権限を発行。
+- パスワード更新を `/api/auth/staff-password` へ集約し、通常ログイン済みセッションだけでは更新できず、成功後に設定権限とローカルAuthセッションを消費するよう変更。
+- スタッフセッション解決へ `staff.organization_id = user_profiles.organization_id` の境界条件を追加。
+- Supabaseのinvite/recoveryメールテンプレートを `supabase/templates/` へ追加。
+- token検証、組織境界、設定権限の改ざん・期限切れ、通常セッション拒否、成功時消費、メールテンプレートを専用回帰テストで固定。
+
+### 影響ファイル
+
+- `src/app/auth/confirm/route.ts`
+- `src/app/auth/staff-password/page.tsx`
+- `src/app/api/auth/staff-password/route.ts`
+- `src/lib/auth/staff-auth-confirmation.ts`
+- `src/lib/auth/staff-password-intent.ts`
+- `src/lib/auth/session.ts`
+- `supabase/templates/invite.html`
+- `supabase/templates/recovery.html`
+- `NEXT.md`
+- `FINISHED.md`
+- `docs/implementation-decisions.md`
+- `docs/operations-maintenance.md`
+- `docs/ai/execution-ledger.md`
+
 ## [2026-07-14] PRレビューをプロバイダー非依存に変更
 
 ### 変更

@@ -15,6 +15,19 @@ PR 作成前の spec、security、reliability 観点のレビュー結果を記�
 - 残リスク:
 - 結論:
 
+## 2026-07-16 PR #15 Round 3 Must再開対応
+
+- 対象: 最新`main`取り込み後のスタッフAuth invite/recovery callback、設定権限、組織境界
+- 実施日: 2026-07-16
+- 実施者 / provider: Codex実装セッション（独立レビューには算入しない）
+- 確認した文書・差分: Supabase Auth email template/SSR資料、旧Round 3レビュー、Issue #13、認証Route Handler、セッション解決、専用回帰テスト
+- 実行した検証: 認証関連Vitest 30件、全Vitest 49件、Python回帰32件、policy check、lint、build、`git diff --check`
+- Must: 旧3件を修正。`verifyOtp` callback、profile/staff組織一致、署名付き短寿命intentと成功時消費を実装
+- Should: 0件。通常ログインセッションとcross-origin POSTも拒否する回帰テストを追加
+- Nice: Issue #16のメール同期、audit log失敗検出、アクセシビリティ改善は別PRで継続
+- 残リスク: hosted SupabaseへのEmail Templates反映と実メールE2Eは本番運用工程のため未実施
+- 結論: 全品質ゲート完了後、別reviewer/sessionによる`full_repo_agentic`独立レビューへ進む
+
 ## 2026-07-14 A-001スタッフAuth招待・初回設定・再設定
 
 - 対象: Issue #13のオーナー起点のAuth招待、安全なスタッフ紐付け、初回パスワード設定、再設定

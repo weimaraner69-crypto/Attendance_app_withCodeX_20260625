@@ -26,12 +26,6 @@ export type StaffAuthActionResult = {
   ok: boolean;
 };
 
-export type StaffPasswordSession = {
-  authenticated?: boolean;
-  profile?: { role?: string };
-  staff?: { id?: string } | null;
-};
-
 type StaffCandidate = {
   id: string;
   organization_id: string;
@@ -108,14 +102,6 @@ export function buildStaffPasswordUrl(appUrl: string | undefined) {
   } catch {
     return null;
   }
-}
-
-export function isValidStaffPasswordSession(session: StaffPasswordSession) {
-  return Boolean(
-    session.authenticated &&
-      session.profile?.role === 'staff' &&
-      session.staff?.id
-  );
 }
 
 function validateCandidate(candidate: StaffCandidate | null): StaffAuthActionResult | null {

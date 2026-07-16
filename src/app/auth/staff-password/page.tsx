@@ -1,23 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CheckCircle2, KeyRound, LoaderCircle } from 'lucide-react';
 
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { createSupabaseBrowserClient } from '@/lib/supabase/client';
-import {
-  isValidStaffPasswordSession,
-  type StaffPasswordSession,
-} from '@/lib/auth/staff-auth';
 
 type Screen = 'checking' | 'ready' | 'invalid' | 'success';
 
 export default function StaffPasswordPage() {
-  const supabaseRef = useRef<ReturnType<typeof createSupabaseBrowserClient> | null>(null);
   const [screen, setScreen] = useState<Screen>('checking');
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
@@ -26,55 +20,27 @@ export default function StaffPasswordPage() {
 
   useEffect(() => {
     let active = true;
-    let supabase: ReturnType<typeof createSupabaseBrowserClient>;
 
-    try {
-      supabase = createSupabaseBrowserClient();
-      supabaseRef.current = supabase;
-    } catch {
-      setScreen('invalid');
-      return () => {
-        active = false;
-      };
-    }
-
-    const validateSession = async () => {
+    const validateIntent = async () => {
       try {
-        const sessionResult = await Promise.race([
-          supabase.auth.getSession(),
+        const response = await Promise.race([
+          fetch('/api/auth/staff-password', { cache: 'no-store' }),
           new Promise<null>((resolve) => window.setTimeout(() => resolve(null), 5000)),
         ]);
         if (!active) return;
-        if (!sessionResult || sessionResult.error || !sessionResult.data.session) {
+        if (!response || !response.ok) {
           setScreen('invalid');
           return;
         }
-
-        const response = await fetch('/api/auth/session', { cache: 'no-store' });
-        const session = (await response.json().catch(() => ({}))) as StaffPasswordSession;
-        if (!active) return;
-
-        if (
-          !response.ok ||
-          !isValidStaffPasswordSession(session)
-        ) {
-          await supabase.auth.signOut({ scope: 'local' });
-          if (active) setScreen('invalid');
-          return;
-        }
-
         setScreen('ready');
       } catch {
         if (active) setScreen('invalid');
       }
     };
 
-    void validateSession();
+    void validateIntent();
     return () => {
       active = false;
-      if (supabaseRef.current === supabase) {
-        supabaseRef.current = null;
-      }
     };
   }, []);
 
@@ -91,21 +57,18 @@ export default function StaffPasswordPage() {
       return;
     }
 
-    const supabase = supabaseRef.current;
-    if (!supabase) {
-      setErrorMessage('セッションを確認できませんでした。新しいリンクでやり直してください。');
-      return;
-    }
-
     setIsSubmitting(true);
-    const { error } = await supabase.auth.updateUser({ password });
-    if (error) {
+    const response = await fetch('/api/auth/staff-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password }),
+    }).catch(() => null);
+    if (!response?.ok) {
       setErrorMessage('パスワードを更新できませんでした。新しいリンクでやり直してください。');
       setIsSubmitting(false);
       return;
     }
 
-    await supabase.auth.signOut({ scope: 'local' });
     setPassword('');
     setConfirmation('');
     setIsSubmitting(false);
