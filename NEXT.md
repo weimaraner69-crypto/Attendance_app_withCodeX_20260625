@@ -155,7 +155,7 @@
 - [x] intent発行をadvisory lock付きDB関数と未消費ユーザー部分一意索引で原子化する。
 - [x] `staff`/`user_profiles` のAuthユーザー・組織一致をDB制約とstaff本人参照RLSの両方で固定する。
 - [x] 無効、他組織、ロール不一致、重複、期限切れ/再利用、通常ログインセッションで設定権限がない境界の回帰テストを追加する。
-- [ ] Issue #16: A-001スタッフAuth運用のフォローアップを完了する（Round 3例外修正・実DB検証完了、PR #20の例外後独立確認・CI待ち）。
+- [ ] Issue #16: A-001スタッフAuth運用のフォローアップを完了する（Round 3例外修正・実DB検証・例外後独立確認完了、PR #20の証跡・CI待ち）。
   - [x] Auth紐付け済みスタッフのメールをUIとサーバー処理の両方で変更不可にする。
   - [x] 招待・再設定メール送信後の監査ログ失敗を検出し、主処理成功・監査失敗の部分成功として表示する。
   - [x] 招待・再設定ボタンのaccessible nameへ対象スタッフ名を含め、結果を成功時`status`、失敗・部分成功時`alert`で通知する。
@@ -164,7 +164,7 @@
   - Runtime smoke: スタッフAuth結果コンポーネントをSSR描画し、成功/警告/失敗のroleと対象者付き操作名を確認する。実メール送信は本番運用工程として行わない。
   - 2026-07-23: Round 1・2を受け、正規化メールのprivate claim表、既存競合preflight、staff/profile trigger、service role限定profile作成RPC、両方向・staff同士の並行回帰を追加。Python 38件、Vitest 102件、policy、lint、build、空のPostgreSQL 16で全migration・補償削除・6系統の並行競合が成功。Round 3最終レビューと全CI成功後に完了・Issueクローズとする。
   - 2026-07-23: Round 3のMust 3件・Should 2件をオーナー承認の例外として全対応。migration全体のtransaction化と書込みロック、グローバルpreflight、遅延Auth/profile/claim整合性制約、実DB権限・SQLSTATE・敗者状態・失敗時完全rollback回帰を追加。例外後独立確認と全CI成功後に完了・Issueクローズとする。
-  - 2026-07-23: 例外後の独立確認で追加検出したMust 1件に対応し、リンク済みstaff profileの無効化をpreflightと更新triggerで拒否。Python 38件、Vitest 102件、lint、build、migration原子性・writer lock・統合権限・6系統の並行競合を再検証済み。現headの独立再確認、証跡、CI待ち。
+  - 2026-07-23: 例外後の独立確認で追加検出したMust 1件に対応し、リンク済みstaff profileの無効化をpreflightと更新triggerで拒否。Python 38件、Vitest 102件、lint、build、migration原子性・writer lock・統合権限・6系統の並行競合を再検証し、同一独立reviewerが現headをMust 0・Should 0・Nice 0と確認。証跡とCI待ち。
 - 招待と受諾画面を別PRにすると送信済みメールが行き止まりになるため、テスト・運用記録を含む1PRに統合した。
 - 2026-07-16: 独立Codexレビュー3件、全GitHub Actions成功、未解決レビュー0件を確認し、PR #15を `main` へマージ済み。Issue #13のコード実装スコープは完了した。
 - [ ] ステージング/本番反映前に `20260716034432_secure_staff_password_intents.sql` と `20260716145718_staff_auth_email_serialization.sql` を適用し、Supabase AuthのSite URL・Redirect URLsを設定し、`supabase/templates/invite.html` と `recovery.html` をEmail Templatesへ反映して、実メールで初回設定・再設定を確認する。本番運用作業のため今回は未実施。

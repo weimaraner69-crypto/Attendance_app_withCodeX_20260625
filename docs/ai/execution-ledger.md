@@ -31,7 +31,8 @@
 - Round 2レビュー: 独立reviewer GalileoがMust 0件、Should 3件、Nice 1件を提示。既存データpreflight、両方向・staff同士の並行回帰、index検索式、ledger状態を修正し、空DB適用で検出したPL/pgSQL変数衝突とclaim解放時のCHECK違反も修正済み
 - Round 3レビュー: 独立reviewer MaxwellがMust 3件・Should 2件を実DB再現。`DEC-20260723-001`の例外承認に基づき全件を修正し、専用PostgreSQL回帰を通過
 - 例外後独立確認: 独立reviewer Huygensが元のRound 3指摘5件の修正を確認し、リンク済みstaff profileを非activeへ変更できるMust 1件を追加検出。migration preflightとprofile更新triggerで拒否し、専用PostgreSQL回帰を通過
-- 次タスク: 追加Must修正をpushし、同一reviewerによる現head再確認、証跡、CI、release-manager判定へ進む
+- 例外後最終確認: head `acec23e3caa52012e95d873c0a08e296e5035272`、tree `f2d64e9e5866dfd2026e8723b2ffbbb48bb57bd6`、fingerprint `sha256:9e722b764ddf45424f1986cd67df467a33dbfde46a9d7cc8e0ece28a6c4f7b5c` を同一reviewer Huygensが再確認し、Must 0件・Should 0件・Nice 0件
+- 次タスク: 最終文書同期後のheadへ証跡を固定し、CI、PR受入条件同期、release-manager判定へ進む
 - レビュー条件: 認証・監査境界を含むred tierとして、独立peerとpush後`full_repo_agentic`レビュー、専用回帰テストを必須とする
 - 安全床: `.env.local`を読まない。秘密情報を表示しない。本番Supabase変更、実メール送信、本番デプロイ、日報側実接続は対象外
 - 最終更新: 2026-07-23
