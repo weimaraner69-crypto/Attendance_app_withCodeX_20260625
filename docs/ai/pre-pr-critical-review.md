@@ -18,15 +18,15 @@ PR 作成前の spec、security、reliability 観点のレビュー結果を記�
 ## 2026-07-23 Issue #6 オーナー向けAPIキー管理画面
 
 - 対象: owner限定のAPIキー発行、一覧、無効化、平文一度表示、監査ログ、SSRスモーク
-- 実施日: 2026-07-23
+- 実施日: 2026-07-24
 - 実施者 / provider: Codex実装担当と独立security/spec auditor（push後の独立レビューには算入しない）
 - 確認した文書・差分: Issue #6、`docs/specs/issue-6-api-key-management.md`、外部API認証、owner session、APIキー管理page/Server Action/クライアントUI、Action/SSR/外部API回帰テスト、計画・仕様文書
-- 実行した検証: Vitest 22ファイル111テスト、lint、build、`git diff --check`。標準`python3`はXcodeライセンス未承諾で起動できず、Codex同梱Pythonは`jsonschema`未導入でCIスクリプトを実行できなかったため、Python品質ゲートは実行環境復旧後に再実行する。
+- 実行した検証: CI専用の`.venv-ci`でPython 38件、`ci/policy_check.py`、Vitest 22ファイル111テスト、lint、build、`git diff --check`がすべて成功。ビルドで`/owner/integrations/api-keys`を含む28ページを生成した。
 - Must: owner認可・組織境界・`key_hash`非取得・監査ログ非露出をActionモック回帰で追加。ダミーownerのSSRでフォーム、必要6列、無効化導線、再表示不可、取得失敗時の操作停止を確認。
 - Should: 一覧取得失敗を空一覧に見せず、発行・無効化操作を停止するエラー表示へ修正。
 - Nice: 監査ログ一覧で `external_api_key.*` の表示名を整備する余地があるが、Issue #6の受入条件には影響しない。
-- 残リスク: 実キー、実データ、本番Supabaseを使うowner操作は本タスクの非目標。Python品質ゲートとローカルブラウザ接続は、Xcodeライセンスとサンドボックス制約の解消後に再確認する。
-- 結論: 実装のMust/Shouldは解消済み。Python品質ゲートの実行証跡がないため、PR作成・完了判定は保留する。
+- 残リスク: 実キー、実データ、本番Supabaseを使うowner操作は本タスクの非目標。ローカルブラウザ接続はサンドボックス制約により実施せず、ダミーownerのSSRスモークで画面要件を確認した。
+- 結論: 実装のMust/Shouldと全ローカル品質ゲートを解消。PR作成へ進める。
 
 ## 2026-07-16 Issue #7 外部APIレート制限・アクセスログ
 

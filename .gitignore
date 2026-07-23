@@ -8,6 +8,8 @@
 
 # testing
 /coverage
+__pycache__/
+.venv-ci/
 
 # next.js
 /.next/
