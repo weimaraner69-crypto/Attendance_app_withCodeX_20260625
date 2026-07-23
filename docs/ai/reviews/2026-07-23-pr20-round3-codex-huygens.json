@@ -1,0 +1,242 @@
+{
+  "schema_version": 2,
+  "phase": "post_push",
+  "provider": "codex",
+  "reviewer_id": "codex-huygens-019f8df3",
+  "review_session_id": "019f8df3-2fb9-7f43-95b6-227463487c68",
+  "implementation_session_id": "codex-main-pr20-20260723",
+  "head_sha": "32895ac3d75737c984edf696b90a6f1504832bbf",
+  "diff_fingerprint": "sha256:4c4557f9ad8b2eed2d316166b67aeda6261b2463cfde5c9a140bd05c892f1798",
+  "risk_tier": "red",
+  "round": 3,
+  "exception_round": 4,
+  "exception_approved_by": "repository_owner",
+  "exception_approval_context": "The owner explicitly approved continuing PR #20 after the Round 3 cap. The exception was limited to fixing the findings, dedicated verification, independent current-head confirmation, evidence, CI, and PR acceptance-criteria synchronization.",
+  "review_status": "completed",
+  "secondary_verification": {
+    "required": true,
+    "method": "dedicated_tests",
+    "status": "passed",
+    "evidence": "Python 38 tests, Vitest 102 tests, policy, lint, build, PostgreSQL migration atomicity and writer locking, fresh migrations, Auth/profile/claim integrity, database privileges, six concurrency scenarios, shell syntax, and whitespace checks passed.",
+    "commands": [
+      {
+        "command": "python3 -m unittest ci.test_policy_check ci.test_supabase_advisor_migrations",
+        "exit_code": 0,
+        "summary": "38 policy and migration tests passed",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "python3 ci/policy_check.py",
+        "exit_code": 0,
+        "summary": "Repository policy checks passed",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "npm test",
+        "exit_code": 0,
+        "summary": "102 Vitest tests passed",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "npm run lint",
+        "exit_code": 0,
+        "summary": "Next.js lint passed without warnings",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "npm run build",
+        "exit_code": 0,
+        "summary": "Next.js production build passed",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "bash ci/test_staff_auth_migration_atomicity.sh",
+        "exit_code": 0,
+        "summary": "PostgreSQL 16 migration rollback and concurrent writer locking passed",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "psql --set ON_ERROR_STOP=1 --file ci/test_staff_auth_postgres.sql",
+        "exit_code": 0,
+        "summary": "Fresh PostgreSQL 16 migrations, integrity, privilege, and compensation checks passed",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "bash ci/test_staff_auth_postgres_concurrency.sh",
+        "exit_code": 0,
+        "summary": "Six password-intent, profile, update, insert, and null-transition concurrency scenarios passed",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "bash -n ci/test_staff_auth_migration_atomicity.sh ci/test_staff_auth_postgres_concurrency.sh",
+        "exit_code": 0,
+        "summary": "Both shell harnesses passed syntax validation",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "git diff --check",
+        "exit_code": 0,
+        "summary": "Git whitespace checks passed",
+        "covered_paths": ["**"]
+      }
+    ]
+  },
+  "summary": "Round 3 found three Must and two Should issues. An owner-approved post-cap confirmation found one additional Must. All six findings were fixed, and the same independent reviewer confirmed Must zero, Should zero, and Nice zero on the exact final head.",
+  "repository_context_mode": "full_repo_agentic",
+  "diff_only_reason": "",
+  "changed_files": [
+    ".github/workflows/ci.yml",
+    "CHANGELOG.md",
+    "NEXT.md",
+    "README.md",
+    "ci/staff_auth_postgres_premigration_setup.sql",
+    "ci/test_staff_auth_migration_atomicity.sh",
+    "ci/test_staff_auth_migration_atomicity.sql",
+    "ci/test_staff_auth_postgres.sql",
+    "ci/test_staff_auth_postgres_concurrency.sh",
+    "ci/test_supabase_advisor_migrations.py",
+    "docs/ai/decision-ledger.md",
+    "docs/ai/execution-ledger.md",
+    "docs/ai/expectation-ledger.md",
+    "docs/ai/pre-pr-critical-review.md",
+    "docs/implementation-decisions.md",
+    "docs/operations-maintenance.md",
+    "docs/specs/issue-16-staff-auth-followups.md",
+    "src/app/(authenticated)/owner/staff/page.tsx",
+    "src/components/staff/StaffAuthStatus.test.ts",
+    "src/components/staff/StaffAuthStatus.tsx",
+    "src/components/staff/StaffEmailInput.test.ts",
+    "src/components/staff/StaffEmailInput.tsx",
+    "src/lib/auth/staff-auth.test.ts",
+    "src/lib/auth/staff-auth.ts",
+    "src/lib/auth/staff-email-update.test.ts",
+    "src/lib/auth/staff-email-update.ts",
+    "src/lib/supabase/database.types.ts",
+    "supabase/migrations/20260716145718_staff_auth_email_serialization.sql"
+  ],
+  "related_files": [
+    {
+      "path": "supabase/migrations/202606250001_initial_attendance_schema.sql",
+      "reason": "Staff, profile, organization, and Auth deletion contracts"
+    },
+    {
+      "path": "supabase/migrations/20260716145718_staff_auth_email_serialization.sql",
+      "reason": "Normalized-email claim, preflight, trigger, and deferred integrity boundary"
+    },
+    {
+      "path": "ci/test_staff_auth_migration_atomicity.sh",
+      "reason": "Migration rollback and concurrent writer verification"
+    },
+    {
+      "path": "ci/test_staff_auth_postgres.sql",
+      "reason": "Fresh migration, privilege, integrity, and Auth deletion verification"
+    },
+    {
+      "path": "ci/test_staff_auth_postgres_concurrency.sh",
+      "reason": "Two-connection claim serialization and loser-state verification"
+    },
+    {
+      "path": ".github/instructions/review-loop.instructions.md",
+      "reason": "Round cap, fail-close, and evidence authority"
+    },
+    {
+      "path": "SECURITY.md",
+      "reason": "Secret and service-role boundary authority"
+    }
+  ],
+  "scanned_paths": [".github", "ai", "ci", "docs", "src", "supabase"],
+  "commands_run": [
+    {
+      "command": "git rev-parse HEAD and git rev-parse HEAD^{tree}",
+      "exit_code": 0,
+      "summary": "Confirmed final reviewed head 32895ac and tree 83b6ce3"
+    },
+    {
+      "command": "review_diff_facts(32895ac3d75737c984edf696b90a6f1504832bbf)",
+      "exit_code": 0,
+      "summary": "Recomputed the matching fingerprint, 28 changed paths, and red risk tier"
+    },
+    {
+      "command": "full-repository review with focused inspection of migration preflight, profile trigger, Auth deletion cascade, deferred claim integrity, and final documentation synchronization",
+      "exit_code": 0,
+      "summary": "Independent reviewer reported Must 0, Should 0, Nice 0 on the final head"
+    }
+  ],
+  "context_fingerprint": "git-tree:83b6ce3d08f8770a66f54044f2a9a8cdbb856be7",
+  "context_budget": {
+    "max_related_files": 40,
+    "max_context_chars": 180000,
+    "max_file_excerpt_chars": 12000,
+    "max_context_commands": 12
+  },
+  "context_truncated": false,
+  "context_truncated_reason": "",
+  "issues": [
+    {
+      "severity": "Must",
+      "category": "claim-integrity-bypass",
+      "file": "supabase/migrations/20260716145718_staff_auth_email_serialization.sql",
+      "line": 234,
+      "rationale": "A direct staff.auth_user_id change could bypass the normalized-email claim and leave staff, profile, and claim ownership inconsistent.",
+      "fix": "Add a deferred constraint trigger that validates the final staff, profile, claim, organization, role, active, and normalized-email state.",
+      "confidence": 0.99,
+      "disposition": "fixed",
+      "disposition_reason": "The deferred trigger rejects wrong direct links and unlinks while preserving compensated Auth deletion; PostgreSQL tests cover both boundaries."
+    },
+    {
+      "severity": "Must",
+      "category": "global-email-preflight",
+      "file": "supabase/migrations/20260716145718_staff_auth_email_serialization.sql",
+      "line": 20,
+      "rationale": "Organization-scoped duplicate detection allowed the same normalized staff email in different organizations even though the claim key is global.",
+      "fix": "Run staff duplicate preflight globally by normalized email before creating or populating the claim table.",
+      "confidence": 0.99,
+      "disposition": "fixed",
+      "disposition_reason": "The preflight now groups all normalized staff emails globally, and the atomicity fixture proves cross-organization collisions roll back completely."
+    },
+    {
+      "severity": "Must",
+      "category": "migration-atomicity",
+      "file": "supabase/migrations/20260716145718_staff_auth_email_serialization.sql",
+      "line": 1,
+      "rationale": "A failed preflight could leave helper objects or other partial migration state because the migration lacked an explicit transaction.",
+      "fix": "Wrap the migration in one transaction and lock staff and user_profiles against concurrent writers before preflight.",
+      "confidence": 0.99,
+      "disposition": "fixed",
+      "disposition_reason": "The migration now uses one transaction with SHARE ROW EXCLUSIVE locks; dedicated tests prove rollback and writer waiting."
+    },
+    {
+      "severity": "Should",
+      "category": "database-privilege-verification",
+      "file": "ci/test_staff_auth_postgres.sql",
+      "line": 366,
+      "rationale": "Static SQL checks did not prove that anon and authenticated roles lacked direct table and function privileges at runtime.",
+      "fix": "Assert actual PostgreSQL table and function privileges for anon, authenticated, and service_role.",
+      "confidence": 0.97,
+      "disposition": "fixed",
+      "disposition_reason": "The integration test proves claim-table isolation and service-role-only RPC execution using runtime privilege functions."
+    },
+    {
+      "severity": "Should",
+      "category": "concurrency-failure-evidence",
+      "file": "ci/test_staff_auth_postgres_concurrency.sh",
+      "line": 83,
+      "rationale": "Concurrency checks accepted broad failure text and did not always prove the exact SQLSTATE or final losing transaction state.",
+      "fix": "Assert SQLSTATE 23505, the expected duplicate-key message, and final claim and loser-row state.",
+      "confidence": 0.98,
+      "disposition": "fixed",
+      "disposition_reason": "Conflicting update and insert scenarios check the exact error contract and verify that only the winner owns the claim."
+    },
+    {
+      "severity": "Must",
+      "category": "linked-profile-active-invariant",
+      "file": "supabase/migrations/20260716145718_staff_auth_email_serialization.sql",
+      "line": 309,
+      "rationale": "A linked staff profile could be changed to inactive without firing the prior trigger, leaving an invalid state that broke later staff writes.",
+      "fix": "Include active state in migration preflight and fire the profile guard on is_active updates, rejecting inactive staff profiles immediately.",
+      "confidence": 0.99,
+      "disposition": "fixed",
+      "disposition_reason": "The final head rejects inactive linked profiles in preflight and at UPDATE time; independent review and PostgreSQL regression confirm the fix."
+    }
+  ]
+}
