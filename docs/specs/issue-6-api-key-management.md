@@ -35,5 +35,5 @@
 - AC-006-06: 無効・失効・スコープ不足キーの既存認証回帰が成功する。
 - AC-006-07: 発行と無効化の監査ログにキーの平文・ハッシュが含まれない。
 - 検証コマンド: `npm test`、`npm run lint`、`npm run build`、`python3 -m unittest ci.test_policy_check ci.test_supabase_advisor_migrations`、`python3 ci/policy_check.py`、`git diff --check`。
-- Runtime smoke: 未認証の `/owner/integrations/api-keys` がログインへ遷移すること、owner画面で発行フォーム・一覧列・無効化ボタンが表示されること、発行結果の平文キー表示に「再表示不可」が明記されることを確認する。実キーや本番データは使わない。
+- Runtime smoke: 未認証の `/owner/integrations/api-keys` がログインへ遷移すること、ダミーのowner認可・キー一覧を使うSSRスモークで発行フォーム、一覧列、無効化ボタン、「再表示不可」の表示を確認する。実キー、実データ、本番環境は使わない。
 - ロールバック方針: UI、Server Action、キー管理補助関数をこのPRの直前状態へ戻す。既存テーブルへの追加migrationはないため、発行済みキーはオーナー画面から無効化して切り戻す。
