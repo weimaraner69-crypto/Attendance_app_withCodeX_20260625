@@ -13,4 +13,17 @@ describe('recoverAction', () => {
       )
     ).resolves.toEqual(fallback);
   });
+
+  it('preserves Next.js redirect control flow', async () => {
+    const redirectError = Object.assign(new Error('redirect'), {
+      digest: 'NEXT_REDIRECT;replace;/login;307;',
+    });
+
+    await expect(
+      recoverAction(
+        async () => Promise.reject(redirectError),
+        { status: 'error' as const, message: '操作に失敗しました。再試行してください。' }
+      )
+    ).rejects.toBe(redirectError);
+  });
 });

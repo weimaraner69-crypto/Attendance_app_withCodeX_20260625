@@ -22,12 +22,12 @@
 - 現在の mode: `daily_development`（Issue #6実装）
 - active branch: `agent/issue-6-api-key-management`
 - 直近完了 PR: PR #21（PR #20完了同期）を独立レビュー、全CI、未解決review thread 0件で `main` へマージ済み
-- 現在タスク: PR #22 Round 1のShould修正とレビュー証跡をコミットし、pushする
+- 現在タスク: PR #22 Round 2のMust/Should修正とレビュー証跡をコミットし、pushする
 - requirements/spec: GitHub Issue #6、`docs/specs/issue-6-api-key-management.md`、`docs/integrations/attendance-api-spec.md`
 - 実装・回帰: owner認可、組織境界、監査ログの非露出、JST期限、一覧取得失敗の操作停止をActionテストで確認。SSRスモークでダミーownerのフォーム、必要6列、無効化導線、再表示不可表示、取得失敗表示を確認した。
-- 次タスク: 修正push後にRound 2の独立repo-aware review、CI、release-manager判定へ進む
+- 次タスク: 修正push後にRound 3の独立repo-aware review、CI、release-manager判定へ進む
 - 安全床: `.env.local`を読まない。秘密情報を表示しない。本番Supabase変更、実メール送信、本番デプロイ、日報側実接続、PRマージは対象外
-- 最終更新: 2026-07-24（Round 1 Should修正・再検証済み、push待ち）
+- 最終更新: 2026-07-24（Round 2 Must/Should修正・再検証済み、push待ち）
 
 ### 現在状態（2026-07-23 PR #20完了同期・履歴）
 
