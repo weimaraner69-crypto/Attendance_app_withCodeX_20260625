@@ -1,0 +1,85 @@
+{
+  "schema_version": 2,
+  "phase": "post_push",
+  "provider": "codex",
+  "reviewer_id": "codex-meitner-019f8e2c",
+  "review_session_id": "019f8e2c-fb70-7690-a894-aca23b089a48",
+  "implementation_session_id": "codex-main-pr21-20260723",
+  "head_sha": "8ce0d503c447178e93132f91e99766c3a1b1aa1c",
+  "diff_fingerprint": "sha256:aa9aed0f7edb36c6ae4fb6650a395434870ad70bd18f32527bae3cc76a50920a",
+  "risk_tier": "green",
+  "round": 1,
+  "review_status": "completed",
+  "secondary_verification": {
+    "required": false,
+    "method": "not_required",
+    "status": "passed",
+    "evidence": "Policy check, policy-check unit tests, and whitespace validation passed; the independent reviewer confirmed the merged PR #20, closed Issue #16, and parent Issue #1 state.",
+    "commands": [
+      {
+        "command": "python3 ci/policy_check.py",
+        "exit_code": 0,
+        "summary": "Repository policy checks passed",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "python3 -m unittest ci.test_policy_check",
+        "exit_code": 0,
+        "summary": "26 policy tests passed",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "git diff --check",
+        "exit_code": 0,
+        "summary": "Git whitespace checks passed",
+        "covered_paths": ["**"]
+      }
+    ]
+  },
+  "summary": "The independent documentation review found no Must, Should, or Nice findings. PR #20 completion, Issue #16 closure, parent Issue #1 phase state, and the next Issue #6 queue are coherent.",
+  "repository_context_mode": "full_repo_agentic",
+  "diff_only_reason": "Documentation-only synchronization after the merged PR #20; the reviewer also verified the linked GitHub Issue state.",
+  "changed_files": [
+    "CHANGELOG.md",
+    "FINISHED.md",
+    "NEXT.md",
+    "docs/ai/decision-ledger.md",
+    "docs/ai/execution-ledger.md"
+  ],
+  "related_files": [
+    {
+      "path": "README.md",
+      "reason": "Product and external API requirements authority"
+    },
+    {
+      "path": "docs/policies.md",
+      "reason": "Repository policy authority"
+    },
+    {
+      "path": "docs/constraints.md",
+      "reason": "Operational and safety constraints authority"
+    },
+    {
+      "path": "docs/integrations/attendance-api-spec.md",
+      "reason": "External API contract authority for the deferred daily-report integration"
+    }
+  ],
+  "scanned_paths": ["CHANGELOG.md", "FINISHED.md", "NEXT.md", "docs/ai", "docs/integrations", "README.md"],
+  "commands_run": [
+    {
+      "command": "full-repository documentation and GitHub-state review of PR #21",
+      "exit_code": 0,
+      "summary": "Confirmed PR #20 merge, Issue #16 closure, Issue #1 phase state, and planned Issue #6 sequencing"
+    }
+  ],
+  "context_fingerprint": "git-tree:6a0611f9e163434bbdf09dc78be32140107edf95",
+  "context_budget": {
+    "max_related_files": 20,
+    "max_context_chars": 120000,
+    "max_file_excerpt_chars": 12000,
+    "max_context_commands": 10
+  },
+  "context_truncated": false,
+  "context_truncated_reason": "",
+  "issues": []
+}

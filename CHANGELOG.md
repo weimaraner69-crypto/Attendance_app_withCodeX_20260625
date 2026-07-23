@@ -5,6 +5,25 @@
 
 ---
 
+## [2026-07-23] A-001スタッフAuth運用フォローアップを完了
+
+### 変更
+
+- PR #20を `main` へスカッシュマージし、Issue #16を完了した。
+- 正規化メールclaim、migration原子性・書込みロック、Auth/profile/claim整合性、リンク済みstaff profileのactive保証を、独立レビューと実PostgreSQL回帰で最終確認した。
+
+### 影響ファイル
+
+- `supabase/migrations/20260716145718_staff_auth_email_serialization.sql`
+- `ci/test_staff_auth_migration_atomicity.sh`
+- `ci/test_staff_auth_postgres.sql`
+- `ci/test_staff_auth_postgres_concurrency.sh`
+- `docs/ai/reviews/2026-07-23-pr20-round3-codex-huygens.json`
+- `NEXT.md`
+- `FINISHED.md`
+
+---
+
 ## [2026-07-16] A-001スタッフAuth運用とアクセシビリティを改善
 
 ### 変更

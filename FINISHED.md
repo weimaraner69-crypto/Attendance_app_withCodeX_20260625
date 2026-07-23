@@ -10,6 +10,44 @@
 
 ---
 
+## A-001-16 スタッフAuth運用フォローアップ
+
+- 実施日: 2026-07-23
+- 種別: 認証/データ整合性/アクセシビリティ
+- 完了PR: #20（2026-07-23 `main` へマージ、merge commit `bf13a64d3d2e2c1c4177c3c80f80ea70d211073b`）
+
+### 実施内容
+
+- 紐付け済みスタッフメールの不変条件、監査ログ失敗時の部分成功表示、対象者名を含むアクセシブルな結果通知を実装。
+- 正規化メールclaim表、グローバル重複preflight、profile/staff trigger、service role限定RPCで、staff Authとprofileの競合・不整合をDB境界へ固定。
+- migrationを単一transactionと書込みlockで適用し、失敗時の部分適用を防止。
+- 例外後独立確認で検出したリンク済みstaff profileの無効化経路を、preflightと更新triggerで拒否。
+
+### 確認内容
+
+- Python 38件、Vitest 102件、policy check、lint、build、`git diff --check` が成功。
+- PostgreSQL 16でmigration rollback、writer lock、Auth/profile/claim整合性、権限、6系統の並行競合と敗者状態を確認。
+- 独立repo-aware reviewで最終headをMust 0件・Should 0件・Nice 0件と確認し、機械可読証跡を保存。
+- GitHub Actionsのquality-gate、secret-scan、review-evidence-gateがすべて成功。
+- `.env.local`の値は読み取り・表示していない。本番Supabase変更、実メール送信、日報アプリとの実接続は未実施。
+
+### 残作業
+
+- ステージング/本番反映前にAuth関連migration、Redirect URLs、Email Templatesを設定し、実メールの初回設定・再設定を確認する。
+
+### 影響ファイル
+
+- `supabase/migrations/20260716145718_staff_auth_email_serialization.sql`
+- `ci/test_staff_auth_migration_atomicity.sh`
+- `ci/test_staff_auth_postgres.sql`
+- `ci/test_staff_auth_postgres_concurrency.sh`
+- `docs/ai/reviews/2026-07-23-pr20-round3-codex-huygens.json`
+- `NEXT.md`
+- `CHANGELOG.md`
+- `docs/ai/execution-ledger.md`
+
+---
+
 ## A-000-7 外部APIのレート制限とアクセスログ
 
 - 実施日: 2026-07-16
