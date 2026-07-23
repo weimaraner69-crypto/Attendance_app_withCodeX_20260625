@@ -164,6 +164,7 @@
   - Runtime smoke: スタッフAuth結果コンポーネントをSSR描画し、成功/警告/失敗のroleと対象者付き操作名を確認する。実メール送信は本番運用工程として行わない。
   - 2026-07-23: Round 1・2を受け、正規化メールのprivate claim表、既存競合preflight、staff/profile trigger、service role限定profile作成RPC、両方向・staff同士の並行回帰を追加。Python 38件、Vitest 102件、policy、lint、build、空のPostgreSQL 16で全migration・補償削除・6系統の並行競合が成功。Round 3最終レビューと全CI成功後に完了・Issueクローズとする。
   - 2026-07-23: Round 3のMust 3件・Should 2件をオーナー承認の例外として全対応。migration全体のtransaction化と書込みロック、グローバルpreflight、遅延Auth/profile/claim整合性制約、実DB権限・SQLSTATE・敗者状態・失敗時完全rollback回帰を追加。例外後独立確認と全CI成功後に完了・Issueクローズとする。
+  - 2026-07-23: 例外後の独立確認で追加検出したMust 1件に対応し、リンク済みstaff profileの無効化をpreflightと更新triggerで拒否。Python 38件、Vitest 102件、lint、build、migration原子性・writer lock・統合権限・6系統の並行競合を再検証済み。現headの独立再確認、証跡、CI待ち。
 - 招待と受諾画面を別PRにすると送信済みメールが行き止まりになるため、テスト・運用記録を含む1PRに統合した。
 - 2026-07-16: 独立Codexレビュー3件、全GitHub Actions成功、未解決レビュー0件を確認し、PR #15を `main` へマージ済み。Issue #13のコード実装スコープは完了した。
 - [ ] ステージング/本番反映前に `20260716034432_secure_staff_password_intents.sql` と `20260716145718_staff_auth_email_serialization.sql` を適用し、Supabase AuthのSite URL・Redirect URLsを設定し、`supabase/templates/invite.html` と `recovery.html` をEmail Templatesへ反映して、実メールで初回設定・再設定を確認する。本番運用作業のため今回は未実施。

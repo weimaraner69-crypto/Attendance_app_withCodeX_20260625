@@ -58,6 +58,8 @@ begin
     and (
       target_profile.id is null
       or target_profile.organization_id is distinct from target_staff.organization_id
+      or target_profile.role is distinct from 'staff'
+      or not target_profile.is_active
       or private.normalize_staff_auth_email(target_profile.email)
         is distinct from private.normalize_staff_auth_email(target_staff.email)
     );
@@ -307,6 +309,9 @@ begin
   if requested_email is null then
     raise check_violation using message = 'user profile email is required';
   end if;
+  if new.role = 'staff' and not new.is_active then
+    raise check_violation using message = 'staff Auth profile must remain active';
+  end if;
   new.email := requested_email;
 
   if tg_op = 'UPDATE' then
@@ -367,7 +372,8 @@ $$;
 
 drop trigger if exists guard_user_profile_email_claim on public.user_profiles;
 create trigger guard_user_profile_email_claim
-before insert or update of email, organization_id, role on public.user_profiles
+before insert or update of email, organization_id, role, is_active
+on public.user_profiles
 for each row execute function private.guard_user_profile_email_claim();
 
 create or replace function private.release_user_profile_email_claim()

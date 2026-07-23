@@ -320,6 +320,19 @@ where id = '10000000-0000-0000-0000-000000000008';
 do $$
 begin
   begin
+    update public.user_profiles
+    set is_active = false
+    where id = '10000000-0000-0000-0000-000000000001';
+    raise exception 'linked staff profile deactivation was accepted';
+  exception
+    when check_violation then null;
+  end;
+end;
+$$;
+
+do $$
+begin
+  begin
     update public.staff
     set organization_id = '00000000-0000-0000-0000-000000000002'
     where id = '20000000-0000-0000-0000-000000000001';
