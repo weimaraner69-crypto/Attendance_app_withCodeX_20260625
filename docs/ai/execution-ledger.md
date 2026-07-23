@@ -17,7 +17,17 @@
 
 ## 記録
 
-### 現在状態（2026-07-23 Issue #16スタッフAuth運用改善・最新）
+### 現在状態（2026-07-23 PR #20完了同期・最新）
+
+- 現在の mode: `daily_development`（PR #20完了同期）
+- active branch: `agent/sync-pr20-plan-state`
+- 直近完了 PR: PR #20（スタッフAuth運用フォローアップ）を独立レビュー、全CI、未解決review thread 0件で `main` へマージし、Issue #16はclosed
+- 現在タスク: PR #20の完了状態を `NEXT.md`、`FINISHED.md`、`CHANGELOG.md`、親Issue #1へ同期する
+- 次タスク: Issue #6のオーナー向けAPIキー管理画面。日報側A-005の実装を待たず、勤怠側単独で要件・設計・実装・回帰テストを進める
+- 安全床: `.env.local`を読まない。秘密情報を表示しない。本番Supabase変更、実メール送信、本番デプロイ、日報側実接続は対象外
+- 最終更新: 2026-07-23
+
+### 現在状態（2026-07-23 Issue #16スタッフAuth運用改善・履歴）
 
 - 現在の mode: `daily_development`（Issue #16実装）
 - active branch: `fix/issue-16-staff-auth-followups`

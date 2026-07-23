@@ -13,7 +13,7 @@
 - `.env.local` の値は読み取り・表示しません。内容へのアクセスが必要な場合は、目的と値を表示しない確認方法を先に示し、ユーザーの明示的な許可を得ます。
 - 個人情報、APIキー、Secret keyなどの機密情報は [SECURITY.md](SECURITY.md) に従って扱います。
 
-## 現在の実行計画（2026-07-16）
+## 現在の実行計画（2026-07-23）
 
 - 日報管理アプリ側は本番運用準備を優先しており、勤怠連携は同リポジトリの `A-005` Backlogで保留中。日報側へのAPIキー設定、マッピング、勤怠取り込み、実接続確認は、日報側が連携実装へ着手できる段階まで保留する。
 - 勤怠管理アプリの本番デプロイ、実店舗データ投入、Go-Live作業は今回の自動実行対象外とする。
@@ -21,8 +21,8 @@
   1. 計画、連携仕様、GitHub Issueの状態を実装実態へ同期する。2026-07-14完了。
   2. `A-006` Supabase Performance Advisor最適化と `A-007` 自動テスト・CI強化を進める。2026-07-13完了。
   3. `A-001` のスタッフAuthユーザー招待、紐付け、パスワード再設定をIssue #13 / PR #15で実装し、独立レビュー3件と全CI成功後に2026-07-16 `main` へマージ済み。本番Supabase反映と実メール確認は運用工程として保留する。
-  4. `A-000` のうち日報側の画面実装を必要としない #7 レート制限・アクセスログを実装する。2026-07-16コード・回帰テスト実装済み。
-  5. 次にA-001の非ブロッキング残課題 #16を解消してから、#6 APIキー管理へ進める。
+  4. `A-000` のうち日報側の画面実装を必要としない #7 レート制限・アクセスログを実装する。2026-07-16にコード・回帰テスト実装、PR #19で `main` へマージ済み。
+  5. `A-001` の非ブロッキング残課題 #16をPR #20で解消し、2026-07-23に `main` へマージ済み。次に #6 APIキー管理へ進める。
   6. #5 勤怠詳細APIと `C-004` LINE連携の運用設定・実機確認は、明示的な再開指示まで保留する。
 - 各PRはfeature/choreブランチから作成し、実装担当から独立した Codex または Claude の repo-aware review を必須とする。Copilotは利用可能時の任意の追加レビューとし、対応ラウンド、高リスク変更の二重確認、Round 3後の扱いは `.github/instructions/review-loop.instructions.md` の正本手順に従う。
 - `.env.local` の読み取り、秘密情報の表示、破壊的DB操作、本番運用準備、PRの自動マージは認可範囲に含めない。
@@ -155,7 +155,7 @@
 - [x] intent発行をadvisory lock付きDB関数と未消費ユーザー部分一意索引で原子化する。
 - [x] `staff`/`user_profiles` のAuthユーザー・組織一致をDB制約とstaff本人参照RLSの両方で固定する。
 - [x] 無効、他組織、ロール不一致、重複、期限切れ/再利用、通常ログインセッションで設定権限がない境界の回帰テストを追加する。
-- [ ] Issue #16: A-001スタッフAuth運用のフォローアップを完了する（Round 3例外修正・実DB検証・例外後独立確認完了、PR #20の証跡・CI待ち）。
+- [x] Issue #16: A-001スタッフAuth運用のフォローアップを完了する（PR #20、2026-07-23に `main` へマージ）。
   - [x] Auth紐付け済みスタッフのメールをUIとサーバー処理の両方で変更不可にする。
   - [x] 招待・再設定メール送信後の監査ログ失敗を検出し、主処理成功・監査失敗の部分成功として表示する。
   - [x] 招待・再設定ボタンのaccessible nameへ対象スタッフ名を含め、結果を成功時`status`、失敗・部分成功時`alert`で通知する。
@@ -164,7 +164,7 @@
   - Runtime smoke: スタッフAuth結果コンポーネントをSSR描画し、成功/警告/失敗のroleと対象者付き操作名を確認する。実メール送信は本番運用工程として行わない。
   - 2026-07-23: Round 1・2を受け、正規化メールのprivate claim表、既存競合preflight、staff/profile trigger、service role限定profile作成RPC、両方向・staff同士の並行回帰を追加。Python 38件、Vitest 102件、policy、lint、build、空のPostgreSQL 16で全migration・補償削除・6系統の並行競合が成功。Round 3最終レビューと全CI成功後に完了・Issueクローズとする。
   - 2026-07-23: Round 3のMust 3件・Should 2件をオーナー承認の例外として全対応。migration全体のtransaction化と書込みロック、グローバルpreflight、遅延Auth/profile/claim整合性制約、実DB権限・SQLSTATE・敗者状態・失敗時完全rollback回帰を追加。例外後独立確認と全CI成功後に完了・Issueクローズとする。
-  - 2026-07-23: 例外後の独立確認で追加検出したMust 1件に対応し、リンク済みstaff profileの無効化をpreflightと更新triggerで拒否。Python 38件、Vitest 102件、lint、build、migration原子性・writer lock・統合権限・6系統の並行競合を再検証し、同一独立reviewerが現headをMust 0・Should 0・Nice 0と確認。証跡とCI待ち。
+  - 2026-07-23: 例外後の独立確認で追加検出したMust 1件に対応し、リンク済みstaff profileの無効化をpreflightと更新triggerで拒否。Python 38件、Vitest 102件、lint、build、migration原子性・writer lock・統合権限・6系統の並行競合を再検証し、同一独立reviewerが現headをMust 0・Should 0・Nice 0と確認。最終CI 3ゲート成功後、PR #20を `main` へマージ済み。
 - 招待と受諾画面を別PRにすると送信済みメールが行き止まりになるため、テスト・運用記録を含む1PRに統合した。
 - 2026-07-16: 独立Codexレビュー3件、全GitHub Actions成功、未解決レビュー0件を確認し、PR #15を `main` へマージ済み。Issue #13のコード実装スコープは完了した。
 - [ ] ステージング/本番反映前に `20260716034432_secure_staff_password_intents.sql` と `20260716145718_staff_auth_email_serialization.sql` を適用し、Supabase AuthのSite URL・Redirect URLsを設定し、`supabase/templates/invite.html` と `recovery.html` をEmail Templatesへ反映して、実メールで初回設定・再設定を確認する。本番運用作業のため今回は未実施。
