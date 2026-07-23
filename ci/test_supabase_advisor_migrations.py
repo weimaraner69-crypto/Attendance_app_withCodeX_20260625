@@ -188,13 +188,23 @@ class StaffAuthSecurityMigrationTest(TestCase):
             ),
         )
 
-    def test_staff_auth_email_claims_are_serialized_and_service_role_only(self) -> None:
+    def test_staff_auth_email_claims_are_atomic_and_service_role_only(self) -> None:
         migration = self.EMAIL_SERIALIZATION_MIGRATION.read_text(encoding="utf-8")
 
-        self.assertIn("private.lock_staff_auth_emails", migration)
-        self.assertIn("pg_advisory_xact_lock", migration)
-        self.assertIn("previous_email", migration)
-        self.assertIn("create trigger guard_staff_auth_email", migration)
+        self.assertIn("private.assert_staff_auth_email_consistency", migration)
+        self.assertIn("staff_duplicate_groups", migration)
+        self.assertIn("profile_duplicate_groups", migration)
+        self.assertIn("staff_profile_conflicts", migration)
+        self.assertIn("linked_staff_conflicts", migration)
+        self.assertIn("invalid_profile_emails", migration)
+        self.assertIn("create table private.staff_auth_email_claims", migration)
+        self.assertIn("normalized_email text primary key", migration)
+        self.assertIn("staff_id uuid unique", migration)
+        self.assertIn("auth_user_id uuid unique", migration)
+        self.assertIn("on conflict (normalized_email) do update", migration)
+        self.assertIn("create trigger guard_staff_auth_email_claim", migration)
+        self.assertIn("create trigger guard_user_profile_email_claim", migration)
+        self.assertIn("create trigger release_user_profile_email_claim", migration)
         self.assertIn("create_staff_profile_with_email_guard", migration)
         self.assertIn("security definer", migration)
         self.assertIn("set search_path = ''", migration)
@@ -203,6 +213,11 @@ class StaffAuthSecurityMigrationTest(TestCase):
             migration,
         )
         self.assertIn("to service_role;", migration)
+        self.assertIn(
+            "revoke all on private.staff_auth_email_claims\n"
+            "  from public, anon, authenticated, service_role;",
+            migration,
+        )
 
 
 class ExternalApiRateLimitMigrationTest(TestCase):

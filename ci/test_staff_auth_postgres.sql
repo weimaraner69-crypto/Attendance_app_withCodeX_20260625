@@ -59,55 +59,77 @@ insert into auth.users (id) values
   ('10000000-0000-0000-0000-000000000003'),
   ('10000000-0000-0000-0000-000000000004');
 
-insert into public.user_profiles (
-  id, organization_id, role, display_name, email
-) values
-  (
-    '10000000-0000-0000-0000-000000000001',
-    '00000000-0000-0000-0000-000000000001',
-    'staff', 'Staff 1', 'staff1@example.test'
-  ),
-  (
-    '10000000-0000-0000-0000-000000000002',
-    '00000000-0000-0000-0000-000000000002',
-    'staff', 'Staff 2', 'staff2@example.test'
-  ),
-  (
-    '10000000-0000-0000-0000-000000000003',
-    '00000000-0000-0000-0000-000000000001',
-    'staff', 'Delete User', 'delete-user@example.test'
-  ),
-  (
-    '10000000-0000-0000-0000-000000000004',
-    '00000000-0000-0000-0000-000000000003',
-    'staff', 'Delete Org', 'delete-org@example.test'
-  );
-
-insert into public.staff (id, organization_id, auth_user_id, name) values
+insert into public.staff (id, organization_id, name, email) values
   (
     '20000000-0000-0000-0000-000000000001',
     '00000000-0000-0000-0000-000000000001',
-    '10000000-0000-0000-0000-000000000001',
-    'Staff 1'
+    'Staff 1',
+    'staff1@example.test'
   ),
   (
     '20000000-0000-0000-0000-000000000002',
     '00000000-0000-0000-0000-000000000002',
-    '10000000-0000-0000-0000-000000000002',
-    'Staff 2'
+    'Staff 2',
+    'staff2@example.test'
   ),
   (
     '20000000-0000-0000-0000-000000000003',
     '00000000-0000-0000-0000-000000000001',
-    '10000000-0000-0000-0000-000000000003',
-    'Delete User'
+    'Delete User',
+    'delete-user@example.test'
   ),
   (
     '20000000-0000-0000-0000-000000000004',
     '00000000-0000-0000-0000-000000000003',
-    '10000000-0000-0000-0000-000000000004',
-    'Delete Org'
+    'Delete Org',
+    'delete-org@example.test'
   );
+
+do $$
+begin
+  if not public.create_staff_profile_with_email_guard(
+    '10000000-0000-0000-0000-000000000001',
+    '20000000-0000-0000-0000-000000000001',
+    '00000000-0000-0000-0000-000000000001',
+    'Staff 1',
+    'staff1@example.test'
+  ) or not public.create_staff_profile_with_email_guard(
+    '10000000-0000-0000-0000-000000000002',
+    '20000000-0000-0000-0000-000000000002',
+    '00000000-0000-0000-0000-000000000002',
+    'Staff 2',
+    'staff2@example.test'
+  ) or not public.create_staff_profile_with_email_guard(
+    '10000000-0000-0000-0000-000000000003',
+    '20000000-0000-0000-0000-000000000003',
+    '00000000-0000-0000-0000-000000000001',
+    'Delete User',
+    'delete-user@example.test'
+  ) or not public.create_staff_profile_with_email_guard(
+    '10000000-0000-0000-0000-000000000004',
+    '20000000-0000-0000-0000-000000000004',
+    '00000000-0000-0000-0000-000000000003',
+    'Delete Org',
+    'delete-org@example.test'
+  ) then
+    raise exception 'staff Auth fixture profile creation failed';
+  end if;
+end;
+$$;
+
+update public.staff target_staff
+set auth_user_id = case target_staff.id
+  when '20000000-0000-0000-0000-000000000001' then '10000000-0000-0000-0000-000000000001'::uuid
+  when '20000000-0000-0000-0000-000000000002' then '10000000-0000-0000-0000-000000000002'::uuid
+  when '20000000-0000-0000-0000-000000000003' then '10000000-0000-0000-0000-000000000003'::uuid
+  when '20000000-0000-0000-0000-000000000004' then '10000000-0000-0000-0000-000000000004'::uuid
+end
+where target_staff.id in (
+  '20000000-0000-0000-0000-000000000001',
+  '20000000-0000-0000-0000-000000000002',
+  '20000000-0000-0000-0000-000000000003',
+  '20000000-0000-0000-0000-000000000004'
+);
 
 insert into public.stores (id, organization_id, name) values
   (
@@ -264,6 +286,31 @@ insert into public.notifications (
     'Notification 2', 'body', 'test'
   );
 
+begin;
+alter table public.staff disable trigger guard_staff_auth_email_claim;
+insert into public.staff (id, organization_id, name, email) values
+  (
+    '20000000-0000-0000-0000-000000000013',
+    '00000000-0000-0000-0000-000000000001',
+    'Legacy Duplicate 1',
+    'legacy-duplicate@example.test'
+  ),
+  (
+    '20000000-0000-0000-0000-000000000014',
+    '00000000-0000-0000-0000-000000000001',
+    'Legacy Duplicate 2',
+    ' Legacy-Duplicate@Example.Test '
+  );
+do $$
+begin
+  perform private.assert_staff_auth_email_consistency();
+  raise exception 'legacy duplicate preflight unexpectedly passed';
+exception
+  when check_violation then null;
+end;
+$$;
+rollback;
+
 do $$
 begin
   begin
@@ -273,7 +320,7 @@ begin
     set constraints staff_auth_user_organization_fk immediate;
     raise exception 'cross-organization staff link was accepted';
   exception
-    when foreign_key_violation then null;
+    when foreign_key_violation or unique_violation then null;
   end;
 end;
 $$;

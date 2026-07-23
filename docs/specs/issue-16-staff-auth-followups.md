@@ -20,7 +20,7 @@
 ## 設計
 
 - 変更する責務境界: メール更新値の決定を純粋関数へ分離し、スタッフ更新server actionが現在行を取得して適用する。
-- データ / API: 旧・新メールをadvisory transaction lockで直列化するstaff triggerと、同じロック内で対象staffを再検査してprofileを作るservice role限定RPCを追加する。アプリ側の事前検査も早期エラー用に維持する。
+- データ / API: 正規化メールを主キーにstaff/Auth所有者を保持するprivate claim表を追加し、staff/profile triggerとservice role限定RPCが同じclaim行を原子的に更新する。アプリ側の事前検査も早期エラー用に維持する。
 - 失敗時の扱い: 監査insertのresolved errorと例外を同じ部分成功へ正規化する。profile作成またはstaff紐付けの失敗・例外は招待Authユーザーを補償削除し、補償削除の失敗・例外は運用確認が必要なcleanup failureとする。
 
 ## 受入条件と検証

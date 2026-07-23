@@ -1,6 +1,26 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+wait_for_test_ready() {
+  local marker="$1"
+  local acquired
+
+  for _attempt in {1..100}; do
+    acquired="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+      select pg_try_advisory_lock(
+        hashtextextended('staff-auth-test-ready:' || '${marker}', 0)
+      );
+    ")"
+    if [[ "${acquired}" == "f" ]]; then
+      return
+    fi
+    sleep 0.02
+  done
+
+  echo "timed out waiting for staff Auth concurrency marker: ${marker}" >&2
+  exit 1
+}
+
 user_id="10000000-0000-0000-0000-000000000001"
 first_token="$(printf 'd%.0s' {1..64})"
 second_token="$(printf 'e%.0s' {1..64})"
@@ -59,12 +79,15 @@ psql --set ON_ERROR_STOP=1 --command "
   update public.staff
   set email = '${changed_email}'
   where id = '${staff_id}';
+  select pg_advisory_xact_lock(
+    hashtextextended('staff-auth-test-ready:update-first', 0)
+  );
   select pg_sleep(1);
   commit;
 " >/dev/null &
 update_pid=$!
 
-sleep 0.1
+wait_for_test_ready "update-first"
 
 profile_created="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
   select public.create_staff_profile_with_email_guard(
@@ -93,3 +116,171 @@ if [[ "${profile_count}" != "0" ]]; then
 fi
 
 echo "concurrent staff email update and profile creation passed"
+
+profile_first_auth_user_id="10000000-0000-0000-0000-000000000007"
+profile_first_staff_id="20000000-0000-0000-0000-000000000007"
+profile_first_email="profile-first@example.test"
+profile_first_changed_email="profile-first-changed@example.test"
+
+psql --set ON_ERROR_STOP=1 --command "
+  insert into auth.users (id) values ('${profile_first_auth_user_id}');
+  insert into public.staff (id, organization_id, name, email)
+  values (
+    '${profile_first_staff_id}',
+    '${organization_id}',
+    'Profile First',
+    '${profile_first_email}'
+  );
+" >/dev/null
+
+psql --set ON_ERROR_STOP=1 --command "
+  begin;
+  select public.create_staff_profile_with_email_guard(
+    '${profile_first_auth_user_id}',
+    '${profile_first_staff_id}',
+    '${organization_id}',
+    'Profile First',
+    '${profile_first_email}'
+  );
+  select pg_advisory_xact_lock(
+    hashtextextended('staff-auth-test-ready:profile-first', 0)
+  );
+  select pg_sleep(1);
+  commit;
+" >/dev/null &
+profile_pid=$!
+
+wait_for_test_ready "profile-first"
+
+if psql --set ON_ERROR_STOP=1 --command "
+  update public.staff
+  set email = '${profile_first_changed_email}'
+  where id = '${profile_first_staff_id}';
+" >/dev/null 2>&1; then
+  echo "expected email update to fail after profile creation won the claim" >&2
+  exit 1
+fi
+
+wait "${profile_pid}"
+
+profile_first_state="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select count(*) || ':' || min(target_staff.email)
+  from public.user_profiles target_profile
+  join public.staff target_staff on target_staff.id = '${profile_first_staff_id}'
+  where target_profile.id = '${profile_first_auth_user_id}';
+")"
+
+if [[ "${profile_first_state}" != "1:${profile_first_email}" ]]; then
+  echo "profile-first serialization left an unexpected state: ${profile_first_state}" >&2
+  exit 1
+fi
+
+psql --set ON_ERROR_STOP=1 --command "
+  delete from auth.users where id = '${profile_first_auth_user_id}';
+" >/dev/null
+
+echo "concurrent profile creation and staff email update passed"
+
+first_staff_id="20000000-0000-0000-0000-000000000008"
+second_staff_id="20000000-0000-0000-0000-000000000009"
+shared_update_email="staff-update-race@example.test"
+
+psql --set ON_ERROR_STOP=1 --command "
+  insert into public.staff (id, organization_id, name, email) values
+    ('${first_staff_id}', '${organization_id}', 'Update Race 1', 'update-race-1@example.test'),
+    ('${second_staff_id}', '${organization_id}', 'Update Race 2', 'update-race-2@example.test');
+" >/dev/null
+
+psql --set ON_ERROR_STOP=1 --command "
+  begin;
+  update public.staff set email = '${shared_update_email}' where id = '${first_staff_id}';
+  select pg_advisory_xact_lock(
+    hashtextextended('staff-auth-test-ready:shared-update', 0)
+  );
+  select pg_sleep(1);
+  commit;
+" >/dev/null &
+first_update_pid=$!
+
+wait_for_test_ready "shared-update"
+
+if psql --set ON_ERROR_STOP=1 --command "
+  update public.staff set email = '${shared_update_email}' where id = '${second_staff_id}';
+" >/dev/null 2>&1; then
+  echo "expected the second staff email update to fail" >&2
+  exit 1
+fi
+
+wait "${first_update_pid}"
+
+shared_update_count="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select count(*) from public.staff where email = '${shared_update_email}';
+")"
+
+if [[ "${shared_update_count}" != "1" ]]; then
+  echo "expected one winner for concurrent staff updates, got ${shared_update_count}" >&2
+  exit 1
+fi
+
+echo "concurrent staff email updates passed"
+
+first_insert_staff_id="20000000-0000-0000-0000-000000000010"
+second_insert_staff_id="20000000-0000-0000-0000-000000000011"
+shared_insert_email="staff-insert-race@example.test"
+
+psql --set ON_ERROR_STOP=1 --command "
+  begin;
+  insert into public.staff (id, organization_id, name, email)
+  values ('${first_insert_staff_id}', '${organization_id}', 'Insert Race 1', '${shared_insert_email}');
+  select pg_advisory_xact_lock(
+    hashtextextended('staff-auth-test-ready:shared-insert', 0)
+  );
+  select pg_sleep(1);
+  commit;
+" >/dev/null &
+first_insert_pid=$!
+
+wait_for_test_ready "shared-insert"
+
+if psql --set ON_ERROR_STOP=1 --command "
+  insert into public.staff (id, organization_id, name, email)
+  values ('${second_insert_staff_id}', '${organization_id}', 'Insert Race 2', '${shared_insert_email}');
+" >/dev/null 2>&1; then
+  echo "expected the second staff insert to fail" >&2
+  exit 1
+fi
+
+wait "${first_insert_pid}"
+
+shared_insert_count="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select count(*) from public.staff where email = '${shared_insert_email}';
+")"
+
+if [[ "${shared_insert_count}" != "1" ]]; then
+  echo "expected one winner for concurrent staff inserts, got ${shared_insert_count}" >&2
+  exit 1
+fi
+
+echo "concurrent staff email inserts passed"
+
+null_same_staff_id="20000000-0000-0000-0000-000000000012"
+null_same_email="null-same@example.test"
+
+psql --set ON_ERROR_STOP=1 --command "
+  insert into public.staff (id, organization_id, name, email)
+  values ('${null_same_staff_id}', '${organization_id}', 'Null Same', '${null_same_email}');
+  update public.staff set email = '${null_same_email}' where id = '${null_same_staff_id}';
+  update public.staff set email = null where id = '${null_same_staff_id}';
+" >/dev/null
+
+null_email_count="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select count(*) from public.staff
+  where id = '${null_same_staff_id}' and email is null;
+")"
+
+if [[ "${null_email_count}" != "1" ]]; then
+  echo "same-email and null transitions did not complete" >&2
+  exit 1
+fi
+
+echo "same-email and null staff updates passed"
