@@ -17,6 +17,7 @@ import type {
   ExternalApiKeyDeactivationActionState,
   ExternalApiKeyIssueActionState,
 } from '@/lib/external-api/key-management';
+import { recoverAction } from '@/lib/utils/action-recovery';
 
 export type ExternalApiKeyListItem = {
   id: string;
@@ -48,23 +49,35 @@ export function ExternalApiKeyManager({ keys }: { keys: ExternalApiKeyListItem[]
   async function handleIssue(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsIssuing(true);
-    const result = await issueExternalApiKeyAction(new FormData(event.currentTarget));
-    setIssueState(result);
-    setIsIssuing(false);
+    try {
+      const result = await recoverAction(
+        () => issueExternalApiKeyAction(new FormData(event.currentTarget)),
+        { status: 'error', message: 'APIキーを発行できませんでした。時間を置いて再試行してください。' }
+      );
+      setIssueState(result);
 
-    if (result.status === 'success') {
-      event.currentTarget.reset();
-      router.refresh();
+      if (result.status === 'success') {
+        event.currentTarget.reset();
+        router.refresh();
+      }
+    } finally {
+      setIsIssuing(false);
     }
   }
 
   async function handleDeactivate(event: React.FormEvent<HTMLFormElement>, keyId: string) {
     event.preventDefault();
     setDeactivatingId(keyId);
-    const result = await deactivateExternalApiKeyAction(new FormData(event.currentTarget));
-    setDeactivationState(result);
-    setDeactivatingId(null);
-    router.refresh();
+    try {
+      const result = await recoverAction(
+        () => deactivateExternalApiKeyAction(new FormData(event.currentTarget)),
+        { status: 'error', message: 'APIキーを無効化できませんでした。時間を置いて再試行してください。' }
+      );
+      setDeactivationState(result);
+      router.refresh();
+    } finally {
+      setDeactivatingId(null);
+    }
   }
 
   async function copyIssuedKey() {
