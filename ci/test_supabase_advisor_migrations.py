@@ -138,6 +138,9 @@ class StaffAuthSecurityMigrationTest(TestCase):
     SECURITY_MIGRATION = (
         MIGRATIONS / "20260716034432_secure_staff_password_intents.sql"
     )
+    EMAIL_SERIALIZATION_MIGRATION = (
+        MIGRATIONS / "20260716145718_staff_auth_email_serialization.sql"
+    )
 
     def test_staff_auth_link_is_tenant_consistent_in_the_database(self) -> None:
         migration = self.SECURITY_MIGRATION.read_text(encoding="utf-8")
@@ -183,6 +186,52 @@ class StaffAuthSecurityMigrationTest(TestCase):
             migration.count(
                 "own_staff.organization_id = private.current_user_organization_id()"
             ),
+        )
+
+    def test_staff_auth_email_claims_are_atomic_and_service_role_only(self) -> None:
+        migration = self.EMAIL_SERIALIZATION_MIGRATION.read_text(encoding="utf-8")
+
+        self.assertTrue(migration.startswith("begin;\n"))
+        self.assertTrue(migration.rstrip().endswith("commit;"))
+        self.assertIn(
+            "lock table public.staff, public.user_profiles "
+            "in share row exclusive mode;",
+            migration,
+        )
+        self.assertIn("private.assert_staff_auth_email_consistency", migration)
+        self.assertIn("staff_duplicate_groups", migration)
+        self.assertIn("profile_duplicate_groups", migration)
+        self.assertIn("staff_profile_conflicts", migration)
+        self.assertIn("linked_staff_conflicts", migration)
+        self.assertIn("target_profile.role is distinct from 'staff'", migration)
+        self.assertIn("or not target_profile.is_active", migration)
+        self.assertIn("invalid_profile_emails", migration)
+        self.assertIn("create table private.staff_auth_email_claims", migration)
+        self.assertIn("normalized_email text primary key", migration)
+        self.assertIn("staff_id uuid unique", migration)
+        self.assertIn("auth_user_id uuid unique", migration)
+        self.assertIn("on conflict (normalized_email) do update", migration)
+        self.assertIn("create trigger guard_staff_auth_email_claim", migration)
+        self.assertIn(
+            "create constraint trigger enforce_staff_auth_email_claim_consistency",
+            migration,
+        )
+        self.assertIn("deferrable initially deferred", migration)
+        self.assertIn("create trigger guard_user_profile_email_claim", migration)
+        self.assertIn("update of email, organization_id, role, is_active", migration)
+        self.assertIn("create trigger release_user_profile_email_claim", migration)
+        self.assertIn("create_staff_profile_with_email_guard", migration)
+        self.assertIn("security definer", migration)
+        self.assertIn("set search_path = ''", migration)
+        self.assertIn(
+            "grant execute on function public.create_staff_profile_with_email_guard",
+            migration,
+        )
+        self.assertIn("to service_role;", migration)
+        self.assertIn(
+            "revoke all on private.staff_auth_email_claims\n"
+            "  from public, anon, authenticated, service_role;",
+            migration,
         )
 
 

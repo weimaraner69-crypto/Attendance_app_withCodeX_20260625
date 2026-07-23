@@ -1,0 +1,186 @@
+{
+  "schema_version": 2,
+  "phase": "post_push",
+  "provider": "codex",
+  "reviewer_id": "codex-galileo-019f6b7a",
+  "review_session_id": "019f6b7a-271b-72c0-8393-8fa4754560bb",
+  "implementation_session_id": "codex-main-pr20-20260716",
+  "head_sha": "b27fdb89ca29026a7afd2e7bdd8ad563b3cfa6ab",
+  "diff_fingerprint": "sha256:fe3a551df40080eecff2f66083d03d56605a717c8121a2fb34b422a6777025d6",
+  "risk_tier": "red",
+  "round": 2,
+  "review_status": "completed",
+  "secondary_verification": {
+    "required": true,
+    "method": "dedicated_tests",
+    "status": "passed",
+    "evidence": "Round 2 fixes passed fresh PostgreSQL migrations, value-free collision preflight, Auth compensation, six concurrency scenarios, Python policy tests, TypeScript tests, lint, and build.",
+    "commands": [
+      {
+        "command": "python3 -m unittest ci.test_policy_check ci.test_supabase_advisor_migrations",
+        "exit_code": 0,
+        "summary": "38 policy and migration tests passed",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "psql --set ON_ERROR_STOP=1 --file ci/test_staff_auth_postgres.sql",
+        "exit_code": 0,
+        "summary": "Fresh PostgreSQL 16 migrations, preflight, authorization, and Auth compensation checks passed",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "bash ci/test_staff_auth_postgres_concurrency.sh",
+        "exit_code": 0,
+        "summary": "Password intent, update/profile ordering, staff update, staff insert, and null transition concurrency checks passed",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "npm test",
+        "exit_code": 0,
+        "summary": "102 Vitest tests passed",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "npm run lint",
+        "exit_code": 0,
+        "summary": "Next.js lint passed without warnings",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "npm run build",
+        "exit_code": 0,
+        "summary": "Next.js production build passed",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "python3 ci/policy_check.py",
+        "exit_code": 0,
+        "summary": "Repository policy checks passed",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "git diff --check",
+        "exit_code": 0,
+        "summary": "Git whitespace checks passed",
+        "covered_paths": ["**"]
+      }
+    ]
+  },
+  "summary": "Round 2 found no Must, three Should, and one Nice finding. Operational state, migration preflight, bidirectional concurrency coverage, and normalized-email lookup consistency were corrected and verified.",
+  "repository_context_mode": "full_repo_agentic",
+  "diff_only_reason": "",
+  "changed_files": [
+    "CHANGELOG.md",
+    "NEXT.md",
+    "README.md",
+    "ci/test_staff_auth_postgres.sql",
+    "ci/test_staff_auth_postgres_concurrency.sh",
+    "ci/test_supabase_advisor_migrations.py",
+    "docs/ai/execution-ledger.md",
+    "docs/ai/expectation-ledger.md",
+    "docs/ai/pre-pr-critical-review.md",
+    "docs/implementation-decisions.md",
+    "docs/operations-maintenance.md",
+    "docs/specs/issue-16-staff-auth-followups.md",
+    "src/app/(authenticated)/owner/staff/page.tsx",
+    "src/components/staff/StaffAuthStatus.test.ts",
+    "src/components/staff/StaffAuthStatus.tsx",
+    "src/components/staff/StaffEmailInput.test.ts",
+    "src/components/staff/StaffEmailInput.tsx",
+    "src/lib/auth/staff-auth.test.ts",
+    "src/lib/auth/staff-auth.ts",
+    "src/lib/auth/staff-email-update.test.ts",
+    "src/lib/auth/staff-email-update.ts",
+    "src/lib/supabase/database.types.ts",
+    "supabase/migrations/20260716145718_staff_auth_email_serialization.sql"
+  ],
+  "related_files": [
+    {
+      "path": "supabase/migrations/202606250001_initial_attendance_schema.sql",
+      "reason": "Staff, profile, organization, and Auth cascade contracts"
+    },
+    {
+      "path": "supabase/migrations/20260716034432_secure_staff_password_intents.sql",
+      "reason": "Existing privileged Auth database boundary"
+    },
+    {
+      "path": "ci/test_staff_auth_postgres.sql",
+      "reason": "Fresh migration, preflight, authorization, and compensation verification"
+    },
+    {
+      "path": "ci/test_staff_auth_postgres_concurrency.sh",
+      "reason": "Bidirectional and same-resource concurrency verification"
+    },
+    {
+      "path": ".github/instructions/review-loop.instructions.md",
+      "reason": "Round disposition and evidence authority"
+    },
+    {
+      "path": "SECURITY.md",
+      "reason": "Secret and service-role boundary authority"
+    }
+  ],
+  "scanned_paths": [".github", "ai", "ci", "docs", "src", "supabase"],
+  "commands_run": [
+    {
+      "command": "bounded full-repository review of PR 20 head b27fdb8 and related Auth, migration, concurrency, operations, and test paths",
+      "exit_code": 0,
+      "summary": "Found three Should and one Nice finding; no Must findings"
+    }
+  ],
+  "context_fingerprint": "git-tree:b6f5f209da1628464dcab8b7677af29ab1b7ac2c",
+  "context_budget": {
+    "max_related_files": 40,
+    "max_context_chars": 180000,
+    "max_file_excerpt_chars": 12000,
+    "max_context_commands": 12
+  },
+  "context_truncated": true,
+  "context_truncated_reason": "Review excerpts were bounded at 12000 characters per file while preserving the migration, concurrency, operational, and test paths required for the findings.",
+  "issues": [
+    {
+      "severity": "Should",
+      "category": "operational-state-drift",
+      "file": "docs/ai/execution-ledger.md",
+      "line": 31,
+      "rationale": "The current-state ledger still described the already-pushed Round 1 changes as pending.",
+      "fix": "Record the pushed baseline, CI result, Round 2 findings, and current next step.",
+      "confidence": 1.0,
+      "disposition": "fixed",
+      "disposition_reason": "The ledger records b27fdb8, its fingerprint and CI state, all Round 2 findings, completed verification, and the Round 3 next step."
+    },
+    {
+      "severity": "Should",
+      "category": "migration-preflight",
+      "file": "supabase/migrations/20260716145718_staff_auth_email_serialization.sql",
+      "line": 10,
+      "rationale": "Creating uniqueness enforcement without checking legacy normalized collisions could fail mid-migration without an actionable aggregate diagnosis.",
+      "fix": "Add a value-free preflight covering staff duplicates, profile duplicates, staff/profile conflicts, linked identity mismatches, and invalid profile emails.",
+      "confidence": 0.97,
+      "disposition": "fixed",
+      "disposition_reason": "The migration raises check_violation with count-only diagnostics before creating the private claim table; PostgreSQL regression tests prove legacy case and whitespace collisions fail closed."
+    },
+    {
+      "severity": "Should",
+      "category": "concurrency-coverage",
+      "file": "ci/test_staff_auth_postgres_concurrency.sh",
+      "line": 65,
+      "rationale": "Only the staff-update-first ordering was tested, leaving profile-first and staff-to-staff claim races unverified.",
+      "fix": "Add profile-first, concurrent staff update, and concurrent staff insert scenarios with deterministic transaction ordering.",
+      "confidence": 0.96,
+      "disposition": "fixed",
+      "disposition_reason": "The test now covers both update/profile orderings, two staff updates, two staff inserts, password intent serialization, and same-email/null transitions using test-only readiness markers."
+    },
+    {
+      "severity": "Nice",
+      "category": "normalized-email-index-consistency",
+      "file": "supabase/migrations/20260716145718_staff_auth_email_serialization.sql",
+      "line": 84,
+      "rationale": "Functional index expressions and lookup expressions should remain identical to avoid planner and uniqueness drift.",
+      "fix": "Use one canonical normalized-email representation for ownership and lookup.",
+      "confidence": 0.82,
+      "disposition": "fixed",
+      "disposition_reason": "The advisory-lock and functional-index design was replaced by a private claim table whose primary key is the single normalized-email value used by all triggers and the profile RPC."
+    }
+  ]
+}

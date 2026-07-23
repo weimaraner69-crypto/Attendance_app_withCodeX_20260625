@@ -7,6 +7,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { StaffEmailInput } from '@/components/staff/StaffEmailInput';
+import {
+  getStaffAuthActionLabel,
+  StaffAuthStatus,
+  type StaffAuthStatusKind,
+} from '@/components/staff/StaffAuthStatus';
 import {
   Table,
   TableBody,
@@ -25,6 +31,10 @@ import {
   requestStaffPasswordReset,
   type StaffAuthActionCode,
 } from '@/lib/auth/staff-auth';
+import {
+  isStaffEmailAvailable,
+  resolveStaffEmailUpdate,
+} from '@/lib/auth/staff-email-update';
 import { createSupabaseAdminClient } from '@/lib/supabase';
 import type { Database } from '@/lib/supabase';
 
@@ -127,6 +137,18 @@ async function createStaff(formData: FormData) {
 
   const defaultStoreId = nullableText(formData.get('default_store_id'));
   const pin = nullableText(formData.get('pin'));
+  const email = nullableEmail(formData.get('email'));
+  const authOperations = createStaffAuthOperations(supabase);
+  try {
+    if (!await isStaffEmailAvailable({
+      operations: authOperations,
+      organizationId: context.profile.organization_id,
+      email,
+    })) return;
+  } catch {
+    return;
+  }
+
   const { data: staff } = await supabase
     .from('staff')
     .insert({
@@ -138,7 +160,7 @@ async function createStaff(formData: FormData) {
       employment_type: nullableEmploymentType(formData.get('employment_type')),
       hourly_wage: nullableNumber(formData.get('hourly_wage')),
       phone: nullableText(formData.get('phone')),
-      email: nullableEmail(formData.get('email')),
+      email,
       pin_hash: pin ? hashPin(pin) : null,
       pin_updated_at: pin ? new Date().toISOString() : null,
       joined_on: nullableText(formData.get('joined_on')),
@@ -166,7 +188,37 @@ async function updateStaff(formData: FormData) {
 
   const defaultStoreId = nullableText(formData.get('default_store_id'));
 
-  await supabase
+  const { data: currentStaff, error: currentStaffError } = await supabase
+    .from('staff')
+    .select('auth_user_id, email')
+    .eq('id', staffId)
+    .eq('organization_id', context.profile.organization_id)
+    .maybeSingle();
+  if (currentStaffError || !currentStaff) return;
+
+  const email = resolveStaffEmailUpdate(
+    {
+      authUserId: currentStaff.auth_user_id,
+      currentEmail: currentStaff.email,
+    },
+    formData.get('email')?.toString()
+  );
+
+  if (!currentStaff.auth_user_id) {
+    const authOperations = createStaffAuthOperations(supabase);
+    try {
+      if (!await isStaffEmailAvailable({
+        operations: authOperations,
+        organizationId: context.profile.organization_id,
+        staffId,
+        email,
+      })) return;
+    } catch {
+      return;
+    }
+  }
+
+  let updateQuery = supabase
     .from('staff')
     .update({
       default_store_id: defaultStoreId,
@@ -176,12 +228,25 @@ async function updateStaff(formData: FormData) {
       employment_type: nullableEmploymentType(formData.get('employment_type')),
       hourly_wage: nullableNumber(formData.get('hourly_wage')),
       phone: nullableText(formData.get('phone')),
-      email: nullableEmail(formData.get('email')),
+      email,
       joined_on: nullableText(formData.get('joined_on')),
       retired_on: nullableText(formData.get('retired_on')),
     })
     .eq('id', staffId)
     .eq('organization_id', context.profile.organization_id);
+
+  updateQuery = currentStaff.auth_user_id
+    ? updateQuery.eq('auth_user_id', currentStaff.auth_user_id)
+    : updateQuery.is('auth_user_id', null);
+
+  updateQuery = currentStaff.email === null
+    ? updateQuery.is('email', null)
+    : updateQuery.eq('email', currentStaff.email);
+
+  const { data: updatedStaff, error: updateError } = await updateQuery
+    .select('id')
+    .maybeSingle();
+  if (updateError || !updatedStaff) return;
 
   await upsertCurrentStoreAssignment(context.profile.organization_id, staffId, defaultStoreId);
   revalidatePath('/owner/staff');
@@ -326,24 +391,29 @@ function EmploymentSelect({ defaultValue }: { defaultValue?: EmploymentType | nu
   );
 }
 
-const authStatusMessages: Record<StaffAuthActionCode, { success: boolean; message: string }> = {
-  sent: { success: true, message: '招待メールを送信し、スタッフアカウントを安全に紐づけました。' },
-  reset_sent: { success: true, message: 'パスワード再設定メールを送信しました。' },
-  invalid_staff: { success: false, message: '対象スタッフを確認できません。' },
-  inactive_staff: { success: false, message: '無効なスタッフには招待・再設定メールを送信できません。' },
-  missing_email: { success: false, message: '先にスタッフのメールアドレスを登録してください。' },
-  invalid_email: { success: false, message: 'メールアドレスの形式が正しくありません。' },
-  duplicate_email: { success: false, message: '同じメールアドレスのスタッフが存在します。' },
-  cross_organization: { success: false, message: 'このメールアドレスは招待に利用できません。登録内容を確認してください。' },
-  wrong_role: { success: false, message: 'このメールアドレスは招待に利用できません。登録内容を確認してください。' },
-  already_linked: { success: false, message: 'このスタッフはすでにスマホログイン設定済みです。' },
-  already_registered: { success: false, message: 'このメールアドレスは招待に利用できません。登録内容を確認してください。' },
-  inconsistent_profile: { success: false, message: 'スタッフとAuthプロファイルの情報が一致しません。' },
-  configuration_error: { success: false, message: '公開URL設定を確認できないため、メールを送信できません。' },
-  invite_failed: { success: false, message: '招待メールを送信できませんでした。登録状態を確認してください。' },
-  link_failed: { success: false, message: '招待後のアカウント紐づけに失敗したため、招待を取り消しました。' },
-  cleanup_failed: { success: false, message: 'アカウント紐づけと後処理に失敗しました。Supabase Authの状態を確認してください。' },
-  reset_failed: { success: false, message: 'パスワード再設定メールを送信できませんでした。' },
+const authStatusMessages: Record<
+  StaffAuthActionCode,
+  { kind: StaffAuthStatusKind; message: string }
+> = {
+  sent: { kind: 'success', message: '招待メールを送信し、スタッフアカウントを安全に紐づけました。' },
+  reset_sent: { kind: 'success', message: 'パスワード再設定メールを送信しました。' },
+  invite_audit_failed: { kind: 'partial-success', message: '招待とアカウント紐づけは完了しましたが、監査ログを保存できませんでした。運用担当へ連絡してください。' },
+  reset_audit_failed: { kind: 'partial-success', message: 'パスワード再設定メールは送信しましたが、監査ログを保存できませんでした。運用担当へ連絡してください。' },
+  invalid_staff: { kind: 'error', message: '対象スタッフを確認できません。' },
+  inactive_staff: { kind: 'error', message: '無効なスタッフには招待・再設定メールを送信できません。' },
+  missing_email: { kind: 'error', message: '先にスタッフのメールアドレスを登録してください。' },
+  invalid_email: { kind: 'error', message: 'メールアドレスの形式が正しくありません。' },
+  duplicate_email: { kind: 'error', message: '同じメールアドレスのスタッフが存在します。' },
+  cross_organization: { kind: 'error', message: 'このメールアドレスは招待に利用できません。登録内容を確認してください。' },
+  wrong_role: { kind: 'error', message: 'このメールアドレスは招待に利用できません。登録内容を確認してください。' },
+  already_linked: { kind: 'error', message: 'このスタッフはすでにスマホログイン設定済みです。' },
+  already_registered: { kind: 'error', message: 'このメールアドレスは招待に利用できません。登録内容を確認してください。' },
+  inconsistent_profile: { kind: 'error', message: 'スタッフとAuthプロファイルの情報が一致しません。' },
+  configuration_error: { kind: 'error', message: '公開URL設定を確認できないため、メールを送信できません。' },
+  invite_failed: { kind: 'error', message: '招待メールを送信できませんでした。登録状態を確認してください。' },
+  link_failed: { kind: 'error', message: '招待後のアカウント紐づけに失敗したため、招待を取り消しました。' },
+  cleanup_failed: { kind: 'error', message: 'アカウント紐づけと後処理に失敗しました。Supabase Authの状態を確認してください。' },
+  reset_failed: { kind: 'error', message: 'パスワード再設定メールを送信できませんでした。' },
 };
 
 function getParam(value: string | string[] | undefined) {
@@ -394,15 +464,7 @@ export default async function StaffPage({
       </div>
 
       {authStatusMessage && (
-        <p
-          className={`border p-3 text-sm ${
-            authStatusMessage.success
-              ? 'border-green-200 bg-green-50 text-green-800'
-              : 'border-red-200 bg-red-50 text-red-700'
-          }`}
-        >
-          {authStatusMessage.message}
-        </p>
+        <StaffAuthStatus {...authStatusMessage} />
       )}
 
       <section className="space-y-4 rounded-lg border bg-white p-4">
@@ -530,7 +592,12 @@ export default async function StaffPage({
                     <input type="hidden" name="default_store_id" value={member.default_store_id ?? ''} />
                     <input type="hidden" name="joined_on" value={member.joined_on ?? ''} />
                     <input type="hidden" name="retired_on" value={member.retired_on ?? ''} />
-                    <Input name="email" type="email" defaultValue={member.email ?? ''} placeholder="メール" aria-label={`${member.name} メール`} />
+                    <StaffEmailInput
+                      authUserId={member.auth_user_id}
+                      email={member.email}
+                      staffId={member.id}
+                      staffName={member.name}
+                    />
                     <Input name="phone" defaultValue={member.phone ?? ''} placeholder="電話番号" aria-label={`${member.name} 電話番号`} />
                     <Input name="hourly_wage" type="number" min="0" defaultValue={member.hourly_wage ?? ''} placeholder="時給" aria-label={`${member.name} 時給`} />
                     <Button type="submit" variant="outline" size="sm">連絡先保存</Button>
@@ -542,13 +609,26 @@ export default async function StaffPage({
                     {!member.auth_user_id && member.is_active && member.email && (
                       <form action={inviteStaffAuthUser}>
                         <input type="hidden" name="staff_id" value={member.id} />
-                        <Button type="submit" size="sm">招待メール送信</Button>
+                        <Button
+                          type="submit"
+                          size="sm"
+                          aria-label={getStaffAuthActionLabel('invite', member.name)}
+                        >
+                          招待メール送信
+                        </Button>
                       </form>
                     )}
                     {member.auth_user_id && member.is_active && member.email && (
                       <form action={sendStaffPasswordReset}>
                         <input type="hidden" name="staff_id" value={member.id} />
-                        <Button type="submit" variant="outline" size="sm">再設定メール送信</Button>
+                        <Button
+                          type="submit"
+                          variant="outline"
+                          size="sm"
+                          aria-label={getStaffAuthActionLabel('reset', member.name)}
+                        >
+                          再設定メール送信
+                        </Button>
                       </form>
                     )}
                     {!member.email && (

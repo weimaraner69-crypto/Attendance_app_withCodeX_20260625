@@ -28,6 +28,21 @@ PR 作成前の spec、security、reliability 観点のレビュー結果を記�
 - 残リスク: hosted Supabaseへのマイグレーション適用と実APIキーによるヘッダー・429・ログ確認は、本番運用工程として未実施
 - 結論: Must/Should/Niceを全件解消し、pre-PR reviewerは`APPROVE`。push後は別reviewer/sessionの`full_repo_agentic`独立レビューと専用PostgreSQLテストを必須とする
 
+## 2026-07-16 Issue #16 スタッフAuth運用フォローアップ
+
+- 対象: 紐付け済みメール不変、招待・再設定の監査部分成功、スタッフ別accessible name、結果live region
+- 実施日: 2026-07-16
+- 実施者 / provider: Codex pre-PR security/reliability reviewer Lorentz、独立completion auditor Lagrange（push後レビューには算入しない）
+- 確認した文書・差分: Issue #16仕様、スタッフ管理server action、Auth操作、メール入力・結果表示コンポーネント、関連Vitest、計画・運用・完了文書
+- 実行した検証: Python 37件、Vitest 97件、認証・UI対象テスト38件（SSRを含む）、policy check、lint、build、`git diff --check`、未認証`/owner/staff`の`/login`遷移とconsole error 0件
+- Must: 招待とメール更新の競合で古いAuth/profileを紐付け得る問題を、招待開始時メールのDB更新条件と補償削除テストで解消。再設定がAuth実ユーザーを確認しない問題を、Admin APIのID・メール照合と欠落/不一致テストで解消
+- Must確認: hiddenメールが未紐付け入力を上書きするとの指摘は、hidden入力と編集入力が別々のformであり非再現。連絡先フォームの入力コンポーネントが`name=email`を1つだけ出力するSSRテストを追加
+- Should: 未紐付けメールの作成・更新前に既存profileと同一組織staffの重複を検査し、取得失敗時は更新しない。完了記録へ最終検証件数とレビュー対応を反映
+- Runtime smoke判断: 認証済みowner実データ操作は本番・実データ非目標に抵触するため行わず、成功/部分成功/失敗とメール入力はReact SSR、route保護は未認証ブラウザ遷移で確認
+- Nice: 本番運用工程で実メールE2Eを行う際、Auth/profile/staffのメール一致と監査ログを合わせて確認する
+- 残リスク: hosted SupabaseのAdmin API・実メール・実データによるE2Eは本番運用工程として未実施。アプリ側は不一致と照会失敗をfail-closeする
+- 結論: pre-PRのMust/Shouldを解消し、PR作成可。push後は別reviewer/sessionの`full_repo_agentic`独立レビューと専用認証回帰テストを必須とする
+
 ## 2026-07-16 PR #15 Round 3 Must再開対応
 
 - 対象: 最新`main`取り込み後のスタッフAuth invite/recovery callback、設定権限、組織境界

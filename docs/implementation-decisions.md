@@ -70,6 +70,12 @@
 - intent発行はadvisory lock付きsecurity definer関数と未消費 `user_id` の部分一意索引で直列化する。パスワード更新は設定権限を原子的に消費する同一OriginのサーバーAPIだけでAdmin API経由で行う。期限切れ・改ざん・同時再利用・通常staffセッションはfail-closeする。
 - `staff.auth_user_id` と組織の対応はDBの複合外部キーで固定し、staff本人参照を行うRLSも `private.current_user_organization_id()` との一致を必須とする。
 - 送信した招待・再設定操作は `audit_logs` へ記録するが、メール本文、トークン、Auth UUIDは記録しない。
+- Auth紐付け後のスタッフメールは直接変更不可とし、将来Auth・`user_profiles`・`staff`を同期する確認付き変更フローを実装するまで現在値を維持する。UIの読み取り専用表示に加え、サーバー更新も`auth_user_id`と更新開始時メールの一致条件で競合をfail-closeする。
+- 招待時のスタッフ紐付けは、招待開始時に読んだメールがDB上で変わっていない場合だけ許可する。競合時は作成したAuthユーザーを補償削除し、古いメールのAuth/profileをスタッフへ紐付けない。
+- パスワード再設定は、`staff`と`user_profiles`だけでなくSupabase Auth Admin APIの実ユーザーID・メールも一致する場合だけ送信する。未紐付けメールの作成・更新は既存profileと同一組織staffの重複検査をfail-closeで行う。
+- メール重複の整合性はアプリの事前SELECTや待機前snapshotの再検査だけに依存しない。正規化メールを主キーにstaff/Auth所有者を保持するprivate claim表を正本とし、staff/profile triggerとservice role限定profile作成RPCが同じclaim行を原子的に更新する。
+- 招待・再設定の主処理成功後に監査ログ保存が失敗した場合、メール送信失敗として再試行させず、専用の部分成功状態で完了範囲と運用確認の必要性を表示する。
+- スタッフ別の招待・再設定操作は対象スタッフ名をaccessible nameへ含め、結果は成功を`status`、失敗・部分成功を`alert`として通知する。
 
 ## A-000 日報アプリ向け外部連携API
 

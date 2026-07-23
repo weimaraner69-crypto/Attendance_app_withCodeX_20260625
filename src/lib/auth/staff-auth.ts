@@ -17,9 +17,11 @@ export type StaffAuthActionCode =
   | 'inconsistent_profile'
   | 'configuration_error'
   | 'invite_failed'
+  | 'invite_audit_failed'
   | 'link_failed'
   | 'cleanup_failed'
-  | 'reset_failed';
+  | 'reset_failed'
+  | 'reset_audit_failed';
 
 export type StaffAuthActionResult = {
   code: StaffAuthActionCode;
@@ -48,14 +50,21 @@ type StaffEmailReference = {
   auth_user_id: string | null;
 };
 
+type AuthUserReference = {
+  id: string;
+  email: string | null;
+};
+
 export type StaffAuthOperations = {
   getStaff: (organizationId: string, staffId: string) => Promise<StaffCandidate | null>;
   getProfile: (userId: string) => Promise<ProfileReference | null>;
+  getAuthUser: (userId: string) => Promise<AuthUserReference | null>;
   findProfilesByEmail: (email: string) => Promise<ProfileReference[]>;
   findStaffByEmail: (organizationId: string, email: string) => Promise<StaffEmailReference[]>;
   inviteAuthUser: (email: string, redirectTo: string) => Promise<{ id: string } | null>;
   createStaffProfile: (input: {
     id: string;
+    staffId: string;
     organizationId: string;
     displayName: string;
     email: string;
@@ -64,6 +73,7 @@ export type StaffAuthOperations = {
     staffId: string;
     organizationId: string;
     authUserId: string;
+    expectedStaffEmail: string;
   }) => Promise<boolean>;
   deleteAuthUser: (userId: string) => Promise<boolean>;
   sendPasswordReset: (email: string, redirectTo: string) => Promise<boolean>;
@@ -72,7 +82,7 @@ export type StaffAuthOperations = {
     actorUserId: string;
     action: string;
     staffId: string;
-  }) => Promise<void>;
+  }) => Promise<boolean>;
 };
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -150,32 +160,53 @@ export async function inviteAndLinkStaff(input: {
   const invitedUser = await operations.inviteAuthUser(email, redirectTo);
   if (!invitedUser) return { ok: false, code: 'invite_failed' };
 
-  const profileCreated = await operations.createStaffProfile({
-    id: invitedUser.id,
-    organizationId,
-    displayName: candidate.name,
-    email,
-  });
-  const staffLinked = profileCreated
-    ? await operations.linkStaff({
+  let profileCreated = false;
+  let staffLinked = false;
+  try {
+    profileCreated = await operations.createStaffProfile({
+      id: invitedUser.id,
+      staffId,
+      organizationId,
+      displayName: candidate.name,
+      email,
+    });
+    if (profileCreated) {
+      staffLinked = await operations.linkStaff({
         staffId,
         organizationId,
         authUserId: invitedUser.id,
-      })
-    : false;
+        expectedStaffEmail: candidate.email ?? '',
+      });
+    }
+  } catch {
+    profileCreated = false;
+    staffLinked = false;
+  }
 
   if (!profileCreated || !staffLinked) {
-    const deleted = await operations.deleteAuthUser(invitedUser.id);
+    let deleted = false;
+    try {
+      deleted = await operations.deleteAuthUser(invitedUser.id);
+    } catch {
+      deleted = false;
+    }
     return { ok: false, code: deleted ? 'link_failed' : 'cleanup_failed' };
   }
 
-  await operations.writeAuditLog({
-    organizationId,
-    actorUserId,
-    action: 'staff.auth_invited',
-    staffId,
-  });
-  return { ok: true, code: 'sent' };
+  let auditWritten = false;
+  try {
+    auditWritten = await operations.writeAuditLog({
+      organizationId,
+      actorUserId,
+      action: 'staff.auth_invited',
+      staffId,
+    });
+  } catch {
+    auditWritten = false;
+  }
+  return auditWritten
+    ? { ok: true, code: 'sent' }
+    : { ok: false, code: 'invite_audit_failed' };
 }
 
 export async function requestStaffPasswordReset(input: {
@@ -204,16 +235,32 @@ export async function requestStaffPasswordReset(input: {
     return { ok: false, code: 'inconsistent_profile' };
   }
 
+  const authUser = await operations.getAuthUser(candidate.auth_user_id);
+  if (
+    !authUser ||
+    authUser.id !== candidate.auth_user_id ||
+    normalizeStaffEmail(authUser.email) !== email
+  ) {
+    return { ok: false, code: 'inconsistent_profile' };
+  }
+
   const sent = await operations.sendPasswordReset(email, redirectTo);
   if (!sent) return { ok: false, code: 'reset_failed' };
 
-  await operations.writeAuditLog({
-    organizationId,
-    actorUserId,
-    action: 'staff.password_reset_requested',
-    staffId,
-  });
-  return { ok: true, code: 'reset_sent' };
+  let auditWritten = false;
+  try {
+    auditWritten = await operations.writeAuditLog({
+      organizationId,
+      actorUserId,
+      action: 'staff.password_reset_requested',
+      staffId,
+    });
+  } catch {
+    auditWritten = false;
+  }
+  return auditWritten
+    ? { ok: true, code: 'reset_sent' }
+    : { ok: false, code: 'reset_audit_failed' };
 }
 
 export function createStaffAuthOperations(
@@ -238,6 +285,11 @@ export function createStaffAuthOperations(
         .maybeSingle();
       if (error) throw error;
       return data;
+    },
+    async getAuthUser(userId) {
+      const { data, error } = await supabase.auth.admin.getUserById(userId);
+      if (error || !data.user) return null;
+      return { id: data.user.id, email: data.user.email ?? null };
     },
     async findProfilesByEmail(email) {
       const emailLikePattern = escapePostgrestLikePattern(email);
@@ -264,24 +316,24 @@ export function createStaffAuthOperations(
       });
       return error || !data.user ? null : { id: data.user.id };
     },
-    async createStaffProfile({ id, organizationId, displayName, email }) {
-      const { error } = await supabase.from('user_profiles').insert({
-        id,
-        organization_id: organizationId,
-        role: 'staff',
-        display_name: displayName,
-        email,
-        is_active: true,
+    async createStaffProfile({ id, staffId, organizationId, displayName, email }) {
+      const { data, error } = await supabase.rpc('create_staff_profile_with_email_guard', {
+        p_user_id: id,
+        p_staff_id: staffId,
+        p_organization_id: organizationId,
+        p_display_name: displayName,
+        p_email: email,
       });
-      return !error;
+      return !error && data === true;
     },
-    async linkStaff({ staffId, organizationId, authUserId }) {
+    async linkStaff({ staffId, organizationId, authUserId, expectedStaffEmail }) {
       const { data, error } = await supabase
         .from('staff')
         .update({ auth_user_id: authUserId })
         .eq('id', staffId)
         .eq('organization_id', organizationId)
         .eq('is_active', true)
+        .eq('email', expectedStaffEmail)
         .is('auth_user_id', null)
         .select('id')
         .maybeSingle();
@@ -296,7 +348,7 @@ export function createStaffAuthOperations(
       return !error;
     },
     async writeAuditLog({ organizationId, actorUserId, action, staffId }) {
-      await supabase.from('audit_logs').insert({
+      const { error } = await supabase.from('audit_logs').insert({
         organization_id: organizationId,
         actor_user_id: actorUserId,
         action,
@@ -304,6 +356,7 @@ export function createStaffAuthOperations(
         target_id: staffId,
         metadata: { auth_linked: action === 'staff.auth_invited' },
       });
+      return !error;
     },
   };
 }

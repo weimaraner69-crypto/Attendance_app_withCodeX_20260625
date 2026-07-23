@@ -28,6 +28,16 @@ Capability Lease（ユーザーが明示的に一時的な自律実行範囲を�
 
 ## 記録
 
+### DEC-20260723-001（capability lease）
+
+- 論点: PR #20のRound 3でMust 3件・Should 2件が検出された後、上限を超えて修正を継続するか
+- granted_by: ユーザー明示指示「承認します。作業を継続してください。」
+- scope: Round 3のMust/Should修正、migration・回帰テスト・文書・レビュー証跡更新、実DB検証、コミット、push、例外後の独立確認、CI、PR受入条件の同期
+- granted: migration修正、テスト追加、ローカル一時PostgreSQL検証、文書・証跡更新、コミット、push、独立repo-aware確認、CI確認、PR本文更新
+- excluded: `.env.local`の読み取り・値表示、秘密情報の転記、本番Supabase変更、実メール送信、日報アプリとの実接続、本番デプロイ、PRのマージ
+- expiry_condition: PR #20のRound 3指摘対応、例外後独立確認、CI、PR受入条件同期が完了した時点
+- 記録者注: Round 4の自動継続ではなく、2026-07-23のオーナー明示承認に基づく例外対応として記録する。
+
 ### DEC-20260716-002
 
 - 論点: 複数のNext.js実行インスタンスで、外部APIの60 req/min/key制限とアクセスログをどう一貫させるか

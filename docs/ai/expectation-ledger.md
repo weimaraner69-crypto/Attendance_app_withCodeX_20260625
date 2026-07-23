@@ -21,6 +21,21 @@
 
 ## 記録
 
+### EXP-20260716-001
+
+- 元のユーザー意図: 「計画に沿って進めてください」
+- AI の解釈: PR #19完了後の次タスクであるIssue #16を、既存のPR・独立レビュー・CI運用に従って実装する
+- ユーザー可視の成果: Auth紐付け済みメールが誤変更されず、招待・再設定の監査失敗が部分成功として表示され、支援技術が対象操作と結果を識別できる
+- 非目標: Auth・`user_profiles`・`staff`を横断するメール変更機能、本番Supabase変更、実メール送信、本番デプロイ
+- 制約: owner認可と組織境界を維持し、秘密情報や実メールアドレスを証跡へ記録しない
+- 影響する requirements: `README.md` のスタッフAuth運用品質、GitHub Issue #16
+- 影響する design: `docs/implementation-decisions.md` のA-001スタッフAuth
+- 作成・更新した spec: `docs/specs/issue-16-staff-auth-followups.md`
+- plan queue entry: `NEXT.md` A-001 Issue #16
+- 受入条件: 紐付け済みメールの二重防御、招待中のメール競合防止、再設定前のAuth実体照合、監査失敗の部分成功、対象者付きaccessible name、結果live region、回帰テストと品質ゲート成功
+- Runtime smoke: 結果・メール入力コンポーネントのSSR出力でrole、accessible name、単一メール入力を確認し、未認証owner routeのlogin遷移をブラウザ確認する
+- 結果: PR #20 Round 1の原子性・統合テスト・文書整合指摘を修正し、実PostgreSQL並行回帰まで成功。Round 2独立レビューとCI待ち
+
 以下は記入例（架空の一般例）である。運用開始後はこの例を残したまま、実際の意図変換エントリを追記する。
 
 ### EXP-20260101-001

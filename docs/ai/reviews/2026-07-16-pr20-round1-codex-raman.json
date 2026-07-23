@@ -1,0 +1,143 @@
+{
+  "schema_version": 2,
+  "phase": "post_push",
+  "provider": "codex",
+  "reviewer_id": "codex-raman-019f6b67",
+  "review_session_id": "019f6b67-fb8c-7f00-a7c0-5fe6a29069c1",
+  "implementation_session_id": "codex-main-pr20-20260716",
+  "head_sha": "cd1c728da0b4806cd52454578a1c9fa76b4e4b26",
+  "diff_fingerprint": "sha256:ece59e2dec03b7c253785443cf46867090b08211d511d3c3fcaf4a265846f919",
+  "risk_tier": "red",
+  "round": 1,
+  "review_status": "completed",
+  "secondary_verification": {
+    "required": true,
+    "method": "dedicated_tests",
+    "status": "passed",
+    "evidence": "After Round 1 fixes, targeted Auth/UI tests, Python policy tests, fresh PostgreSQL migrations, compensation cleanup, and concurrent staff-email/profile creation tests passed.",
+    "commands": [
+      {
+        "command": "npm test -- src/lib/auth/staff-auth.test.ts src/lib/auth/staff-email-update.test.ts src/components/staff/StaffEmailInput.test.ts src/components/staff/StaffAuthStatus.test.ts",
+        "exit_code": 0,
+        "summary": "43 targeted Auth and SSR tests passed",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "python3 -m unittest ci.test_supabase_advisor_migrations ci.test_policy_check",
+        "exit_code": 0,
+        "summary": "38 policy and migration tests passed",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "psql --set ON_ERROR_STOP=1 --file ci/test_staff_auth_postgres.sql",
+        "exit_code": 0,
+        "summary": "Fresh migrations, authorization boundaries, serialized profile creation, and compensation cascade passed",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "bash ci/test_staff_auth_postgres_concurrency.sh",
+        "exit_code": 0,
+        "summary": "Concurrent email update and stale profile creation serialized and failed closed",
+        "covered_paths": ["**"]
+      }
+    ]
+  },
+  "summary": "Round 1 found one Must and two Should findings. Atomic email claim serialization, real adapter and PostgreSQL coverage, compensation verification, and operational state were corrected and verified.",
+  "repository_context_mode": "full_repo_agentic",
+  "diff_only_reason": "",
+  "changed_files": [
+    "CHANGELOG.md",
+    "FINISHED.md",
+    "NEXT.md",
+    "README.md",
+    "docs/ai/execution-ledger.md",
+    "docs/ai/expectation-ledger.md",
+    "docs/ai/pre-pr-critical-review.md",
+    "docs/implementation-decisions.md",
+    "docs/operations-maintenance.md",
+    "docs/specs/issue-16-staff-auth-followups.md",
+    "src/app/(authenticated)/owner/staff/page.tsx",
+    "src/components/staff/StaffAuthStatus.test.ts",
+    "src/components/staff/StaffAuthStatus.tsx",
+    "src/components/staff/StaffEmailInput.test.ts",
+    "src/components/staff/StaffEmailInput.tsx",
+    "src/lib/auth/staff-auth.test.ts",
+    "src/lib/auth/staff-auth.ts",
+    "src/lib/auth/staff-email-update.test.ts",
+    "src/lib/auth/staff-email-update.ts"
+  ],
+  "related_files": [
+    {
+      "path": "supabase/migrations/202606250001_initial_attendance_schema.sql",
+      "reason": "Staff, user profile, Auth cascade, and existing uniqueness contracts"
+    },
+    {
+      "path": "supabase/migrations/20260716034432_secure_staff_password_intents.sql",
+      "reason": "Existing Auth identity constraints and advisory-lock pattern"
+    },
+    {
+      "path": "ci/test_staff_auth_postgres.sql",
+      "reason": "Real PostgreSQL Auth, RLS, cascade, and migration verification"
+    },
+    {
+      "path": ".github/instructions/review-loop.instructions.md",
+      "reason": "Independent review and evidence authority"
+    },
+    {
+      "path": "SECURITY.md",
+      "reason": "Secret handling and service-role boundary authority"
+    }
+  ],
+  "scanned_paths": [".github", "ai", "ci", "docs", "src", "supabase"],
+  "commands_run": [
+    {
+      "command": "bounded full-repository review of PR 20 head cd1c728 and directly related Auth, database, test, accessibility, and operations paths",
+      "exit_code": 0,
+      "summary": "Found one atomicity Must and two integration and documentation Should findings"
+    }
+  ],
+  "context_fingerprint": "git-tree:3a55c499145b2d7adbf37758ca00fac8d29bcb8b",
+  "context_budget": {
+    "max_related_files": 40,
+    "max_context_chars": 180000,
+    "max_file_excerpt_chars": 12000,
+    "max_context_commands": 12
+  },
+  "context_truncated": true,
+  "context_truncated_reason": "Three grouped read-only commands reached the 12000-character excerpt ceiling; total context stayed under 180000 characters.",
+  "issues": [
+    {
+      "severity": "Must",
+      "category": "staff-email-claim-concurrency",
+      "file": "src/app/(authenticated)/owner/staff/page.tsx",
+      "line": 142,
+      "rationale": "Availability reads and later writes allowed concurrent direct POSTs to claim the same normalized email.",
+      "fix": "Serialize old and new email claims in PostgreSQL and create staff profiles through the same locked transaction boundary.",
+      "confidence": 0.91,
+      "disposition": "fixed",
+      "disposition_reason": "A staff trigger locks old and new normalized emails, rechecks staff and profiles, and the service-role profile RPC uses the same lock. A real concurrent PostgreSQL test proves stale profile creation fails closed."
+    },
+    {
+      "severity": "Should",
+      "category": "staff-auth-integration-coverage",
+      "file": "src/lib/auth/staff-auth.test.ts",
+      "line": 181,
+      "rationale": "Mocks and pure helpers did not prove the real adapter query guards or profile cascade compensation boundary.",
+      "fix": "Test the real adapter filters and RPC call, then verify profile cleanup and concurrency on PostgreSQL.",
+      "confidence": 0.96,
+      "disposition": "fixed",
+      "disposition_reason": "Adapter tests assert organization, active, original-email, null-Auth filters and serialized RPC arguments. PostgreSQL tests verify Auth deletion cascades the profile and leaves the staff row unlinked."
+    },
+    {
+      "severity": "Should",
+      "category": "operational-state-drift",
+      "file": "docs/ai/execution-ledger.md",
+      "line": 28,
+      "rationale": "The ledger still described commit, push, and PR creation as future work and NEXT marked the issue complete before review and CI.",
+      "fix": "Record PR 20 and Round 1 state, and separate implementation completion from review and CI completion.",
+      "confidence": 1.0,
+      "disposition": "fixed",
+      "disposition_reason": "The ledger now records PR 20, the pinned Round 1 review and fixes, NEXT remains open through Round 2 and CI, and FINISHED no longer records Issue 16 prematurely."
+    }
+  ]
+}

@@ -1,40 +1,7 @@
 \set ON_ERROR_STOP on
 
-do $$
-begin
-  if not exists (select 1 from pg_roles where rolname = 'anon') then
-    create role anon nologin;
-  end if;
-  if not exists (select 1 from pg_roles where rolname = 'authenticated') then
-    create role authenticated nologin;
-  end if;
-  if not exists (select 1 from pg_roles where rolname = 'service_role') then
-    create role service_role nologin bypassrls;
-  end if;
-end;
-$$;
-
-create schema auth;
-create table auth.users (id uuid primary key);
-create function auth.uid()
-returns uuid
-language sql
-stable
-as $$
-  select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid
-$$;
-
-\ir ../supabase/migrations/202606250001_initial_attendance_schema.sql
-\ir ../supabase/migrations/202606250002_external_api_keys.sql
-\ir ../supabase/migrations/202606260003_notifications.sql
-\ir ../supabase/migrations/202606290004_line_integration.sql
-\ir ../supabase/migrations/202607020001_privileged_login_pin.sql
-\ir ../supabase/migrations/202607090001_supabase_advisor_warnings.sql
-\ir ../supabase/migrations/202607090002_security_advisor_function_execute.sql
-\ir ../supabase/migrations/202607130001_supabase_advisor_review_followup.sql
-\ir ../supabase/migrations/202607130002_performance_advisor_optimization.sql
-\ir ../supabase/migrations/20260716034432_secure_staff_password_intents.sql
-\ir ../supabase/migrations/20260716055206_external_api_rate_limit_access_logs.sql
+\ir staff_auth_postgres_premigration_setup.sql
+\ir ../supabase/migrations/20260716145718_staff_auth_email_serialization.sql
 
 grant select on
   public.staff,
@@ -58,55 +25,77 @@ insert into auth.users (id) values
   ('10000000-0000-0000-0000-000000000003'),
   ('10000000-0000-0000-0000-000000000004');
 
-insert into public.user_profiles (
-  id, organization_id, role, display_name, email
-) values
-  (
-    '10000000-0000-0000-0000-000000000001',
-    '00000000-0000-0000-0000-000000000001',
-    'staff', 'Staff 1', 'staff1@example.test'
-  ),
-  (
-    '10000000-0000-0000-0000-000000000002',
-    '00000000-0000-0000-0000-000000000002',
-    'staff', 'Staff 2', 'staff2@example.test'
-  ),
-  (
-    '10000000-0000-0000-0000-000000000003',
-    '00000000-0000-0000-0000-000000000001',
-    'staff', 'Delete User', 'delete-user@example.test'
-  ),
-  (
-    '10000000-0000-0000-0000-000000000004',
-    '00000000-0000-0000-0000-000000000003',
-    'staff', 'Delete Org', 'delete-org@example.test'
-  );
-
-insert into public.staff (id, organization_id, auth_user_id, name) values
+insert into public.staff (id, organization_id, name, email) values
   (
     '20000000-0000-0000-0000-000000000001',
     '00000000-0000-0000-0000-000000000001',
-    '10000000-0000-0000-0000-000000000001',
-    'Staff 1'
+    'Staff 1',
+    'staff1@example.test'
   ),
   (
     '20000000-0000-0000-0000-000000000002',
     '00000000-0000-0000-0000-000000000002',
-    '10000000-0000-0000-0000-000000000002',
-    'Staff 2'
+    'Staff 2',
+    'staff2@example.test'
   ),
   (
     '20000000-0000-0000-0000-000000000003',
     '00000000-0000-0000-0000-000000000001',
-    '10000000-0000-0000-0000-000000000003',
-    'Delete User'
+    'Delete User',
+    'delete-user@example.test'
   ),
   (
     '20000000-0000-0000-0000-000000000004',
     '00000000-0000-0000-0000-000000000003',
-    '10000000-0000-0000-0000-000000000004',
-    'Delete Org'
+    'Delete Org',
+    'delete-org@example.test'
   );
+
+do $$
+begin
+  if not public.create_staff_profile_with_email_guard(
+    '10000000-0000-0000-0000-000000000001',
+    '20000000-0000-0000-0000-000000000001',
+    '00000000-0000-0000-0000-000000000001',
+    'Staff 1',
+    'staff1@example.test'
+  ) or not public.create_staff_profile_with_email_guard(
+    '10000000-0000-0000-0000-000000000002',
+    '20000000-0000-0000-0000-000000000002',
+    '00000000-0000-0000-0000-000000000002',
+    'Staff 2',
+    'staff2@example.test'
+  ) or not public.create_staff_profile_with_email_guard(
+    '10000000-0000-0000-0000-000000000003',
+    '20000000-0000-0000-0000-000000000003',
+    '00000000-0000-0000-0000-000000000001',
+    'Delete User',
+    'delete-user@example.test'
+  ) or not public.create_staff_profile_with_email_guard(
+    '10000000-0000-0000-0000-000000000004',
+    '20000000-0000-0000-0000-000000000004',
+    '00000000-0000-0000-0000-000000000003',
+    'Delete Org',
+    'delete-org@example.test'
+  ) then
+    raise exception 'staff Auth fixture profile creation failed';
+  end if;
+end;
+$$;
+
+update public.staff target_staff
+set auth_user_id = case target_staff.id
+  when '20000000-0000-0000-0000-000000000001' then '10000000-0000-0000-0000-000000000001'::uuid
+  when '20000000-0000-0000-0000-000000000002' then '10000000-0000-0000-0000-000000000002'::uuid
+  when '20000000-0000-0000-0000-000000000003' then '10000000-0000-0000-0000-000000000003'::uuid
+  when '20000000-0000-0000-0000-000000000004' then '10000000-0000-0000-0000-000000000004'::uuid
+end
+where target_staff.id in (
+  '20000000-0000-0000-0000-000000000001',
+  '20000000-0000-0000-0000-000000000002',
+  '20000000-0000-0000-0000-000000000003',
+  '20000000-0000-0000-0000-000000000004'
+);
 
 insert into public.stores (id, organization_id, name) values
   (
@@ -263,6 +252,84 @@ insert into public.notifications (
     'Notification 2', 'body', 'test'
   );
 
+begin;
+alter table public.staff disable trigger guard_staff_auth_email_claim;
+insert into public.staff (id, organization_id, name, email) values
+  (
+    '20000000-0000-0000-0000-000000000013',
+    '00000000-0000-0000-0000-000000000001',
+    'Legacy Duplicate 1',
+    'legacy-duplicate@example.test'
+  ),
+  (
+    '20000000-0000-0000-0000-000000000014',
+    '00000000-0000-0000-0000-000000000002',
+    'Legacy Duplicate 2',
+    ' Legacy-Duplicate@Example.Test '
+  );
+do $$
+begin
+  perform private.assert_staff_auth_email_consistency();
+  raise exception 'legacy duplicate preflight unexpectedly passed';
+exception
+  when check_violation then null;
+end;
+$$;
+rollback;
+
+insert into auth.users (id) values
+  ('10000000-0000-0000-0000-000000000008');
+insert into public.user_profiles (
+  id, organization_id, role, display_name, email, is_active
+) values (
+  '10000000-0000-0000-0000-000000000008',
+  '00000000-0000-0000-0000-000000000001',
+  'manager',
+  'Wrong Link Target',
+  'wrong-link-target@example.test',
+  true
+);
+
+do $$
+begin
+  begin
+    update public.staff
+    set auth_user_id = '10000000-0000-0000-0000-000000000008'
+    where id = '20000000-0000-0000-0000-000000000001';
+    set constraints enforce_staff_auth_email_claim_consistency immediate;
+    raise exception 'mismatched Auth profile link was accepted';
+  exception
+    when check_violation then null;
+  end;
+
+  begin
+    update public.staff
+    set auth_user_id = null
+    where id = '20000000-0000-0000-0000-000000000001';
+    set constraints enforce_staff_auth_email_claim_consistency immediate;
+    raise exception 'direct Auth unlink was accepted';
+  exception
+    when check_violation then null;
+  end;
+end;
+$$;
+
+delete from auth.users
+where id = '10000000-0000-0000-0000-000000000008';
+
+do $$
+begin
+  begin
+    update public.user_profiles
+    set is_active = false
+    where id = '10000000-0000-0000-0000-000000000001';
+    raise exception 'linked staff profile deactivation was accepted';
+  exception
+    when check_violation then null;
+  end;
+end;
+$$;
+
 do $$
 begin
   begin
@@ -272,7 +339,7 @@ begin
     set constraints staff_auth_user_organization_fk immediate;
     raise exception 'cross-organization staff link was accepted';
   exception
-    when foreign_key_violation then null;
+    when foreign_key_violation or unique_violation then null;
   end;
 end;
 $$;
@@ -294,6 +361,52 @@ begin
       and auth_user_id is not null
   ) then
     raise exception 'Auth deletion did not clear the staff link';
+  end if;
+end;
+$$;
+
+insert into auth.users (id) values
+  ('10000000-0000-0000-0000-000000000005');
+insert into public.staff (
+  id, organization_id, name, email
+) values (
+  '20000000-0000-0000-0000-000000000005',
+  '00000000-0000-0000-0000-000000000001',
+  'Compensation Test',
+  'compensation@example.test'
+);
+
+do $$
+begin
+  if not public.create_staff_profile_with_email_guard(
+    '10000000-0000-0000-0000-000000000005',
+    '20000000-0000-0000-0000-000000000005',
+    '00000000-0000-0000-0000-000000000001',
+    'Compensation Test',
+    'compensation@example.test'
+  ) then
+    raise exception 'serialized profile creation failed';
+  end if;
+end;
+$$;
+
+delete from auth.users
+where id = '10000000-0000-0000-0000-000000000005';
+
+do $$
+begin
+  if exists (
+    select 1 from public.user_profiles
+    where id = '10000000-0000-0000-0000-000000000005'
+  ) then
+    raise exception 'compensation deletion did not remove the staff profile';
+  end if;
+  if not exists (
+    select 1 from public.staff
+    where id = '20000000-0000-0000-0000-000000000005'
+      and auth_user_id is null
+  ) then
+    raise exception 'compensation deletion changed the unlinked staff row';
   end if;
 end;
 $$;
@@ -379,7 +492,36 @@ $$;
 
 do $$
 begin
-  if has_table_privilege('anon', 'public.staff_password_intents', 'select')
+  if not (
+       select relrowsecurity
+       from pg_class
+       where oid = 'private.staff_auth_email_claims'::regclass
+     )
+     or has_table_privilege(
+       'anon', 'private.staff_auth_email_claims', 'select,insert,update,delete'
+     )
+     or has_table_privilege(
+       'authenticated', 'private.staff_auth_email_claims', 'select,insert,update,delete'
+     )
+     or has_table_privilege(
+       'service_role', 'private.staff_auth_email_claims', 'select,insert,update,delete'
+     )
+     or has_function_privilege(
+       'anon',
+       'public.create_staff_profile_with_email_guard(uuid,uuid,uuid,text,text)',
+       'execute'
+     )
+     or has_function_privilege(
+       'authenticated',
+       'public.create_staff_profile_with_email_guard(uuid,uuid,uuid,text,text)',
+       'execute'
+     )
+     or not has_function_privilege(
+       'service_role',
+       'public.create_staff_profile_with_email_guard(uuid,uuid,uuid,text,text)',
+       'execute'
+     )
+     or has_table_privilege('anon', 'public.staff_password_intents', 'select')
      or has_table_privilege('authenticated', 'public.staff_password_intents', 'select')
      or has_function_privilege(
        'authenticated',
@@ -391,7 +533,7 @@ begin
        'public.issue_staff_password_intent(uuid,text,text,timestamptz)',
        'execute'
      ) then
-    raise exception 'password intent privileges are not fail-closed';
+    raise exception 'staff Auth privileges are not fail-closed';
   end if;
 end;
 $$;
