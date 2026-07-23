@@ -14,6 +14,7 @@
 - パスワード再設定前にSupabase Authの実ユーザーID・メールまで照合し、未紐付けメールの作成・更新時には既存profileと同一組織staffの重複を拒否。
 - push後独立レビューを受け、正規化メールのprivate claim表、DBトリガー、service role限定profile作成RPCへ重複検査を移し、旧・新メールの同時POSTをトランザクション内で直列化。
 - Round 2レビューを受け、既存データ競合の値非表示preflightと両方向・staff同士の並行回帰を追加し、空DB適用で検出したPL/pgSQL変数衝突とclaim解放時のCHECK違反を修正。
+- Round 3レビューのMust/Shouldをオーナー承認の例外として全対応し、migration全体のtransaction化・書込みロック、グローバル重複preflight、遅延Auth整合性制約、権限・SQLSTATE・敗者状態・失敗時rollback回帰を追加。
 - 招待・再設定メールの送信後に監査ログinsertがerrorまたは例外になった場合、送信失敗と混同せず専用の部分成功状態を返すように変更。
 - 招待・再設定ボタンのaccessible nameへ対象スタッフ名を追加し、成功結果を`role=status`、失敗・部分成功を`role=alert`で通知。
 - 純粋関数とReact SSRで、メール不変条件、招待競合、Auth実体不一致、監査失敗、read-only表示、live regionを回帰テストへ固定。

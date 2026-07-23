@@ -152,12 +152,18 @@ profile_pid=$!
 
 wait_for_test_ready "profile-first"
 
-if psql --set ON_ERROR_STOP=1 --command "
+if profile_first_error="$(psql --set ON_ERROR_STOP=1 --set VERBOSITY=verbose --command "
   update public.staff
   set email = '${profile_first_changed_email}'
   where id = '${profile_first_staff_id}';
-" >/dev/null 2>&1; then
+" 2>&1)"; then
   echo "expected email update to fail after profile creation won the claim" >&2
+  exit 1
+fi
+
+if [[ "${profile_first_error}" != *"23505:"* ]] \
+  || [[ "${profile_first_error}" != *"linked staff email or organization cannot be changed"* ]]; then
+  echo "profile-first loser failed with an unexpected error" >&2
   exit 1
 fi
 
@@ -204,21 +210,32 @@ first_update_pid=$!
 
 wait_for_test_ready "shared-update"
 
-if psql --set ON_ERROR_STOP=1 --command "
+if shared_update_error="$(psql --set ON_ERROR_STOP=1 --set VERBOSITY=verbose --command "
   update public.staff set email = '${shared_update_email}' where id = '${second_staff_id}';
-" >/dev/null 2>&1; then
+" 2>&1)"; then
   echo "expected the second staff email update to fail" >&2
+  exit 1
+fi
+
+if [[ "${shared_update_error}" != *"23505:"* ]] \
+  || [[ "${shared_update_error}" != *"staff Auth email is already claimed"* ]]; then
+  echo "second staff email update failed with an unexpected error" >&2
   exit 1
 fi
 
 wait "${first_update_pid}"
 
-shared_update_count="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
-  select count(*) from public.staff where email = '${shared_update_email}';
+shared_update_state="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select
+    target_staff.email || ':' || target_claim.staff_id
+  from public.staff target_staff
+  join private.staff_auth_email_claims target_claim
+    on target_claim.normalized_email = '${shared_update_email}'
+  where target_staff.id = '${second_staff_id}';
 ")"
 
-if [[ "${shared_update_count}" != "1" ]]; then
-  echo "expected one winner for concurrent staff updates, got ${shared_update_count}" >&2
+if [[ "${shared_update_state}" != "update-race-2@example.test:${first_staff_id}" ]]; then
+  echo "concurrent staff update left an unexpected loser or claim state" >&2
   exit 1
 fi
 
@@ -242,22 +259,34 @@ first_insert_pid=$!
 
 wait_for_test_ready "shared-insert"
 
-if psql --set ON_ERROR_STOP=1 --command "
+if shared_insert_error="$(psql --set ON_ERROR_STOP=1 --set VERBOSITY=verbose --command "
   insert into public.staff (id, organization_id, name, email)
   values ('${second_insert_staff_id}', '${organization_id}', 'Insert Race 2', '${shared_insert_email}');
-" >/dev/null 2>&1; then
+" 2>&1)"; then
   echo "expected the second staff insert to fail" >&2
+  exit 1
+fi
+
+if [[ "${shared_insert_error}" != *"23505:"* ]] \
+  || [[ "${shared_insert_error}" != *"staff Auth email is already claimed"* ]]; then
+  echo "second staff insert failed with an unexpected error" >&2
   exit 1
 fi
 
 wait "${first_insert_pid}"
 
-shared_insert_count="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
-  select count(*) from public.staff where email = '${shared_insert_email}';
+shared_insert_state="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select
+    count(*) filter (where target_staff.id = '${second_insert_staff_id}')
+    || ':' || min(target_claim.staff_id::text)
+  from private.staff_auth_email_claims target_claim
+  left join public.staff target_staff
+    on target_staff.id = '${second_insert_staff_id}'
+  where target_claim.normalized_email = '${shared_insert_email}';
 ")"
 
-if [[ "${shared_insert_count}" != "1" ]]; then
-  echo "expected one winner for concurrent staff inserts, got ${shared_insert_count}" >&2
+if [[ "${shared_insert_state}" != "0:${first_insert_staff_id}" ]]; then
+  echo "concurrent staff insert left an unexpected loser or claim state" >&2
   exit 1
 fi
 

@@ -191,6 +191,13 @@ class StaffAuthSecurityMigrationTest(TestCase):
     def test_staff_auth_email_claims_are_atomic_and_service_role_only(self) -> None:
         migration = self.EMAIL_SERIALIZATION_MIGRATION.read_text(encoding="utf-8")
 
+        self.assertTrue(migration.startswith("begin;\n"))
+        self.assertTrue(migration.rstrip().endswith("commit;"))
+        self.assertIn(
+            "lock table public.staff, public.user_profiles "
+            "in share row exclusive mode;",
+            migration,
+        )
         self.assertIn("private.assert_staff_auth_email_consistency", migration)
         self.assertIn("staff_duplicate_groups", migration)
         self.assertIn("profile_duplicate_groups", migration)
@@ -203,6 +210,11 @@ class StaffAuthSecurityMigrationTest(TestCase):
         self.assertIn("auth_user_id uuid unique", migration)
         self.assertIn("on conflict (normalized_email) do update", migration)
         self.assertIn("create trigger guard_staff_auth_email_claim", migration)
+        self.assertIn(
+            "create constraint trigger enforce_staff_auth_email_claim_consistency",
+            migration,
+        )
+        self.assertIn("deferrable initially deferred", migration)
         self.assertIn("create trigger guard_user_profile_email_claim", migration)
         self.assertIn("create trigger release_user_profile_email_claim", migration)
         self.assertIn("create_staff_profile_with_email_guard", migration)

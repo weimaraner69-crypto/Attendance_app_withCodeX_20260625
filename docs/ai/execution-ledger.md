@@ -22,14 +22,15 @@
 - 現在の mode: `daily_development`（Issue #16実装）
 - active branch: `fix/issue-16-staff-auth-followups`
 - 直近完了 PR: PR #19（外部APIレート制限・アクセスログ）を独立レビュー、全CI、release-manager承認後に `main` へマージし、Issue #7はcompletedでクローズ済み
-- 現在タスク: PR #20 Round 2のShould 3件を修正。private claim表と既存競合preflightへ移行し、実アダプタ、補償削除、両方向・staff同士の実PostgreSQL並行競合を回帰テストへ追加
+- 現在タスク: PR #20 Round 3のMust 3件・Should 2件をオーナー承認の例外として全修正。migration transaction・書込みロック、グローバルpreflight、遅延Auth整合性制約、権限・SQLSTATE・敗者状態・rollback回帰を追加
 - requirements/spec: `README.md`、Issue #16、`docs/specs/issue-16-staff-auth-followups.md`、`docs/implementation-decisions.md` A-001
 - pre-PRレビュー: 独立security/reliability reviewerのMust 3件、Should 2件を確認。フォーム誤認1件は別formで非再現と確認してSSR回帰を追加し、招待競合、Auth実体照合、重複検査、完了証跡を修正。独立completion auditorの全ACはSATISFIEDで、検証証跡とruntime smoke範囲を文書化
 - review baseline: PR #20初回head `cd1c728da0b4806cd52454578a1c9fa76b4e4b26`、fingerprint `sha256:ece59e2dec03b7c253785443cf46867090b08211d511d3c3fcaf4a265846f919` を独立reviewer Ramanが`full_repo_agentic`で確認。Must 1件・Should 2件を全て修正
-- 検証: Python 38件、Vitest 102件、policy、lint、build、空のPostgreSQL 16への全migration、Auth/profile補償削除、6系統の並行競合、diff checkが成功
+- 検証: Python 38件、Vitest 102件、lint、build、空のPostgreSQL 16への全migration、失敗時完全rollback、migration中書込み待機、Auth/profile/claim整合性、権限、6系統の並行競合と敗者状態が成功
 - Round 1修正push: commit `b27fdb89ca29026a7afd2e7bdd8ad563b3cfa6ab`、fingerprint `sha256:fe3a551df40080eecff2f66083d03d56605a717c8121a2fb34b422a6777025d6`。quality-gateとsecret-scanは成功し、review-evidence-gateはRound 2証跡待ち
 - Round 2レビュー: 独立reviewer GalileoがMust 0件、Should 3件、Nice 1件を提示。既存データpreflight、両方向・staff同士の並行回帰、index検索式、ledger状態を修正し、空DB適用で検出したPL/pgSQL変数衝突とclaim解放時のCHECK違反も修正済み
-- 次タスク: Round 2修正と証跡をpushし、新headのRound 3最終レビュー、証跡、CI、release-manager判定へ進む
+- Round 3レビュー: 独立reviewer MaxwellがMust 3件・Should 2件を実DB再現。`DEC-20260723-001`の例外承認に基づき全件を修正し、専用PostgreSQL回帰を通過
+- 次タスク: Round 3例外修正をpushし、新headの例外後独立確認、証跡、CI、release-manager判定へ進む
 - レビュー条件: 認証・監査境界を含むred tierとして、独立peerとpush後`full_repo_agentic`レビュー、専用回帰テストを必須とする
 - 安全床: `.env.local`を読まない。秘密情報を表示しない。本番Supabase変更、実メール送信、本番デプロイ、日報側実接続は対象外
 - 最終更新: 2026-07-23

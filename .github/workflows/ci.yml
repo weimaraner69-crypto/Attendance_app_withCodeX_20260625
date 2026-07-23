@@ -59,6 +59,7 @@ jobs:
 
       - name: Staff Auth PostgreSQL integration tests
         run: |
+          bash ci/test_staff_auth_migration_atomicity.sh
           psql --set ON_ERROR_STOP=1 --file ci/test_staff_auth_postgres.sql
           bash ci/test_staff_auth_postgres_concurrency.sh
         env:

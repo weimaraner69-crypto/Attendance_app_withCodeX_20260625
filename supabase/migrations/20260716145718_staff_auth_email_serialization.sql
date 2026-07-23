@@ -1,3 +1,7 @@
+begin;
+
+lock table public.staff, public.user_profiles in share row exclusive mode;
+
 create or replace function private.normalize_staff_auth_email(p_email text)
 returns text
 language sql
@@ -22,11 +26,11 @@ declare
 begin
   select count(*) into staff_duplicate_groups
   from (
-    select target_staff.organization_id, lower(btrim(target_staff.email))
+    select lower(btrim(target_staff.email))
     from public.staff target_staff
     where target_staff.email is not null
       and nullif(btrim(target_staff.email), '') is not null
-    group by target_staff.organization_id, lower(btrim(target_staff.email))
+    group by lower(btrim(target_staff.email))
     having count(*) > 1
   ) duplicate_staff;
 
@@ -227,6 +231,68 @@ create trigger guard_staff_auth_email_claim
 before insert or update of email, organization_id, is_active or delete on public.staff
 for each row execute function private.guard_staff_auth_email_claim();
 
+create or replace function private.enforce_staff_auth_email_claim_consistency()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  current_staff public.staff%rowtype;
+begin
+  select *
+  into current_staff
+  from public.staff
+  where id = new.id;
+
+  if not found then
+    return null;
+  end if;
+
+  if current_staff.auth_user_id is null then
+    if exists (
+      select 1
+      from private.staff_auth_email_claims target_claim
+      where target_claim.staff_id = current_staff.id
+        and target_claim.auth_user_id is not null
+    ) then
+      raise check_violation using message =
+        'unlinked staff cannot retain an Auth email claim';
+    end if;
+    return null;
+  end if;
+
+  if not exists (
+    select 1
+    from private.staff_auth_email_claims target_claim
+    join public.user_profiles target_profile
+      on target_profile.id = current_staff.auth_user_id
+    where target_claim.staff_id = current_staff.id
+      and target_claim.auth_user_id = current_staff.auth_user_id
+      and target_claim.organization_id = current_staff.organization_id
+      and target_claim.staff_is_active = current_staff.is_active
+      and target_claim.normalized_email =
+        private.normalize_staff_auth_email(current_staff.email)
+      and target_profile.organization_id = current_staff.organization_id
+      and target_profile.role = 'staff'
+      and target_profile.is_active
+      and private.normalize_staff_auth_email(target_profile.email) =
+        private.normalize_staff_auth_email(current_staff.email)
+  ) then
+    raise check_violation using message =
+      'staff Auth link does not match its profile and email claim';
+  end if;
+
+  return null;
+end;
+$$;
+
+drop trigger if exists enforce_staff_auth_email_claim_consistency on public.staff;
+create constraint trigger enforce_staff_auth_email_claim_consistency
+after insert or update on public.staff
+deferrable initially deferred
+for each row execute function private.enforce_staff_auth_email_claim_consistency();
+
 create or replace function private.guard_user_profile_email_claim()
 returns trigger
 language plpgsql
@@ -390,6 +456,8 @@ revoke execute on function private.assert_staff_auth_email_consistency()
   from public, anon, authenticated, service_role;
 revoke execute on function private.guard_staff_auth_email_claim()
   from public, anon, authenticated, service_role;
+revoke execute on function private.enforce_staff_auth_email_claim_consistency()
+  from public, anon, authenticated, service_role;
 revoke execute on function private.guard_user_profile_email_claim()
   from public, anon, authenticated, service_role;
 revoke execute on function private.release_user_profile_email_claim()
@@ -401,3 +469,5 @@ revoke all on function public.create_staff_profile_with_email_guard(
 grant execute on function public.create_staff_profile_with_email_guard(
   uuid, uuid, uuid, text, text
 ) to service_role;
+
+commit;
