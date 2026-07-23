@@ -21,6 +21,21 @@
 
 ## 記録
 
+### EXP-20260723-002
+
+- 元のユーザー意図: PR #21のマージ後、次の作業へ進める。
+- AI の解釈: 日報アプリの実接続を保留したまま、`NEXT.md` の次タスクであるIssue #6を要件、設計、実装、回帰テスト、PRまで進める。
+- ユーザー可視の成果: オーナーが外部連携先のAPIキーを発行、一覧確認、無効化でき、平文キーは発行直後にだけ確認できる。
+- 非目標: 日報アプリとの実接続、外部APIの詳細エンドポイント、本番Supabase変更、実キーの発行。
+- 制約: owner認可と組織境界をServer Actionで強制し、平文キーとハッシュをURL、ログ、監査ログ、クライアント永続領域へ残さない。
+- 影響する requirements: `README.md` の日報アプリ向け読み取りAPI、GitHub Issue #6。
+- 影響する design: `docs/implementation-decisions.md` のA-000外部連携API、`docs/database-design.md` の `external_api_keys`。
+- 作成・更新した spec: `docs/specs/issue-6-api-key-management.md`。
+- plan queue entry: `NEXT.md` A-000 Issue #6。
+- 受入条件: owner限定、名前・スコープ・失効日の設定、平文一度表示、一覧の非露出、無効化、既存外部APIでの無効キー拒否、監査ログの非露出。
+- Runtime smoke: 未認証のログイン遷移とowner画面の発行フォーム、一覧列、無効化操作、再表示不可の表示を確認する。
+- 結果: 実装中。
+
 ### EXP-20260716-001
 
 - 元のユーザー意図: 「計画に沿って進めてください」

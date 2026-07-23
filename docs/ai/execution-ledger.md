@@ -17,7 +17,18 @@
 
 ## 記録
 
-### 現在状態（2026-07-23 PR #20完了同期・最新）
+### 現在状態（2026-07-23 Issue #6 APIキー管理画面・最新）
+
+- 現在の mode: `daily_development`（Issue #6実装）
+- active branch: `agent/issue-6-api-key-management`
+- 直近完了 PR: PR #21（PR #20完了同期）を独立レビュー、全CI、未解決review thread 0件で `main` へマージ済み
+- 現在タスク: オーナー向けAPIキー管理画面を、既存のハッシュ照合・外部API認証・監査ログと整合する形で実装する
+- requirements/spec: GitHub Issue #6、`docs/specs/issue-6-api-key-management.md`、`docs/integrations/attendance-api-spec.md`
+- 次タスク: 実装、対象回帰テスト、Runtime smoke、pre-PR critical review、PR作成、独立repo-aware review、CI、release-manager判定
+- 安全床: `.env.local`を読まない。秘密情報を表示しない。本番Supabase変更、実メール送信、本番デプロイ、日報側実接続、PRマージは対象外
+- 最終更新: 2026-07-23
+
+### 現在状態（2026-07-23 PR #20完了同期・履歴）
 
 - 現在の mode: `daily_development`（PR #20完了同期）
 - active branch: `agent/sync-pr20-plan-state`
