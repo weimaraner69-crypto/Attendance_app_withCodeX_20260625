@@ -28,6 +28,16 @@ Capability Lease（ユーザーが明示的に一時的な自律実行範囲を�
 
 ## 記録
 
+### DEC-20260723-003
+
+- 論点: Issue #6で発行するAPIキーを、既存の外部API基盤へどう安全に追加するか。
+- 判断: 新規migrationを作らず、既存の `external_api_keys`、server-only RLS、SHA-256照合を再利用する。発行・無効化はowner認可済みServer Actionで行い、組織ID条件を必須にする。平文は発行成功時の画面状態だけで一度表示し、許可済みスコープは `attendance:read` に固定する。
+- 仮定: Issue #6の受入条件は、現行の読み取り専用APIに必要な最小スコープと、日報側未接続の運用準備を対象としている。
+- 理由: 既存スキーマは名前、ハッシュ、スコープ、有効状態、利用日時、失効日時を持ち、外部API認証も無効化・失効・スコープ不足を既に拒否するため。任意スコープやURL経由の結果表示は過剰権限・漏えい経路を増やす。
+- 影響ファイル: `docs/specs/issue-6-api-key-management.md`、`src/app/(authenticated)/owner/integrations/api-keys/**`、`src/lib/external-api/**`、関連テスト、`README.md`、`NEXT.md`、外部API仕様。
+- リスク: service roleはRLSを迂回するため、Server Actionのowner認可と組織ID条件を欠くと組織越境につながる。監査ログ失敗後に平文を再発行できないよう、主処理の結果を失わない扱いを明示する。
+- ロールバック: UI、Server Action、キー管理補助関数をrevertし、発行済みキーはオーナー画面から無効化する。既存テーブルへの追加migrationはない。
+
 ### DEC-20260723-002
 
 - 論点: PR #20マージ後、日報アプリの実接続を保留したまま次に進める勤怠側単独作業をどう選ぶか

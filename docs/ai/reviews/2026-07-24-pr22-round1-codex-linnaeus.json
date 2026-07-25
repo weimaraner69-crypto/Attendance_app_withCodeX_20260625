@@ -1,0 +1,148 @@
+{
+  "schema_version": 2,
+  "phase": "post_push",
+  "provider": "codex",
+  "reviewer_id": "codex-linnaeus-019f8fba",
+  "review_session_id": "019f8fba-d552-7290-9907-09d277053542",
+  "implementation_session_id": "codex-main-issue6-20260724",
+  "head_sha": "a3d530770262a4fcdb5124b63985ab39dc05c834",
+  "diff_fingerprint": "sha256:116923699d21528114b21fb30c6bc4802158beef5f75e4e8f69e0c4e2bcc12b0",
+  "risk_tier": "red",
+  "round": 1,
+  "review_status": "completed",
+  "secondary_verification": {
+    "required": true,
+    "method": "dedicated_tests",
+    "status": "passed",
+    "evidence": "API key generation, hashing, owner/action boundaries, organization predicates, deactivation, and external authentication rejection are covered by dedicated key-management, action, and external-auth regressions.",
+    "commands": [
+      {
+        "command": "npm test -- src/lib/external-api/key-management.test.ts src/app/(authenticated)/owner/integrations/api-keys/actions.test.ts src/lib/external-api/auth.test.ts",
+        "exit_code": 0,
+        "summary": "Dedicated API key lifecycle, owner action, and inactive-key authentication regressions passed",
+        "covered_paths": ["**"]
+      }
+    ]
+  },
+  "summary": "Independent full-repository review found no Must findings. One Should for rejected Server Actions leaving controls pending and one Nice for audit event labels were both fixed before the Round 1 disposition was recorded.",
+  "repository_context_mode": "full_repo_agentic",
+  "diff_only_reason": "",
+  "changed_files": [
+    ".gitignore",
+    "NEXT.md",
+    "README.md",
+    "docs/ai/decision-ledger.md",
+    "docs/ai/execution-ledger.md",
+    "docs/ai/expectation-ledger.md",
+    "docs/ai/pre-pr-critical-review.md",
+    "docs/implementation-decisions.md",
+    "docs/integrations/attendance-api-spec.md",
+    "docs/specs/issue-6-api-key-management.md",
+    "src/app/(authenticated)/owner/integrations/api-keys/actions.test.ts",
+    "src/app/(authenticated)/owner/integrations/api-keys/actions.ts",
+    "src/app/(authenticated)/owner/integrations/api-keys/page.test.ts",
+    "src/app/(authenticated)/owner/integrations/api-keys/page.tsx",
+    "src/app/(authenticated)/owner/page.tsx",
+    "src/components/integrations/ExternalApiKeyManager.tsx",
+    "src/lib/external-api/key-management.test.ts",
+    "src/lib/external-api/key-management.ts"
+  ],
+  "related_files": [
+    {
+      "path": "src/lib/auth/session.ts",
+      "reason": "Owner authorization boundary",
+      "score": 100
+    },
+    {
+      "path": "src/lib/external-api/auth.ts",
+      "reason": "Existing inactive-key rejection path",
+      "score": 100
+    },
+    {
+      "path": "src/lib/supabase.ts",
+      "reason": "Server-side service-role client boundary",
+      "score": 95
+    },
+    {
+      "path": "src/lib/audit/format.ts",
+      "reason": "Audit event display safety",
+      "score": 90
+    },
+    {
+      "path": "docs/specs/issue-6-api-key-management.md",
+      "reason": "Issue #6 acceptance requirements",
+      "score": 100
+    },
+    {
+      "path": "ai/operation-policy.yml",
+      "reason": "Red-risk review and verification requirements",
+      "score": 95
+    }
+  ],
+  "scanned_paths": [
+    "src/app/(authenticated)/owner/integrations/api-keys",
+    "src/components/integrations/ExternalApiKeyManager.tsx",
+    "src/lib/external-api",
+    "src/lib/auth/session.ts",
+    "src/lib/supabase.ts",
+    "src/lib/audit",
+    "supabase/migrations",
+    "docs/specs/issue-6-api-key-management.md",
+    "ai/operation-policy.yml"
+  ],
+  "commands_run": [
+    {
+      "command": "independent full-repository review of main...a3d5307",
+      "exit_code": 0,
+      "summary": "Reviewed owner authorization, organization isolation, key material handling, audit metadata, UI recovery, and inactive-key authentication"
+    },
+    {
+      "command": "git diff --check main...HEAD",
+      "exit_code": 0,
+      "summary": "No whitespace errors"
+    },
+    {
+      "command": "npm test",
+      "exit_code": 0,
+      "summary": "22 test files and 111 tests passed at the reviewed head"
+    },
+    {
+      "command": "npm run lint",
+      "exit_code": 0,
+      "summary": "No ESLint warnings or errors"
+    }
+  ],
+  "context_fingerprint": "git-tree:1457ad0aea01bd6ec361751e7e8da384376cf4d6",
+  "context_budget": {
+    "max_related_files": 40,
+    "max_context_chars": 180000,
+    "max_file_excerpt_chars": 12000,
+    "max_context_commands": 12
+  },
+  "context_truncated": false,
+  "context_truncated_reason": "",
+  "issues": [
+    {
+      "severity": "Should",
+      "category": "reliability",
+      "file": "src/components/integrations/ExternalApiKeyManager.tsx",
+      "line": 49,
+      "rationale": "A rejected Server Action could leave the issue or deactivation control pending and omit a user-visible error.",
+      "fix": "Normalize rejected actions to a client-safe error state and clear pending state in finally blocks.",
+      "confidence": 0.98,
+      "disposition": "fixed",
+      "disposition_reason": "recoverAction catches rejected actions without exposing exception details; both handlers clear pending state in finally."
+    },
+    {
+      "severity": "Nice",
+      "category": "usability",
+      "file": "src/lib/audit/format.ts",
+      "line": 6,
+      "rationale": "External API key audit events would otherwise display their raw event identifiers.",
+      "fix": "Add human-readable labels for issuance and deactivation events.",
+      "confidence": 0.9,
+      "disposition": "fixed",
+      "disposition_reason": "Added Japanese auditActionLabels for external_api_key.issued and external_api_key.deactivated."
+    }
+  ]
+}

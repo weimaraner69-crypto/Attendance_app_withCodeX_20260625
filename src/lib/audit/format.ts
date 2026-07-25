@@ -3,6 +3,8 @@ export type AuditMetadata = Record<string, unknown>;
 export const auditActionLabels: Record<string, string> = {
   'attendance_request.approved': '打刻修正申請を承認',
   'attendance_request.rejected': '打刻修正申請を却下',
+  'external_api_key.issued': '外部連携APIキーを発行',
+  'external_api_key.deactivated': '外部連携APIキーを無効化',
   'line_account.linked': 'LINEアカウントを連携',
   'line_account.revoked': 'LINEアカウント連携を解除',
 };

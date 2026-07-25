@@ -44,6 +44,13 @@ export default function OwnerPage() {
             </CardHeader>
           </Card>
         </Link>
+        <Link href="/owner/integrations/api-keys">
+          <Card className="hover:shadow-lg cursor-pointer">
+            <CardHeader>
+              <CardTitle className="text-lg">外部連携APIキー</CardTitle>
+            </CardHeader>
+          </Card>
+        </Link>
       </div>
     </div>
   )

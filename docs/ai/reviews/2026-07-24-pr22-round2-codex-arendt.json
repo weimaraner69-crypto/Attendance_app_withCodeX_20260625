@@ -1,0 +1,168 @@
+{
+  "schema_version": 2,
+  "phase": "post_push",
+  "provider": "codex",
+  "reviewer_id": "codex-arendt-019f8fd5",
+  "review_session_id": "019f8fd5-4097-7a81-aa56-35a24a91317d",
+  "implementation_session_id": "codex-main-issue6-20260724",
+  "head_sha": "794cdf14a6f477723b4cf6dba38456477d590f4c",
+  "diff_fingerprint": "sha256:3e85a42ed496c29c9e4dc6e5b244b901ce28be46e4d0eef9bc4ae5d9071cd948",
+  "risk_tier": "red",
+  "round": 2,
+  "review_status": "completed",
+  "secondary_verification": {
+    "required": true,
+    "method": "dedicated_tests",
+    "status": "passed",
+    "evidence": "The full Vitest suite includes dedicated key-management, owner action, page SSR, external authentication, and action-recovery regressions. The production build confirms the client/server module boundary.",
+    "commands": [
+      {
+        "command": "npm test",
+        "exit_code": 0,
+        "summary": "23 test files and 112 tests passed, including API key lifecycle and recovery regressions",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "npm run build",
+        "exit_code": 0,
+        "summary": "Production build passed and verified the client component does not import server-only dependencies",
+        "covered_paths": ["**"]
+      }
+    ]
+  },
+  "summary": "Independent Round 2 review found a stale Round 1 evidence target and a redirect control-flow handling issue. The current-head Round 2 evidence was added, redirect signals are rethrown, and non-redirect failures remain client-safe. No remaining Must or Should findings are open.",
+  "repository_context_mode": "full_repo_agentic",
+  "diff_only_reason": "",
+  "changed_files": [
+    ".gitignore",
+    "NEXT.md",
+    "README.md",
+    "docs/ai/decision-ledger.md",
+    "docs/ai/execution-ledger.md",
+    "docs/ai/expectation-ledger.md",
+    "docs/ai/pre-pr-critical-review.md",
+    "docs/implementation-decisions.md",
+    "docs/integrations/attendance-api-spec.md",
+    "docs/specs/issue-6-api-key-management.md",
+    "src/app/(authenticated)/owner/integrations/api-keys/actions.test.ts",
+    "src/app/(authenticated)/owner/integrations/api-keys/actions.ts",
+    "src/app/(authenticated)/owner/integrations/api-keys/page.test.ts",
+    "src/app/(authenticated)/owner/integrations/api-keys/page.tsx",
+    "src/app/(authenticated)/owner/page.tsx",
+    "src/components/integrations/ExternalApiKeyManager.tsx",
+    "src/lib/audit/format.ts",
+    "src/lib/external-api/key-management.test.ts",
+    "src/lib/external-api/key-management.ts",
+    "src/lib/utils/action-recovery.test.ts",
+    "src/lib/utils/action-recovery.ts"
+  ],
+  "related_files": [
+    {
+      "path": "src/lib/auth/session.ts",
+      "reason": "Owner authorization and redirect source",
+      "score": 100
+    },
+    {
+      "path": "src/lib/external-api/auth.ts",
+      "reason": "Inactive-key rejection and credential boundary",
+      "score": 100
+    },
+    {
+      "path": "src/lib/supabase/server.ts",
+      "reason": "Server-only import boundary checked by production build",
+      "score": 95
+    },
+    {
+      "path": "src/app/(authenticated)/owner/integrations/api-keys/actions.ts",
+      "reason": "Server Action error and authorization behavior",
+      "score": 100
+    },
+    {
+      "path": "docs/ai/review-result.schema.json",
+      "reason": "Review evidence contract",
+      "score": 90
+    },
+    {
+      "path": "ci/policy_check.py",
+      "reason": "Evidence compatibility and red-risk validation",
+      "score": 95
+    }
+  ],
+  "scanned_paths": [
+    "src/components/integrations/ExternalApiKeyManager.tsx",
+    "src/lib/utils/action-recovery.ts",
+    "src/lib/external-api",
+    "src/app/(authenticated)/owner/integrations/api-keys",
+    "src/lib/auth/session.ts",
+    "src/lib/supabase/server.ts",
+    "docs/ai/reviews",
+    "docs/ai/review-result.schema.json",
+    "ci/policy_check.py"
+  ],
+  "commands_run": [
+    {
+      "command": "independent full-repository review of main...794cdf1",
+      "exit_code": 0,
+      "summary": "Reviewed the Round 1 fix, credential boundaries, redirect handling, evidence compatibility, and related authorization paths"
+    },
+    {
+      "command": "npm test",
+      "exit_code": 0,
+      "summary": "23 test files and 112 tests passed at the reviewed head"
+    },
+    {
+      "command": "npm run lint",
+      "exit_code": 0,
+      "summary": "No ESLint warnings or errors"
+    },
+    {
+      "command": "npm run build",
+      "exit_code": 0,
+      "summary": "Production build passed"
+    }
+  ],
+  "context_fingerprint": "git-tree:5743b62d2d0e5ccd7d1182ccee0dc1dbb4e00a6f",
+  "context_budget": {
+    "max_related_files": 40,
+    "max_context_chars": 180000,
+    "max_file_excerpt_chars": 12000,
+    "max_context_commands": 12
+  },
+  "context_truncated": false,
+  "context_truncated_reason": "",
+  "issues": [
+    {
+      "severity": "Must",
+      "category": "review-evidence",
+      "file": "docs/ai/reviews/2026-07-24-pr22-round1-codex-linnaeus.json",
+      "line": 8,
+      "rationale": "The Round 1 evidence head was not the current PR head, so the review-evidence gate could not validate the current change set.",
+      "fix": "Add a Round 2 independent review evidence file for the exact current head.",
+      "confidence": 1,
+      "disposition": "fixed",
+      "disposition_reason": "This Round 2 file records the independent review against 794cdf14a6f477723b4cf6dba38456477d590f4c."
+    },
+    {
+      "severity": "Should",
+      "category": "authorization-flow",
+      "file": "src/lib/utils/action-recovery.ts",
+      "line": 4,
+      "rationale": "Catching a Next.js redirect control-flow error as a generic action failure can prevent the required authentication transition.",
+      "fix": "Detect NEXT_REDIRECT digests and rethrow them while preserving a safe fallback for ordinary failures.",
+      "confidence": 0.97,
+      "disposition": "fixed",
+      "disposition_reason": "recoverAction now rethrows NEXT_REDIRECT control-flow errors, with a regression test for the redirect digest."
+    },
+    {
+      "severity": "Nice",
+      "category": "test-coverage",
+      "file": "src/components/integrations/ExternalApiKeyManager.tsx",
+      "line": 47,
+      "rationale": "A DOM interaction test could directly assert re-enabled controls after rejected issue and deactivation actions.",
+      "fix": "Add a client-component interaction harness and rejection interaction tests when a DOM test environment is introduced.",
+      "confidence": 0.78,
+      "disposition": "backlog",
+      "disposition_reason": "The repository has no DOM interaction test dependency; current SSR, helper, Action, and full-build regressions cover the security and recovery contract without adding a test framework outside Issue #6 scope."
+    }
+  ]
+}

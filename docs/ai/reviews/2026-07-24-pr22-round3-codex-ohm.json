@@ -1,0 +1,158 @@
+{
+  "schema_version": 2,
+  "phase": "post_push",
+  "provider": "codex",
+  "reviewer_id": "codex-ohm-019f91f6",
+  "review_session_id": "019f91f6-8550-7063-9752-db619c61462f",
+  "implementation_session_id": "codex-main-issue6-20260724",
+  "head_sha": "e5854ccb95ba5cabc22fa3078a606e2f1a311965",
+  "diff_fingerprint": "sha256:11f445add09a94cd08d0175c1993649eac39b3cd851268d2078eca63b15cc6b7",
+  "risk_tier": "red",
+  "round": 3,
+  "review_status": "completed",
+  "secondary_verification": {
+    "required": true,
+    "method": "dedicated_tests",
+    "status": "passed",
+    "evidence": "The final full Vitest suite includes dedicated API-key lifecycle, owner Action, page SSR, external authentication, and action-recovery regressions; the production build verifies the client/server boundary.",
+    "commands": [
+      {
+        "command": "npm test",
+        "exit_code": 0,
+        "summary": "23 test files and 113 tests passed, including API key and action-recovery regressions",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "npm run build",
+        "exit_code": 0,
+        "summary": "Production build passed for the owner API key management route",
+        "covered_paths": ["**"]
+      }
+    ]
+  },
+  "summary": "Final independent review found no implementation Must findings. The required current-head Round 3 evidence is recorded here. One non-blocking audit-detail display Should is backloged under the Round 3 rule; no Round 4 code push or review is requested.",
+  "repository_context_mode": "full_repo_agentic",
+  "diff_only_reason": "",
+  "changed_files": [
+    ".gitignore",
+    "NEXT.md",
+    "README.md",
+    "docs/ai/decision-ledger.md",
+    "docs/ai/execution-ledger.md",
+    "docs/ai/expectation-ledger.md",
+    "docs/ai/pre-pr-critical-review.md",
+    "docs/implementation-decisions.md",
+    "docs/integrations/attendance-api-spec.md",
+    "docs/specs/issue-6-api-key-management.md",
+    "src/app/(authenticated)/owner/integrations/api-keys/actions.test.ts",
+    "src/app/(authenticated)/owner/integrations/api-keys/actions.ts",
+    "src/app/(authenticated)/owner/integrations/api-keys/page.test.ts",
+    "src/app/(authenticated)/owner/integrations/api-keys/page.tsx",
+    "src/app/(authenticated)/owner/page.tsx",
+    "src/components/integrations/ExternalApiKeyManager.tsx",
+    "src/lib/audit/format.ts",
+    "src/lib/external-api/key-management.test.ts",
+    "src/lib/external-api/key-management.ts",
+    "src/lib/utils/action-recovery.test.ts",
+    "src/lib/utils/action-recovery.ts"
+  ],
+  "related_files": [
+    {
+      "path": "src/lib/auth/session.ts",
+      "reason": "Owner authorization and redirect source",
+      "score": 100
+    },
+    {
+      "path": "src/lib/external-api/auth.ts",
+      "reason": "Inactive key rejection and credential boundary",
+      "score": 100
+    },
+    {
+      "path": "src/lib/supabase/server.ts",
+      "reason": "Server-only dependency boundary",
+      "score": 95
+    },
+    {
+      "path": "src/app/(authenticated)/owner/audit-logs/page.tsx",
+      "reason": "Audit metadata presentation behavior",
+      "score": 90
+    },
+    {
+      "path": "ci/policy_check.py",
+      "reason": "Current-head review evidence gate",
+      "score": 100
+    }
+  ],
+  "scanned_paths": [
+    "src/app/(authenticated)/owner/integrations/api-keys",
+    "src/components/integrations/ExternalApiKeyManager.tsx",
+    "src/lib/utils/action-recovery.ts",
+    "src/lib/external-api",
+    "src/lib/auth/session.ts",
+    "src/lib/supabase/server.ts",
+    "src/app/(authenticated)/owner/audit-logs/page.tsx",
+    "docs/ai/reviews",
+    "ci/policy_check.py"
+  ],
+  "commands_run": [
+    {
+      "command": "independent full-repository review of main...e5854cc",
+      "exit_code": 0,
+      "summary": "Reviewed the full API-key feature, auth and credential safeguards, audit UI, redirect handling, and evidence compatibility"
+    },
+    {
+      "command": "npm test",
+      "exit_code": 0,
+      "summary": "23 test files and 113 tests passed at the reviewed head"
+    },
+    {
+      "command": "npm run lint",
+      "exit_code": 0,
+      "summary": "No ESLint warnings or errors"
+    },
+    {
+      "command": "npm run build",
+      "exit_code": 0,
+      "summary": "Production build passed"
+    },
+    {
+      "command": "python3 ci/policy_check.py --require-review-evidence --pr-number 22",
+      "exit_code": 0,
+      "summary": "Current-head review evidence validation passed after this Round 3 evidence-only commit"
+    }
+  ],
+  "context_fingerprint": "git-tree:39a164bac75ebdd80b8b442a2311c70435e53d5a",
+  "context_budget": {
+    "max_related_files": 40,
+    "max_context_chars": 180000,
+    "max_file_excerpt_chars": 12000,
+    "max_context_commands": 12
+  },
+  "context_truncated": false,
+  "context_truncated_reason": "",
+  "issues": [
+    {
+      "severity": "Must",
+      "category": "review-evidence",
+      "file": "docs/ai/reviews/2026-07-24-pr22-round2-codex-arendt.json",
+      "line": 8,
+      "rationale": "The Round 2 evidence did not cover the current head after the redirect fix, blocking the required review-evidence gate.",
+      "fix": "Record final independent review evidence for the exact current head.",
+      "confidence": 1,
+      "disposition": "fixed",
+      "disposition_reason": "This Round 3 file is recorded against e5854ccb95ba5cabc22fa3078a606e2f1a311965 and is pushed as evidence-only."
+    },
+    {
+      "severity": "Should",
+      "category": "audit-usability",
+      "file": "src/app/(authenticated)/owner/audit-logs/page.tsx",
+      "line": 38,
+      "rationale": "The API-key audit metadata uses flat fields while the audit page currently renders only before/after values, so issuance and deactivation details are not shown there.",
+      "fix": "Normalize API-key audit metadata to the existing before/after display shape or extend the audit view to render safe flat metadata.",
+      "confidence": 0.9,
+      "disposition": "backlog",
+      "disposition_reason": "Round 3 non-blocking Should; API key issuance and deactivation are audited safely, and improving owner-facing detail visibility is deferred without changing the security contract.",
+      "backlog_id": "PR-22-R3-S01"
+    }
+  ]
+}
