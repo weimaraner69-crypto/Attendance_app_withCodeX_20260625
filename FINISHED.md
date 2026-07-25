@@ -10,6 +10,57 @@
 
 ---
 
+## A-000-6 オーナー向けAPIキー管理画面
+
+- 実施日: 2026-07-24〜2026-07-25
+- 種別: 外部API/権限/運用UI
+- 完了PR: #22（2026-07-25 `main` へマージ、merge commit `9c3c3fe4217567c5e75af86ec2dfd4532b7e6f05`）
+
+### 実施内容
+
+- owner限定の `/owner/integrations/api-keys` を追加し、名前、`attendance:read`、JST基準の有効期限でAPIキーを発行できるようにした。
+- 平文キーは暗号学的乱数から生成し、DBにはSHA-256ハッシュだけを保存し、成功直後の画面状態で一度だけ表示するようにした。
+- キー一覧では `name`、`scopes`、`is_active`、`last_used_at`、`created_at`、`expires_at` だけを扱い、`key_hash` を取得・表示しないよう固定した。
+- 無効化はowner認可と組織境界を満たすキーだけに限定し、既存の外部API認証で無効化済みキーを拒否する回帰を追加した。
+- action失敗時の結果正規化と `NEXT_REDIRECT` の再送出を共通化し、一覧再取得失敗時の操作停止と監査ログ非露出を固定した。
+- owner監査ログ画面で `external_api_key.*` のフラットメタデータを描画できるようにし、キー名、許可スコープ、有効期限、有効状態を安全に確認できるようにした。
+
+### 確認内容
+
+- Python 38件、Vitest 111件、`python3 ci/policy_check.py --require-review-evidence --pr-number 22`、`npm run lint`、`npm run build`、`git diff --check` が成功。
+- ダミーownerのSSRスモークで、発行フォーム、必要6列、無効化導線、再表示不可表示、取得失敗時の操作停止を確認した。
+- owner監査ログのSSRスモークで、`external_api_key.issued` の安全なフラットメタデータが「値」テーブルとして表示されることを確認した。
+- follow-up後に、Vitest 118件のフルスイート、`npm run lint`、`npm run build`、`git diff --check` を再実行し、追加した監査ログ詳細表示の回帰を含めて成功した。
+- 独立Codexレビュー3件の最終証跡を保存し、GitHub Actionsの `quality-gate`、`secret-scan`、`review-evidence-gate` がすべて成功した。
+- `.env.local` の値は読み取り・表示していない。本番Supabase変更、実キー発行、日報アプリとの実接続は未実施。
+
+### 残作業
+
+- 実接続再開前に、勤怠側の契約正本を日報側へ同期し、同じAPIスナップショットを参照できる状態にする。
+
+### 影響ファイル
+
+- `src/app/(authenticated)/owner/integrations/api-keys/page.tsx`
+- `src/app/(authenticated)/owner/integrations/api-keys/actions.ts`
+- `src/app/(authenticated)/owner/integrations/api-keys/actions.test.ts`
+- `src/app/(authenticated)/owner/integrations/api-keys/page.test.ts`
+- `src/app/(authenticated)/owner/audit-logs/page.tsx`
+- `src/app/(authenticated)/owner/audit-logs/page.test.ts`
+- `src/components/integrations/ExternalApiKeyManager.tsx`
+- `src/lib/audit/format.ts`
+- `src/lib/audit/format.test.ts`
+- `src/lib/external-api/key-management.ts`
+- `src/lib/external-api/key-management.test.ts`
+- `src/lib/utils/action-recovery.ts`
+- `src/lib/utils/action-recovery.test.ts`
+- `docs/specs/issue-6-api-key-management.md`
+- `docs/ai/reviews/2026-07-24-pr22-round1-codex-linnaeus.json`
+- `docs/ai/reviews/2026-07-24-pr22-round2-codex-arendt.json`
+- `docs/ai/reviews/2026-07-24-pr22-round3-codex-ohm.json`
+- `NEXT.md`
+- `CHANGELOG.md`
+- `docs/ai/execution-ledger.md`
+
 ## A-001-16 スタッフAuth運用フォローアップ
 
 - 実施日: 2026-07-23
