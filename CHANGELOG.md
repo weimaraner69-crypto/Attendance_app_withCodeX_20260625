@@ -5,6 +5,32 @@
 
 ---
 
+## [2026-07-25] A-000 オーナー向けAPIキー管理画面を完了
+
+### 変更
+
+- PR #22を `main` へマージし、owner限定の `/owner/integrations/api-keys` でAPIキーの発行、一覧、無効化を完了した。
+- 平文キー一度表示、JST期限、SHA-256ハッシュ保存、`key_hash` 非取得、無効化済みキーの認証拒否をコードと回帰テストで固定した。
+- action失敗時の結果正規化と `NEXT_REDIRECT` の再送出を共通化し、一覧再取得失敗時の操作停止、監査ログ非露出、SSRスモークの受入条件を揃えた。
+- owner監査ログ画面で `external_api_key.*` の安全なフラットメタデータを表示できるようにし、PR #22 Round 3のnon-blocking backlogを回収した。
+- `A-000` の残作業を、日報側 `A-005` のNext昇格後に再開する契約同期と #5 詳細API、実接続前の運用作業へ絞り込んだ。
+
+### 影響ファイル
+
+- `src/app/(authenticated)/owner/integrations/api-keys/page.tsx`
+- `src/app/(authenticated)/owner/integrations/api-keys/actions.ts`
+- `src/app/(authenticated)/owner/audit-logs/page.tsx`
+- `src/app/(authenticated)/owner/audit-logs/page.test.ts`
+- `src/components/integrations/ExternalApiKeyManager.tsx`
+- `src/lib/audit/format.ts`
+- `src/lib/audit/format.test.ts`
+- `src/lib/external-api/key-management.ts`
+- `src/lib/utils/action-recovery.ts`
+- `docs/specs/issue-6-api-key-management.md`
+- `NEXT.md`
+- `FINISHED.md`
+- `docs/ai/execution-ledger.md`
+
 ## [2026-07-23] A-001スタッフAuth運用フォローアップを完了
 
 ### 変更

@@ -7,10 +7,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   auditActionLabels,
+  getAuditChanges,
+  getAuditDetailRows,
   auditFieldLabels,
   formatAuditValue,
   isAuditMetadata,
-  type AuditMetadata,
 } from '@/lib/audit/format';
 import { requireAuthenticatedRole } from '@/lib/auth/session';
 import { createSupabaseAdminClient } from '@/lib/supabase';
@@ -33,20 +34,6 @@ type ActorRow = {
 
 function getStringParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] ?? '' : value ?? '';
-}
-
-function getChanges(metadata: AuditMetadata) {
-  const before = isAuditMetadata(metadata.before) ? metadata.before : {};
-  const after = isAuditMetadata(metadata.after) ? metadata.after : {};
-  const keys = Array.from(new Set([...Object.keys(before), ...Object.keys(after)]));
-
-  return keys
-    .filter((key) => formatAuditValue(before[key]) !== formatAuditValue(after[key]))
-    .map((key) => ({
-      key,
-      before: before[key],
-      after: after[key],
-    }));
 }
 
 export default async function OwnerAuditLogsPage({
@@ -132,7 +119,8 @@ export default async function OwnerAuditLogsPage({
         {logs.map((log) => {
           const actor = log.actor_user_id ? actors.get(log.actor_user_id) : null;
           const metadata = isAuditMetadata(log.metadata) ? log.metadata : {};
-          const changes = getChanges(metadata);
+          const changes = getAuditChanges(metadata);
+          const detailRows = changes.length === 0 ? getAuditDetailRows(log.action, metadata) : [];
 
           return (
             <Card key={log.id}>
@@ -175,6 +163,27 @@ export default async function OwnerAuditLogsPage({
                             </td>
                             <td className="px-2 py-2 text-gray-600">{formatAuditValue(change.before)}</td>
                             <td className="px-2 py-2">{formatAuditValue(change.after)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : detailRows.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b text-left">
+                          <th className="px-2 py-2">項目</th>
+                          <th className="px-2 py-2">値</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {detailRows.map((row) => (
+                          <tr key={row.key} className="border-b last:border-0">
+                            <td className="px-2 py-2 font-medium">
+                              {auditFieldLabels[row.key] ?? row.key}
+                            </td>
+                            <td className="px-2 py-2">{formatAuditValue(row.after)}</td>
                           </tr>
                         ))}
                       </tbody>

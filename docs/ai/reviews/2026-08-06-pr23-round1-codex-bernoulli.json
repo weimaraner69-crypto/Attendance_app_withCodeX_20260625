@@ -1,0 +1,121 @@
+{
+  "schema_version": 2,
+  "phase": "post_push",
+  "provider": "codex",
+  "reviewer_id": "codex-bernoulli-019fd55b",
+  "review_session_id": "codex-auditor-pr23-r1-20260806-1337",
+  "implementation_session_id": "codex-main-pr23-20260725",
+  "head_sha": "9cba6a0b06e389979e94247aae311cd9bd5153b4",
+  "diff_fingerprint": "sha256:3a20d80105426f0c5934c9131636c6ad7036e3f2cd3e6174f12a04efc1342576",
+  "risk_tier": "red",
+  "round": 1,
+  "review_status": "completed",
+  "secondary_verification": {
+    "required": true,
+    "method": "dedicated_tests",
+    "status": "passed",
+    "evidence": "監査ログの安全なフラットメタデータ表示、オーナー画面SSR、APIキー発行・無効化操作、無効化キーの外部認証拒否を対象とした専用回帰テストが成功した。",
+    "commands": [
+      {
+        "command": "npm test -- src/lib/audit/format.test.ts src/app/(authenticated)/owner/audit-logs/page.test.ts src/app/(authenticated)/owner/integrations/api-keys/actions.test.ts src/lib/external-api/auth.test.ts",
+        "exit_code": 0,
+        "summary": "監査ログ表示、オーナー操作、外部API認証の4テストファイル・11テストが成功した",
+        "covered_paths": ["**"]
+      }
+    ]
+  },
+  "summary": "独立したfull-repository reviewの結果、Must / Should / Niceはいずれも0件。external_api_key.* の表示は許可済み4項目のホワイトリストに限定され、平文キーおよびkey_hashを表示しない既存の発行・無効化経路と整合している。",
+  "repository_context_mode": "full_repo_agentic",
+  "diff_only_reason": "",
+  "changed_files": [
+    "CHANGELOG.md",
+    "FINISHED.md",
+    "NEXT.md",
+    "docs/ai/execution-ledger.md",
+    "src/app/(authenticated)/owner/audit-logs/page.test.ts",
+    "src/app/(authenticated)/owner/audit-logs/page.tsx",
+    "src/lib/audit/format.test.ts",
+    "src/lib/audit/format.ts"
+  ],
+  "related_files": [
+    {
+      "path": "src/app/(authenticated)/owner/integrations/api-keys/actions.ts",
+      "reason": "APIキー発行・無効化時の監査メタデータ生成経路",
+      "score": 100
+    },
+    {
+      "path": "src/lib/external-api/auth.ts",
+      "reason": "無効化キーの外部API認証拒否経路",
+      "score": 100
+    },
+    {
+      "path": "src/lib/auth/session.ts",
+      "reason": "オーナー画面の認可境界",
+      "score": 95
+    },
+    {
+      "path": "src/lib/supabase.ts",
+      "reason": "サーバー側Supabaseクライアント境界",
+      "score": 95
+    },
+    {
+      "path": "docs/specs/issue-6-api-key-management.md",
+      "reason": "APIキー管理の受入条件と非表示要件",
+      "score": 90
+    },
+    {
+      "path": "SECURITY.md",
+      "reason": "秘密情報を表示しない運用要件",
+      "score": 90
+    }
+  ],
+  "scanned_paths": [
+    "src/app/(authenticated)/owner/audit-logs/page.tsx",
+    "src/app/(authenticated)/owner/audit-logs/page.test.ts",
+    "src/app/(authenticated)/owner/integrations/api-keys/actions.ts",
+    "src/app/(authenticated)/owner/integrations/api-keys/actions.test.ts",
+    "src/lib/audit/format.ts",
+    "src/lib/audit/format.test.ts",
+    "src/lib/external-api/auth.ts",
+    "src/lib/external-api/auth.test.ts",
+    "src/lib/auth/session.ts",
+    "src/lib/supabase.ts",
+    "docs/specs/issue-6-api-key-management.md",
+    "SECURITY.md",
+    "AGENTS.md",
+    "ai/operation-policy.yml",
+    ".github/instructions/review-loop.instructions.md"
+  ],
+  "commands_run": [
+    {
+      "command": "git diff --name-status origin/main...HEAD",
+      "exit_code": 0,
+      "summary": "PR差分の対象8ファイルを確認した"
+    },
+    {
+      "command": "git diff --check origin/main...HEAD",
+      "exit_code": 0,
+      "summary": "空白エラーなし"
+    },
+    {
+      "command": "npm test -- src/lib/audit/format.test.ts src/app/(authenticated)/owner/audit-logs/page.test.ts src/app/(authenticated)/owner/integrations/api-keys/actions.test.ts src/lib/external-api/auth.test.ts",
+      "exit_code": 0,
+      "summary": "4テストファイル・11テストが成功した"
+    },
+    {
+      "command": "independent full-repository review of origin/main...9cba6a0",
+      "exit_code": 0,
+      "summary": "監査メタデータの表示範囲、認可境界、キー無効化、外部API認証、関連仕様と運用ポリシーを確認した"
+    }
+  ],
+  "context_fingerprint": "git-tree:14f9698de60248a3dc3ef6374a8e0e51be24125e",
+  "context_budget": {
+    "max_related_files": 40,
+    "max_context_chars": 180000,
+    "max_file_excerpt_chars": 12000,
+    "max_context_commands": 12
+  },
+  "context_truncated": false,
+  "context_truncated_reason": "",
+  "issues": []
+}

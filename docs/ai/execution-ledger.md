@@ -17,7 +17,19 @@
 
 ## 記録
 
-### 現在状態（2026-07-23 Issue #6 APIキー管理画面・最新）
+### 現在状態（2026-07-25 PR #22完了同期と監査ログ詳細整備・最新）
+
+- 現在の mode: `daily_development`（PR #22完了同期と監査ログ詳細整備）
+- active branch: `chore/sync-pr22-plan-state`
+- 直近完了 PR: PR #22（オーナー向けAPIキー管理画面）を独立レビュー3件、全CI成功後に2026-07-25 `main` へマージ済み
+- 現在タスク: PR #22の完了状態を `NEXT.md`、`FINISHED.md`、`CHANGELOG.md`、`docs/ai/execution-ledger.md` へ同期し、owner監査ログ画面で `external_api_key.*` の安全なフラットメタデータ表示を追加する
+- requirements/spec: GitHub Issue #6、`docs/specs/issue-6-api-key-management.md`、`docs/integrations/attendance-api-spec.md`
+- 実装・回帰: owner限定の発行、一覧、無効化、一度だけの平文表示、`key_hash` 非取得、無効化済みキーの認証拒否、一覧取得失敗時の操作停止、`NEXT_REDIRECT` 再送出に加え、owner監査ログ画面でキー名、許可スコープ、有効期限、有効状態の安全な詳細表示を回帰テストで固定した。
+- 次タスク: 日報側への契約本文同期と実接続再開は、日報側 `A-005` のNext昇格後に再開する。現時点の `A-000` 未完了は #5 詳細APIと本番運用作業のみ
+- 安全床: `.env.local`を読まない。秘密情報を表示しない。本番Supabase変更、実メール送信、本番デプロイ、日報側実接続、PRマージは対象外
+- 最終更新: 2026-07-25
+
+### 現在状態（2026-07-23 Issue #6 APIキー管理画面・履歴）
 
 - 現在の mode: `daily_development`（Issue #6実装）
 - active branch: `agent/issue-6-api-key-management`
