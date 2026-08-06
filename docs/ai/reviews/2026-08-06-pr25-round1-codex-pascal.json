@@ -1,0 +1,85 @@
+{
+  "schema_version": 2,
+  "phase": "post_push",
+  "provider": "codex",
+  "reviewer_id": "codex-pascal-019fd5e3",
+  "review_session_id": "019fd5e3-f61d-7041-aba7-f823254847bd",
+  "implementation_session_id": "codex-main-issue5-readiness-20260806",
+  "head_sha": "03189430ac3eac8ad83286b15ec5afac6848b0b8",
+  "diff_fingerprint": "sha256:07f2c3b950a8874caaaa2068c1e98f36da59eac20fbf6d75f427b73076fc6d11",
+  "risk_tier": "green",
+  "round": 1,
+  "review_status": "completed",
+  "secondary_verification": {
+    "required": false,
+    "method": "not_required",
+    "status": "not_required",
+    "evidence": "green tierのドキュメント契約整備のみであり、第2確認は不要。",
+    "commands": []
+  },
+  "summary": "独立Codexレビューは、Issue #5の詳細APIを未実装の準備仕様として区切り、固定サマリー、イベントページング、組織・レコード境界、非公開情報、日報側実接続の保留が整合していることを確認した。Must / Should / Niceはすべて0件。",
+  "repository_context_mode": "diff_only",
+  "diff_only_reason": "8件のMarkdown文書だけを対象とする契約・計画同期であり、実装、設定、秘密情報、外部サービス、DB、本番変更を含まない。",
+  "changed_files": [
+    "CHANGELOG.md",
+    "NEXT.md",
+    "docs/ai/decision-ledger.md",
+    "docs/ai/execution-ledger.md",
+    "docs/ai/expectation-ledger.md",
+    "docs/implementation-decisions.md",
+    "docs/integrations/attendance-api-spec.md",
+    "docs/specs/issue-5-attendance-detail-api.md"
+  ],
+  "related_files": [
+    {
+      "path": "AGENTS.md",
+      "reason": "計画・レビュー・秘密情報の運用規約"
+    },
+    {
+      "path": "src/app/api/external/v1/attendance/route.ts",
+      "reason": "既存一覧APIのnoteとinclude_events拒否挙動を確認した実装コンテキスト"
+    },
+    {
+      "path": "docs/integrations/attendance-api-spec.md",
+      "reason": "日報連携の外部API契約正本"
+    },
+    {
+      "path": "docs/specs/issue-5-attendance-detail-api.md",
+      "reason": "詳細API実装開始条件と受入条件"
+    }
+  ],
+  "scanned_paths": [
+    "CHANGELOG.md",
+    "NEXT.md",
+    "docs/ai/decision-ledger.md",
+    "docs/ai/execution-ledger.md",
+    "docs/ai/expectation-ledger.md",
+    "docs/implementation-decisions.md",
+    "docs/integrations/attendance-api-spec.md",
+    "docs/specs/issue-5-attendance-detail-api.md",
+    "AGENTS.md",
+    "src/app/api/external/v1/attendance/route.ts"
+  ],
+  "commands_run": [
+    {
+      "command": "git diff --check origin/main...03189430ac3eac8ad83286b15ec5afac6848b0b8",
+      "exit_code": 0,
+      "summary": "空白エラーなし"
+    },
+    {
+      "command": "independent diff-only review of PR #25 at 03189430ac3eac8ad83286b15ec5afac6848b0b8",
+      "exit_code": 0,
+      "summary": "契約の完全性、非公開境界、未実装・実接続保留を確認し、Must / Should / Niceはすべて0件"
+    }
+  ],
+  "context_fingerprint": "git-tree:03336339dd0eaaa9799f79955ac884ae57bdbb6a",
+  "context_budget": {
+    "max_related_files": 20,
+    "max_context_chars": 120000,
+    "max_file_excerpt_chars": 12000,
+    "max_context_commands": 10
+  },
+  "context_truncated": false,
+  "context_truncated_reason": "",
+  "issues": []
+}
