@@ -57,7 +57,8 @@
 }
 ```
 
-- `event_cursor` は `include_events=true` のときだけ指定できる任意のクエリパラメータとする。未指定または空文字は先頭ページを意味し、前ページの `next_cursor` 以外、改ざん値、期限切れ値、`include_events` が `true` でないときの指定は `400 INVALID_PARAMS` とする。
+- `event_cursor` は `include_events=true` のときだけ指定できる任意のクエリパラメータとする。未指定または空文字は先頭ページを意味し、前ページの `next_cursor` 以外、改ざん値、または `include_events` が `true` でないときの指定は `400 INVALID_PARAMS` とする。
+- カーソル自体にTTLは設けず、発行後も同じ組織内の同じレコードに限り受け付ける。イベントはページ取得中にも追加され得るため、ページングは `occurred_at` と `id` の安定順だけを保証し、全ページのスナップショット一貫性は保証しない。
 - 各イベントは `id`、`event_type`、`occurred_at`、`source` だけを返す。`gps_verified` は日報側が必要性を確認した場合だけ、別の明示的な契約追加として扱う。
 - `latitude`、`longitude`、`gps_accuracy_meters`、`distance_from_store_meters`、`auth_user_id`、`kiosk_device_id`、`pin_verified_at`、`line_account_id`、`line_message_id`、`created_by_user_id`、`note` は返さない。
 - `attendance_requests` は理由・レビューコメントなどの個人情報を持つため、`pending_requests` として外部APIへ返さない。修正済みの有無は既存の `is_manual` と `updated_at` を同期判定に用いる。
@@ -91,7 +92,7 @@
 - [ ] 存在しないIDと他組織IDのどちらも `404 NOT_FOUND` を返す。
 - [ ] `include_events` 未指定、空文字、または `false` のとき、`events` と `pending_requests` を返さない。不正値は `400 INVALID_PARAMS` を返す。
 - [ ] `include_events=true` のときも既定の `store` と `record` を保持し、`events.items` を最大100件、`occurred_at`・`id` の安定順で返す。続きがある場合は不透明な `next_cursor`、最終ページは `next_cursor: null` を返す。
-- [ ] `event_cursor` は `include_events=true` で前ページの `next_cursor` だけを受け付け、続きページを安定順で返す。不正・期限切れカーソルまたはイベント未指定時のカーソルは `400 INVALID_PARAMS` を返す。
+- [ ] `event_cursor` は `include_events=true` で前ページの `next_cursor` だけを受け付け、続きページを安定順で返す。不正カーソルまたはイベント未指定時のカーソルは `400 INVALID_PARAMS` を返す。TTLは設けず、ページ間のスナップショット一貫性は保証しない。
 - [ ] `include_events=true` のとき、最小イベント項目だけを返し、位置・端末・認証・LINE・自由記述の各情報を含めない。
 - [ ] 詳細の `record` は固定レスポンス形に一致し、`note` を返さない。
 - [ ] 修正承認後の `is_manual` と `updated_at` が一覧・詳細の両方へ反映される。

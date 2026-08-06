@@ -324,7 +324,7 @@ Phase 2対象。現時点では未実装。
 - `record_id` はAPIキーに紐づく組織内だけを検索し、存在しないIDと他組織IDは同じ `404 NOT_FOUND` を返す。
 - `include_events` は任意のbooleanで、未指定、空文字、または `false` のときは `note` を除いた固定形の勤怠サマリーだけを返す。
 - `include_events=true` のときも既定の最上位 `store` と `record` を返し、第三の最上位キー `events.items` に `id`、`event_type`、`occurred_at`、`source` の最小イベントを返す。`events.next_cursor` は続きがなければ `null` とし、1ページは最大100件で、`occurred_at`、`id` の順に並べる。
-- `event_cursor` は `include_events=true` の場合だけ、前ページの不透明な `events.next_cursor` を受け付ける。未指定または空文字は先頭ページ、不正・期限切れ値またはイベント未指定時の指定は `400 INVALID_PARAMS` とする。
+- `event_cursor` は `include_events=true` の場合だけ、前ページの不透明な `events.next_cursor` を受け付ける。未指定または空文字は先頭ページ、不正値またはイベント未指定時の指定は `400 INVALID_PARAMS` とする。カーソルにTTLは設けず、ページ間のスナップショット一貫性は保証しない。
 - `pending_requests`、`note`、位置、端末、認証、LINE、GPS検証結果の情報は返さない。
 - 実装開始条件と受入条件は `docs/specs/issue-5-attendance-detail-api.md` を参照する。
 
@@ -387,4 +387,11 @@ curl -i \
   -H "Accept: application/json" \
   -H "X-External-Api-Key: $ATTENDANCE_API_KEY" \
   "https://attendance.example.com/api/external/v1/attendance/$ATTENDANCE_RECORD_ID?include_events=true"
+```
+
+```bash
+curl -i \
+  -H "Accept: application/json" \
+  -H "X-External-Api-Key: $ATTENDANCE_API_KEY" \
+  "https://attendance.example.com/api/external/v1/attendance/$ATTENDANCE_RECORD_ID?include_events=true&event_cursor=$ATTENDANCE_EVENT_CURSOR"
 ```
