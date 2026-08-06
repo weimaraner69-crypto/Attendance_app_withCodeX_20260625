@@ -22,12 +22,12 @@
 - 現在の mode: `daily_development`（Issue #26の公開本人回復導線実装）
 - active branch: `feat/owner-self-service-password-recovery`
 - 直近完了 PR: PR #25（Issue #5詳細APIの実装準備仕様）を2026-08-06に `main` へマージ済み
-- 現在タスク: PR #27 Round 1独立reviewのMust 2件・Should 2件に対応中。応答時間列挙対策、HMAC化IP・メール別レート制限、claim後のowner再照合、ledger同期を実装し、Niceの全DML権限・同一token並行claimも回帰へ追加する
+- 現在タスク: PR #27 Round 2独立reviewのMust 1件・Should 2件・Nice 1件に対応中。owner確認・メール送信のレスポンス後分離、IP遮断後のメール行増加防止、古い窓の段階削除、レート窓の全DML権限・窓更新回帰を追加する
 - requirements/spec: GitHub Issue #26、`docs/specs/issue-26-owner-password-recovery.md`、`docs/operations-maintenance.md`
-- review baseline: PR #27 Round 1 head `ec4ccaa35a8481d80bc08ba728bc4d0ea1e48ffe`、独立reviewer Socrates `019fd713-9b99-7d62-ba9c-164dcbad3e12`、`full_repo_agentic`。Must 2件、Should 2件、Nice 1件を検出
-- CI状況: initial headのquality-gateとsecret-scanは成功。review-evidence-gateはRound 1証跡未追加のため失敗
-- 検証状況: initial headで全Vitest 167件、Python policy/migration 39件、policy check、lint、build、diff check、一時PostgreSQLの全migration・owner/staff競合回帰まで成功。Round 1修正後の再検証は進行中
-- 次タスク: Round 1指摘を全修正して証跡JSONとともにcommit・pushし、別reviewer/sessionのRound 2 `full_repo_agentic`レビューと全CIへ進む
+- review baseline: Round 1 head `ec4ccaa35a8481d80bc08ba728bc4d0ea1e48ffe`をSocratesが確認し、全指摘をcommit `66be35d48c2d6168607f616f38ccfa9d1c058905`へ反映。Round 2は同headを独立reviewer Confucius `019fd72b-43a6-7512-aa34-bfe6a478edfa`が`full_repo_agentic`で確認し、Must 1件、Should 2件、Nice 1件を検出
+- CI状況: commit `66be35d48c2d6168607f616f38ccfa9d1c058905`のRun 83はquality-gateとsecret-scanが成功。review-evidence-gateはRound 2証跡未追加のため失敗
+- 検証状況: Round 1修正後に全Vitest 177件、Python policy/migration 39件、policy check、lint、build、diff check、一時PostgreSQLの全migration、owner/staff intent競合、owner claim、メール5件・IP20件の並行レート制限が成功
+- 次タスク: Round 2指摘を全修正・再検証して証跡JSONとともにcommit・pushし、別reviewer/sessionのRound 3 `full_repo_agentic`レビューと全CIへ進む
 - 安全床: `.env.local`を読まない。秘密情報を表示しない。本番Supabase変更、実メール送信、本番デプロイ、日報側実接続、PRマージは対象外
 - 最終更新: 2026-08-06
 

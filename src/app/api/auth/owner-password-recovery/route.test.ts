@@ -8,9 +8,13 @@ const mocks = vi.hoisted(() => ({
   createAuthClient: vi.fn(),
   createRateLimitOperations: vi.fn(),
   consumeRateLimit: vi.fn(),
-  enforceResponseFloor: vi.fn(),
   readEmail: vi.fn(),
   getServiceRoleKey: vi.fn(),
+  waitUntil: vi.fn(),
+}));
+
+vi.mock('@vercel/functions', () => ({
+  waitUntil: mocks.waitUntil,
 }));
 
 vi.mock('@/lib/auth/owner-password-recovery', () => ({
@@ -23,7 +27,6 @@ vi.mock('@/lib/auth/owner-auth-operations', () => ({
 }));
 vi.mock('@/lib/auth/owner-password-recovery-guard', () => ({
   consumeOwnerPasswordRecoveryRateLimit: mocks.consumeRateLimit,
-  enforceOwnerPasswordRecoveryResponseFloor: mocks.enforceResponseFloor,
   readOwnerPasswordRecoveryEmail: mocks.readEmail,
 }));
 vi.mock('@/lib/supabase', () => ({
@@ -55,7 +58,6 @@ describe('owner password recovery request API', () => {
     mocks.createOperations.mockReturnValue({ kind: 'operations' });
     mocks.createRateLimitOperations.mockReturnValue({ kind: 'rate-limit-operations' });
     mocks.consumeRateLimit.mockResolvedValue(true);
-    mocks.enforceResponseFloor.mockResolvedValue(undefined);
     mocks.readEmail.mockImplementation(async (input: Request) => {
       const body = await input.clone().json() as { email?: unknown };
       return typeof body.email === 'string' ? body.email : null;
@@ -82,7 +84,23 @@ describe('owner password recovery request API', () => {
       secret: 'test-only-secret',
       operations: { kind: 'rate-limit-operations' },
     });
-    expect(mocks.enforceResponseFloor).toHaveBeenCalledOnce();
+    expect(mocks.waitUntil).toHaveBeenCalledWith(expect.any(Promise));
+  });
+
+  it('returns before owner lookup and email delivery complete', async () => {
+    let resolveRecovery!: (value: { accepted: true }) => void;
+    const recoveryTask = new Promise<{ accepted: true }>((resolve) => {
+      resolveRecovery = resolve;
+    });
+    mocks.requestRecovery.mockReturnValue(recoveryTask);
+
+    const response = await POST(request('owner@example.com'));
+
+    expect(response.status).toBe(202);
+    expect(mocks.waitUntil).toHaveBeenCalledWith(expect.any(Promise));
+    expect(mocks.requestRecovery).toHaveBeenCalledOnce();
+    resolveRecovery({ accepted: true });
+    await recoveryTask;
   });
 
   it('returns the same public response for an invalid body', async () => {
@@ -96,7 +114,7 @@ describe('owner password recovery request API', () => {
     expect(response.status).toBe(202);
     expect(mocks.requestRecovery).not.toHaveBeenCalled();
     expect(mocks.createAdminClient).not.toHaveBeenCalled();
-    expect(mocks.enforceResponseFloor).toHaveBeenCalledOnce();
+    expect(mocks.waitUntil).not.toHaveBeenCalled();
   });
 
   it('fails closed without exposing an invalid application URL', async () => {
@@ -124,6 +142,7 @@ describe('owner password recovery request API', () => {
     expect(response.status).toBe(202);
     expect(mocks.requestRecovery).not.toHaveBeenCalled();
     expect(mocks.createAuthClient).not.toHaveBeenCalled();
+    expect(mocks.waitUntil).not.toHaveBeenCalled();
   });
 
   it('does not send when the Origin header is absent', async () => {

@@ -4,7 +4,6 @@ import {
   OWNER_RECOVERY_BODY_LIMIT_BYTES,
   buildOwnerPasswordRecoveryRateLimitKeys,
   consumeOwnerPasswordRecoveryRateLimit,
-  enforceOwnerPasswordRecoveryResponseFloor,
   readOwnerPasswordRecoveryEmail,
 } from './owner-password-recovery-guard';
 
@@ -64,24 +63,5 @@ describe('owner password recovery public request guard', () => {
       body: JSON.stringify({ email: 'owner@example.com' }),
     });
     await expect(readOwnerPasswordRecoveryEmail(request)).resolves.toBe('owner@example.com');
-  });
-
-  it.each([
-    ['fast rejection', 0, 0, 1_200],
-    ['valid owner path', 700, 0.5, 650],
-    ['slow provider response', 1_600, 0.9, 0],
-  ])('applies the same response floor to %s', async (_case, elapsed, random, expectedWait) => {
-    const sleep = vi.fn(async () => undefined);
-    await enforceOwnerPasswordRecoveryResponseFloor(1_000, {
-      now: () => 1_000 + elapsed,
-      random: () => random,
-      sleep,
-    });
-
-    if (expectedWait === 0) {
-      expect(sleep).not.toHaveBeenCalled();
-    } else {
-      expect(sleep).toHaveBeenCalledWith(expectedWait);
-    }
   });
 });

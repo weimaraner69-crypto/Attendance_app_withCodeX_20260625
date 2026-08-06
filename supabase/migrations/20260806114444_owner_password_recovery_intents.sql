@@ -30,6 +30,9 @@ create table public.owner_password_recovery_rate_limit_windows (
   primary key (scope, subject_hash)
 );
 
+create index idx_owner_password_recovery_rate_limit_windows_updated_at
+  on public.owner_password_recovery_rate_limit_windows (updated_at);
+
 alter table public.owner_password_recovery_rate_limit_windows enable row level security;
 revoke all on public.owner_password_recovery_rate_limit_windows
   from public, anon, authenticated;
@@ -131,11 +134,17 @@ begin
     floor(extract(epoch from p_now) / 900) * 900
   );
 
+  delete from public.owner_password_recovery_rate_limit_windows
+  where (scope, subject_hash) in (
+    select rate_window.scope, rate_window.subject_hash
+    from public.owner_password_recovery_rate_limit_windows rate_window
+    where rate_window.updated_at < p_now - interval '1 day'
+    order by rate_window.updated_at
+    limit 100
+  );
+
   perform pg_advisory_xact_lock(
     hashtextextended('owner-recovery-rate-limit:ip:' || p_ip_hash, 0)
-  );
-  perform pg_advisory_xact_lock(
-    hashtextextended('owner-recovery-rate-limit:email:' || p_email_hash, 0)
   );
 
   insert into public.owner_password_recovery_rate_limit_windows (
@@ -165,6 +174,14 @@ begin
       updated_at = greatest(public.owner_password_recovery_rate_limit_windows.updated_at, excluded.updated_at)
   returning request_count into v_ip_count;
 
+  if v_ip_count > 20 then
+    return false;
+  end if;
+
+  perform pg_advisory_xact_lock(
+    hashtextextended('owner-recovery-rate-limit:email:' || p_email_hash, 0)
+  );
+
   insert into public.owner_password_recovery_rate_limit_windows (
     scope,
     subject_hash,
@@ -192,7 +209,7 @@ begin
       updated_at = greatest(public.owner_password_recovery_rate_limit_windows.updated_at, excluded.updated_at)
   returning request_count into v_email_count;
 
-  return v_ip_count <= 20 and v_email_count <= 5;
+  return v_email_count <= 5;
 end;
 $$;
 

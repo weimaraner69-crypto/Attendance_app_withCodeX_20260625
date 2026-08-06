@@ -50,7 +50,7 @@ Git、Issue、Pull Request、チャット、ログへ値を貼り付けません
 - 外部連携APIを使う場合、`20260716055206_external_api_rate_limit_access_logs.sql` を適用し、レートヘッダー、61件目の429、旧窓で現在窓が巻き戻らないこと、429ログの窓単位集約、`external_api_access_logs` 保存を値非表示で確認する。
 - LINEを使う場合、LINE DevelopersのWebhook検証がHTTP 200になる。
 - スタッフAuthを使う場合、招待と再設定の実メールが `/auth/confirm` の確認POSTで検証された後に `/auth/staff-password` へ到達し、設定前は通常画面と打刻を利用できず、設定後に新しいパスワードで `/stamp/mobile` へログインできる。
-- オーナー公開再設定を使う場合、未登録・非owner・無効・不整合・レート制限時でも公開画面が同じ案内と最低応答時間を返し、有効ownerの実メールだけが `/auth/owner-confirm` の確認POST後に `/auth/owner-password` へ到達することを確認する。レート制限テーブルにはHMAC、窓、件数以外を保存しない。
+- オーナー公開再設定を使う場合、未登録・非owner・無効・不整合・レート制限時でも公開画面が同じ案内を即時に返し、owner確認とメール送信がレスポンス後の管理対象タスクで完了すること、有効ownerの実メールだけが `/auth/owner-confirm` の確認POST後に `/auth/owner-password` へ到達することを確認する。レート制限テーブルにはHMAC、窓、件数以外を保存しない。
 
 ## 3. エラー監視方針
 

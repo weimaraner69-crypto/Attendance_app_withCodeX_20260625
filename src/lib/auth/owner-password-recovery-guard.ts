@@ -3,8 +3,6 @@ import { createHmac } from 'crypto';
 import { isValidOwnerEmail, normalizeOwnerEmail } from './owner-auth-identity';
 
 export const OWNER_RECOVERY_BODY_LIMIT_BYTES = 2 * 1024;
-export const OWNER_RECOVERY_RESPONSE_FLOOR_MS = 1_200;
-export const OWNER_RECOVERY_RESPONSE_JITTER_MS = 300;
 
 export type OwnerPasswordRecoveryRateLimitOperations = {
   consumeRateLimit: (ipHash: string, emailHash: string) => Promise<boolean>;
@@ -81,22 +79,4 @@ export async function readOwnerPasswordRecoveryEmail(request: Request) {
   } catch {
     return null;
   }
-}
-
-export async function enforceOwnerPasswordRecoveryResponseFloor(
-  startedAtMs: number,
-  dependencies: {
-    now?: () => number;
-    random?: () => number;
-    sleep?: (milliseconds: number) => Promise<void>;
-  } = {}
-) {
-  const now = dependencies.now ?? Date.now;
-  const random = dependencies.random ?? Math.random;
-  const sleep = dependencies.sleep ?? (
-    (milliseconds: number) => new Promise<void>((resolve) => setTimeout(resolve, milliseconds))
-  );
-  const jitter = Math.floor(random() * OWNER_RECOVERY_RESPONSE_JITTER_MS);
-  const remaining = OWNER_RECOVERY_RESPONSE_FLOOR_MS + jitter - (now() - startedAtMs);
-  if (remaining > 0) await sleep(remaining);
 }

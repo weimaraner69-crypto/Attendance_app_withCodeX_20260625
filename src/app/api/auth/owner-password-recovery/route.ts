@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { waitUntil } from '@vercel/functions';
 
 import {
   createOwnerPasswordRecoveryOperations,
@@ -6,7 +7,6 @@ import {
 } from '@/lib/auth/owner-auth-operations';
 import {
   consumeOwnerPasswordRecoveryRateLimit,
-  enforceOwnerPasswordRecoveryResponseFloor,
   readOwnerPasswordRecoveryEmail,
 } from '@/lib/auth/owner-password-recovery-guard';
 import {
@@ -34,7 +34,6 @@ function acceptedResponse() {
 }
 
 export async function POST(request: Request) {
-  const startedAt = Date.now();
   try {
     const requestOrigin = request.headers.get('origin');
     if (requestOrigin !== new URL(request.url).origin) {
@@ -55,15 +54,14 @@ export async function POST(request: Request) {
     if (!rateLimitAllowed) return acceptedResponse();
 
     const auth = createSupabaseTransientAuthClient();
-    await requestOwnerPasswordRecovery({
+    const recoveryTask = requestOwnerPasswordRecovery({
       email,
       redirectTo,
       operations: createOwnerPasswordRecoveryOperations(admin, auth),
-    });
+    }).catch(() => undefined);
+    waitUntil(recoveryTask);
   } catch {
     // Public responses must not reveal account or infrastructure state.
-  } finally {
-    await enforceOwnerPasswordRecoveryResponseFloor(startedAt).catch(() => undefined);
   }
   return acceptedResponse();
 }

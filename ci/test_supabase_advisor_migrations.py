@@ -272,7 +272,13 @@ class OwnerPasswordRecoveryMigrationTest(TestCase):
             "create or replace function public.consume_owner_password_recovery_rate_limit",
             migration,
         )
-        self.assertIn("v_ip_count <= 20 and v_email_count <= 5", migration)
+        self.assertIn(
+            "create index idx_owner_password_recovery_rate_limit_windows_updated_at",
+            migration,
+        )
+        self.assertIn("if v_ip_count > 20 then", migration)
+        self.assertIn("return v_email_count <= 5", migration)
+        self.assertIn("rate_window.updated_at < p_now - interval '1 day'", migration)
         self.assertIn(
             "revoke all on function public.consume_owner_password_recovery_rate_limit",
             migration,

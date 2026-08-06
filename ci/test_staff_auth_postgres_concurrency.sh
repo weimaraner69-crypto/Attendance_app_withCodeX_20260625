@@ -221,6 +221,20 @@ if [[ "${ip_allowed_count}" != "20" ]]; then
   exit 1
 fi
 
+ip_email_row_count="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select count(*)
+  from public.owner_password_recovery_rate_limit_windows
+  where scope = 'email'
+    and subject_hash in (
+      select lpad(request_index::text, 64, '0')
+      from generate_series(1, 21) request_index
+    );
+")"
+if [[ "${ip_email_row_count}" != "20" ]]; then
+  echo "expected blocked concurrent IP request not to create an email row" >&2
+  exit 1
+fi
+
 psql --set ON_ERROR_STOP=1 --command "
   drop table public.owner_recovery_rate_limit_concurrency_results;
 " >/dev/null

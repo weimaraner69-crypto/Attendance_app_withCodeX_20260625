@@ -472,6 +472,8 @@ $$;
 do $$
 declare
   v_allowed boolean;
+  v_email_rows_before integer;
+  v_email_rows_after integer;
   v_index integer;
   v_now timestamptz := '2026-08-06T12:00:00Z';
 begin
@@ -503,6 +505,61 @@ begin
   ) into v_allowed;
   if v_allowed then
     raise exception 'twenty-first owner recovery request for one IP must be rejected';
+  end if;
+
+  select count(*) into v_email_rows_before
+  from public.owner_password_recovery_rate_limit_windows
+  where scope = 'email';
+  select public.consume_owner_password_recovery_rate_limit(
+    repeat('c', 64), repeat('e', 64), v_now
+  ) into v_allowed;
+  select count(*) into v_email_rows_after
+  from public.owner_password_recovery_rate_limit_windows
+  where scope = 'email';
+  if v_allowed or v_email_rows_after <> v_email_rows_before then
+    raise exception 'blocked IP created or changed an email rate-limit row';
+  end if;
+
+  for v_index in 1..5 loop
+    perform public.consume_owner_password_recovery_rate_limit(
+      repeat('1', 64), repeat('2', 64), v_now
+    );
+  end loop;
+  select public.consume_owner_password_recovery_rate_limit(
+    repeat('1', 64), repeat('2', 64), v_now + interval '15 minutes'
+  ) into v_allowed;
+  if not v_allowed then
+    raise exception 'owner recovery rate limit did not reset in a new window';
+  end if;
+  select public.consume_owner_password_recovery_rate_limit(
+    repeat('1', 64), repeat('2', 64), v_now + interval '14 minutes'
+  ) into v_allowed;
+  if not v_allowed or not exists (
+    select 1
+    from public.owner_password_recovery_rate_limit_windows
+    where scope = 'email'
+      and subject_hash = repeat('2', 64)
+      and window_started_at = v_now + interval '15 minutes'
+      and request_count = 2
+      and updated_at = v_now + interval '15 minutes'
+  ) then
+    raise exception 'delayed owner recovery request rewound the active window';
+  end if;
+
+  insert into public.owner_password_recovery_rate_limit_windows (
+    scope, subject_hash, window_started_at, request_count, updated_at
+  ) values (
+    'email', repeat('3', 64), v_now - interval '2 days', 1, v_now - interval '2 days'
+  );
+  perform public.consume_owner_password_recovery_rate_limit(
+    repeat('4', 64), repeat('5', 64), v_now
+  );
+  if exists (
+    select 1
+    from public.owner_password_recovery_rate_limit_windows
+    where scope = 'email' and subject_hash = repeat('3', 64)
+  ) then
+    raise exception 'stale owner recovery rate-limit row was not removed';
   end if;
 end;
 $$;
@@ -663,6 +720,24 @@ begin
      )
      or has_table_privilege(
        'authenticated', 'public.owner_password_recovery_rate_limit_windows', 'select'
+     )
+     or has_table_privilege(
+       'anon', 'public.owner_password_recovery_rate_limit_windows', 'insert'
+     )
+     or has_table_privilege(
+       'anon', 'public.owner_password_recovery_rate_limit_windows', 'update'
+     )
+     or has_table_privilege(
+       'anon', 'public.owner_password_recovery_rate_limit_windows', 'delete'
+     )
+     or has_table_privilege(
+       'authenticated', 'public.owner_password_recovery_rate_limit_windows', 'insert'
+     )
+     or has_table_privilege(
+       'authenticated', 'public.owner_password_recovery_rate_limit_windows', 'update'
+     )
+     or has_table_privilege(
+       'authenticated', 'public.owner_password_recovery_rate_limit_windows', 'delete'
      )
      or has_function_privilege(
        'anon',
