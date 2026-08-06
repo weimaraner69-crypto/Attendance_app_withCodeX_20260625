@@ -1,0 +1,95 @@
+{
+  "schema_version": 2,
+  "phase": "post_push",
+  "provider": "codex",
+  "reviewer_id": "codex-maxwell-019fd5ae",
+  "review_session_id": "codex-review-pr24-r1-20260806-1412",
+  "implementation_session_id": "codex-main-pr24-20260806",
+  "head_sha": "f1dae72c438e8babf631710d5e48e6f31b43ebe1",
+  "diff_fingerprint": "sha256:c02245fc0c70a260182dc4d002658d913b32ace9cc4d6e3d842d809be2626392",
+  "risk_tier": "green",
+  "round": 1,
+  "review_status": "completed",
+  "secondary_verification": {
+    "required": false,
+    "method": "not_required",
+    "status": "not_required",
+    "evidence": "green tierの文書同期のみであり、第2確認は不要。",
+    "commands": []
+  },
+  "summary": "独立レビューの結果、Must / Should / Niceはいずれも0件。PR #23のマージコミット、独立レビュー証跡、CI 3ゲート成功、日報側A-005待ちという計画上の状態が4つの同期文書で整合している。",
+  "repository_context_mode": "diff_only",
+  "diff_only_reason": "4件のMarkdown文書だけを対象とする完了状態同期であり、実装、設定、秘密情報、外部サービスの変更を含まない。",
+  "changed_files": [
+    "CHANGELOG.md",
+    "FINISHED.md",
+    "NEXT.md",
+    "docs/ai/execution-ledger.md"
+  ],
+  "related_files": [
+    {
+      "path": "docs/ai/reviews/2026-08-06-pr23-round1-codex-bernoulli.json",
+      "reason": "PR #23の独立レビュー結果とCI証跡",
+      "score": 100
+    },
+    {
+      "path": "docs/specs/issue-6-api-key-management.md",
+      "reason": "APIキー管理画面の完了スコープ",
+      "score": 90
+    },
+    {
+      "path": "docs/integrations/attendance-api-spec.md",
+      "reason": "日報側A-005待ちと実接続再開条件の契約正本",
+      "score": 90
+    },
+    {
+      "path": "AGENTS.md",
+      "reason": "計画・完了記録と秘密情報の運用規約",
+      "score": 85
+    }
+  ],
+  "scanned_paths": [
+    "CHANGELOG.md",
+    "FINISHED.md",
+    "NEXT.md",
+    "docs/ai/execution-ledger.md",
+    "docs/ai/reviews/2026-08-06-pr23-round1-codex-bernoulli.json",
+    "docs/specs/issue-6-api-key-management.md",
+    "docs/integrations/attendance-api-spec.md",
+    "AGENTS.md",
+    ".github/instructions/review-loop.instructions.md",
+    "ai/operation-policy.yml"
+  ],
+  "commands_run": [
+    {
+      "command": "git diff --name-status origin/main...HEAD",
+      "exit_code": 0,
+      "summary": "同期対象が4つのMarkdown文書のみであることを確認した"
+    },
+    {
+      "command": "git diff --check origin/main...HEAD",
+      "exit_code": 0,
+      "summary": "空白エラーなし"
+    },
+    {
+      "command": "git show --no-patch d4ec77f",
+      "exit_code": 0,
+      "summary": "PR #23のスカッシュマージコミットを確認した"
+    },
+    {
+      "command": "independent repository-aware documentation review of origin/main...f1dae72",
+      "exit_code": 0,
+      "summary": "PR #23のマージ、独立レビュー証跡、CI結果、連携保留条件を関連文書と照合した"
+    }
+  ],
+  "context_fingerprint": "git-tree:32831d9ea6505c57803d3e48a802ebdecca55bfd",
+  "context_budget": {
+    "max_related_files": 40,
+    "max_context_chars": 180000,
+    "max_file_excerpt_chars": 12000,
+    "max_context_commands": 12
+  },
+  "context_truncated": false,
+  "context_truncated_reason": "",
+  "issues": []
+}
