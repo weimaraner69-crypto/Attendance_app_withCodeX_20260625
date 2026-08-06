@@ -5,6 +5,24 @@
 
 ---
 
+## [2026-08-06] Issue #5勤怠詳細APIの実装準備仕様を追加
+
+### 変更
+
+- 日報側A-005がBacklogのままでも進められる準備として、詳細APIの既定サマリー、任意イベント、組織境界、実装開始条件、受入条件を仕様化した。
+- イベントは明示指定時に最小4項目だけを返す案とし、位置、端末、認証、LINE、自由記述、修正申請の外部公開を対象外へ固定した。
+- 一覧APIへのイベント同梱は、日報側が必要性と応答量を承認するまで既存の `400 INVALID_PARAMS` を維持する。
+
+### 影響ファイル
+
+- `docs/specs/issue-5-attendance-detail-api.md`
+- `docs/integrations/attendance-api-spec.md`
+- `docs/implementation-decisions.md`
+- `NEXT.md`
+- `docs/ai/expectation-ledger.md`
+- `docs/ai/decision-ledger.md`
+- `docs/ai/execution-ledger.md`
+
 ## [2026-08-06] PR #23の完了状態と独立レビュー証跡を同期
 
 ### 変更
