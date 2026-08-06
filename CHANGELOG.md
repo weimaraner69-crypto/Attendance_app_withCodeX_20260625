@@ -5,6 +5,22 @@
 
 ---
 
+## [2026-08-06] PR #23の完了状態と独立レビュー証跡を同期
+
+### 変更
+
+- PR #23を `main` へスカッシュマージし、PR #22のAPIキー管理画面に対する監査ログ詳細と計画・完了記録の同期を完了した。
+- push後の独立Codexレビュー証跡を追加し、最新headに対する `review-evidence-gate`、`quality-gate`、`secret-scan` の成功を確認した。
+- `NEXT.md`、`FINISHED.md`、実行ledgerの最新状態を、日報側の連携実装待ちと本番運用作業保留の現行方針へ揃えた。
+
+### 影響ファイル
+
+- `NEXT.md`
+- `FINISHED.md`
+- `CHANGELOG.md`
+- `docs/ai/execution-ledger.md`
+- `docs/ai/reviews/2026-08-06-pr23-round1-codex-bernoulli.json`
+
 ## [2026-07-25] A-000 オーナー向けAPIキー管理画面を完了
 
 ### 変更
