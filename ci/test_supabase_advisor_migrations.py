@@ -260,6 +260,23 @@ class OwnerPasswordRecoveryMigrationTest(TestCase):
             "revoke all on public.owner_password_recovery_intents from public, anon, authenticated;",
             migration,
         )
+        self.assertIn(
+            "create or replace function public.claim_owner_password_recovery_intent",
+            migration,
+        )
+        self.assertIn(
+            "create table public.owner_password_recovery_rate_limit_windows",
+            migration,
+        )
+        self.assertIn(
+            "create or replace function public.consume_owner_password_recovery_rate_limit",
+            migration,
+        )
+        self.assertIn("v_ip_count <= 20 and v_email_count <= 5", migration)
+        self.assertIn(
+            "revoke all on function public.consume_owner_password_recovery_rate_limit",
+            migration,
+        )
         self.assertTrue(migration.rstrip().endswith("commit;"))
 
 

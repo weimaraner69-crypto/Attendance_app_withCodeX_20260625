@@ -72,6 +72,13 @@ export type Database = {
         consumed_at: Timestamp | null;
         created_at: Timestamp;
       }>;
+      owner_password_recovery_rate_limit_windows: Table<{
+        scope: 'ip' | 'email';
+        subject_hash: string;
+        window_started_at: Timestamp;
+        request_count: number;
+        updated_at: Timestamp;
+      }>;
       stores: Table<{
         id: string;
         organization_id: string;
@@ -368,6 +375,23 @@ export type Database = {
           p_expires_at: Timestamp;
         };
         Returns: undefined;
+      };
+      claim_owner_password_recovery_intent: {
+        Args: {
+          p_token_hash: string;
+        };
+        Returns: {
+          id: string;
+          user_id: string;
+        }[];
+      };
+      consume_owner_password_recovery_rate_limit: {
+        Args: {
+          p_ip_hash: string;
+          p_email_hash: string;
+          p_now?: Timestamp;
+        };
+        Returns: boolean;
       };
       consume_external_api_rate_limit: {
         Args: {

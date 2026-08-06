@@ -103,4 +103,6 @@
 - メール送信対象は、有効なownerでAuthユーザーIDとプロフィールID、正規化した両メールが一致する場合だけに限定する。
 - Supabase recovery OTP確認後も通常のAuthセッションを認可に使わず、owner専用の短命・単回利用DB intentとHttpOnly Cookieへ交換する。
 - パスワード更新直前にowner整合性を再検証し、intentを原子的に消費してからAdmin APIで対象Authユーザーだけを更新する。
+- 公開要求は2KB本文上限、Vercel確定IPと正規化メールのHMAC別15分固定窓、最低1.2秒とjitterで保護する。制限・障害時も同じ202とし、平文IP・メールをDBへ保存しない。
+- 更新POSTはtoken hashをDBで先に原子的claimし、返却user IDを直後に再照合する。照合失敗時もintentを戻さずfail-closeする。
 - staffとownerの確認Route、Cookie、intentテーブル、更新APIは相互利用不可とする。共通Recoveryテンプレートは要求時の `RedirectTo` でそれぞれの確認Routeへ分岐する。

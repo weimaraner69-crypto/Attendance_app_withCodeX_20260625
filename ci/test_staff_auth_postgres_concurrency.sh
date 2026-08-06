@@ -103,6 +103,130 @@ fi
 
 echo "concurrent owner password intent issuance passed"
 
+owner_claim_token="$(printf '3%.0s' {1..64})"
+psql --set ON_ERROR_STOP=1 --command "
+  select public.issue_owner_password_recovery_intent(
+    '${owner_user_id}', '${owner_claim_token}', now() + interval '10 minutes'
+  );
+  drop table if exists public.owner_recovery_claim_concurrency_results;
+  create unlogged table public.owner_recovery_claim_concurrency_results (
+    succeeded boolean not null
+  );
+" >/dev/null
+
+psql --set ON_ERROR_STOP=1 --command "
+  begin;
+  insert into public.owner_recovery_claim_concurrency_results (succeeded)
+  select exists(
+    select 1 from public.claim_owner_password_recovery_intent('${owner_claim_token}')
+  );
+  select pg_sleep(1);
+  commit;
+" >/dev/null &
+owner_claim_first_pid=$!
+
+sleep 0.1
+
+psql --set ON_ERROR_STOP=1 --command "
+  insert into public.owner_recovery_claim_concurrency_results (succeeded)
+  select exists(
+    select 1 from public.claim_owner_password_recovery_intent('${owner_claim_token}')
+  );
+" >/dev/null &
+owner_claim_second_pid=$!
+
+wait "${owner_claim_first_pid}"
+wait "${owner_claim_second_pid}"
+
+owner_claim_successes="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select count(*) from public.owner_recovery_claim_concurrency_results where succeeded;
+")"
+owner_claim_rejections="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select count(*) from public.owner_recovery_claim_concurrency_results where not succeeded;
+")"
+
+if [[ "${owner_claim_successes}" != "1" || "${owner_claim_rejections}" != "1" ]]; then
+  echo "expected one successful and one rejected owner intent claim" >&2
+  exit 1
+fi
+
+psql --set ON_ERROR_STOP=1 --command "
+  drop table public.owner_recovery_claim_concurrency_results;
+" >/dev/null
+
+echo "concurrent owner password intent claim passed"
+
+rate_limit_ip_hash="$(printf '4%.0s' {1..64})"
+rate_limit_email_hash="$(printf '5%.0s' {1..64})"
+psql --set ON_ERROR_STOP=1 --command "
+  delete from public.owner_password_recovery_rate_limit_windows
+  where (scope = 'ip' and subject_hash = '${rate_limit_ip_hash}')
+     or (scope = 'email' and subject_hash = '${rate_limit_email_hash}');
+  drop table if exists public.owner_recovery_rate_limit_concurrency_results;
+  create unlogged table public.owner_recovery_rate_limit_concurrency_results (
+    boundary text not null,
+    allowed boolean not null
+  );
+" >/dev/null
+
+rate_limit_pids=()
+for _request in {1..6}; do
+  psql --set ON_ERROR_STOP=1 --command "
+    insert into public.owner_recovery_rate_limit_concurrency_results (boundary, allowed)
+    select 'email', public.consume_owner_password_recovery_rate_limit(
+      '${rate_limit_ip_hash}',
+      '${rate_limit_email_hash}',
+      '2026-08-06T12:00:00Z'
+    );
+  " >/dev/null &
+  rate_limit_pids+=("$!")
+done
+for rate_limit_pid in "${rate_limit_pids[@]}"; do
+  wait "${rate_limit_pid}"
+done
+
+email_allowed_count="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select count(*) from public.owner_recovery_rate_limit_concurrency_results
+  where boundary = 'email' and allowed;
+")"
+if [[ "${email_allowed_count}" != "5" ]]; then
+  echo "expected exactly five concurrent requests for one email to be allowed" >&2
+  exit 1
+fi
+
+ip_boundary_hash="$(printf '6%.0s' {1..64})"
+rate_limit_pids=()
+for request_index in {1..21}; do
+  unique_email_hash="$(printf '%064d' "${request_index}")"
+  psql --set ON_ERROR_STOP=1 --command "
+    insert into public.owner_recovery_rate_limit_concurrency_results (boundary, allowed)
+    select 'ip', public.consume_owner_password_recovery_rate_limit(
+      '${ip_boundary_hash}',
+      '${unique_email_hash}',
+      '2026-08-06T12:00:00Z'
+    );
+  " >/dev/null &
+  rate_limit_pids+=("$!")
+done
+for rate_limit_pid in "${rate_limit_pids[@]}"; do
+  wait "${rate_limit_pid}"
+done
+
+ip_allowed_count="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select count(*) from public.owner_recovery_rate_limit_concurrency_results
+  where boundary = 'ip' and allowed;
+")"
+if [[ "${ip_allowed_count}" != "20" ]]; then
+  echo "expected exactly twenty concurrent requests for one IP to be allowed" >&2
+  exit 1
+fi
+
+psql --set ON_ERROR_STOP=1 --command "
+  drop table public.owner_recovery_rate_limit_concurrency_results;
+" >/dev/null
+
+echo "concurrent owner password recovery rate limiting passed"
+
 organization_id="00000000-0000-0000-0000-000000000001"
 auth_user_id="10000000-0000-0000-0000-000000000006"
 staff_id="20000000-0000-0000-0000-000000000006"

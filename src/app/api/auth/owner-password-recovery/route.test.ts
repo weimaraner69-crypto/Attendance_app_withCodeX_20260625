@@ -6,6 +6,11 @@ const mocks = vi.hoisted(() => ({
   createOperations: vi.fn(),
   createAdminClient: vi.fn(),
   createAuthClient: vi.fn(),
+  createRateLimitOperations: vi.fn(),
+  consumeRateLimit: vi.fn(),
+  enforceResponseFloor: vi.fn(),
+  readEmail: vi.fn(),
+  getServiceRoleKey: vi.fn(),
 }));
 
 vi.mock('@/lib/auth/owner-password-recovery', () => ({
@@ -14,10 +19,19 @@ vi.mock('@/lib/auth/owner-password-recovery', () => ({
 }));
 vi.mock('@/lib/auth/owner-auth-operations', () => ({
   createOwnerPasswordRecoveryOperations: mocks.createOperations,
+  createOwnerPasswordRecoveryRateLimitOperations: mocks.createRateLimitOperations,
+}));
+vi.mock('@/lib/auth/owner-password-recovery-guard', () => ({
+  consumeOwnerPasswordRecoveryRateLimit: mocks.consumeRateLimit,
+  enforceOwnerPasswordRecoveryResponseFloor: mocks.enforceResponseFloor,
+  readOwnerPasswordRecoveryEmail: mocks.readEmail,
 }));
 vi.mock('@/lib/supabase', () => ({
   createSupabaseAdminClient: mocks.createAdminClient,
   createSupabaseTransientAuthClient: mocks.createAuthClient,
+}));
+vi.mock('@/lib/supabase/env', () => ({
+  getSupabaseServiceRoleKey: mocks.getServiceRoleKey,
 }));
 
 import { POST } from './route';
@@ -39,6 +53,14 @@ describe('owner password recovery request API', () => {
     mocks.createAdminClient.mockReturnValue({ kind: 'admin' });
     mocks.createAuthClient.mockReturnValue({ kind: 'auth' });
     mocks.createOperations.mockReturnValue({ kind: 'operations' });
+    mocks.createRateLimitOperations.mockReturnValue({ kind: 'rate-limit-operations' });
+    mocks.consumeRateLimit.mockResolvedValue(true);
+    mocks.enforceResponseFloor.mockResolvedValue(undefined);
+    mocks.readEmail.mockImplementation(async (input: Request) => {
+      const body = await input.clone().json() as { email?: unknown };
+      return typeof body.email === 'string' ? body.email : null;
+    });
+    mocks.getServiceRoleKey.mockReturnValue('test-only-secret');
     mocks.requestRecovery.mockResolvedValue({ accepted: true });
   });
 
@@ -54,6 +76,13 @@ describe('owner password recovery request API', () => {
       redirectTo: `${appOrigin}/auth/owner-confirm`,
       operations: { kind: 'operations' },
     });
+    expect(mocks.consumeRateLimit).toHaveBeenCalledWith({
+      email: 'owner@example.com',
+      headers: expect.any(Headers),
+      secret: 'test-only-secret',
+      operations: { kind: 'rate-limit-operations' },
+    });
+    expect(mocks.enforceResponseFloor).toHaveBeenCalledOnce();
   });
 
   it('returns the same public response for an invalid body', async () => {
@@ -67,6 +96,7 @@ describe('owner password recovery request API', () => {
     expect(response.status).toBe(202);
     expect(mocks.requestRecovery).not.toHaveBeenCalled();
     expect(mocks.createAdminClient).not.toHaveBeenCalled();
+    expect(mocks.enforceResponseFloor).toHaveBeenCalledOnce();
   });
 
   it('fails closed without exposing an invalid application URL', async () => {
@@ -86,6 +116,14 @@ describe('owner password recovery request API', () => {
       accepted: true,
       message: '該当するオーナーアカウントがある場合、再設定メールを送信しました。',
     });
+  });
+
+  it('returns the same response without sending when rate limited', async () => {
+    mocks.consumeRateLimit.mockResolvedValue(false);
+    const response = await POST(request('owner@example.com'));
+    expect(response.status).toBe(202);
+    expect(mocks.requestRecovery).not.toHaveBeenCalled();
+    expect(mocks.createAuthClient).not.toHaveBeenCalled();
   });
 
   it('does not send when the Origin header is absent', async () => {

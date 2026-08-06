@@ -455,30 +455,54 @@ begin
     raise exception 'more than one active owner recovery intent exists';
   end if;
 
-  with claimed as (
-    update public.owner_password_recovery_intents
-    set consumed_at = now()
-    where token_hash = repeat('0', 64)
-      and consumed_at is null
-      and expires_at > now()
-    returning id
-  )
-  select count(*) into claimed_count from claimed;
+  select count(*) into claimed_count
+  from public.claim_owner_password_recovery_intent(repeat('0', 64));
   if claimed_count <> 1 then
     raise exception 'first owner recovery claim did not succeed exactly once';
   end if;
 
-  with claimed as (
-    update public.owner_password_recovery_intents
-    set consumed_at = now()
-    where token_hash = repeat('0', 64)
-      and consumed_at is null
-      and expires_at > now()
-    returning id
-  )
-  select count(*) into claimed_count from claimed;
+  select count(*) into claimed_count
+  from public.claim_owner_password_recovery_intent(repeat('0', 64));
   if claimed_count <> 0 then
     raise exception 'owner recovery intent was reused';
+  end if;
+end;
+$$;
+
+do $$
+declare
+  v_allowed boolean;
+  v_index integer;
+  v_now timestamptz := '2026-08-06T12:00:00Z';
+begin
+  for v_index in 1..5 loop
+    select public.consume_owner_password_recovery_rate_limit(
+      repeat('a', 64), repeat('b', 64), v_now
+    ) into v_allowed;
+    if not v_allowed then
+      raise exception 'owner recovery email limit rejected request %', v_index;
+    end if;
+  end loop;
+  select public.consume_owner_password_recovery_rate_limit(
+    repeat('a', 64), repeat('b', 64), v_now
+  ) into v_allowed;
+  if v_allowed then
+    raise exception 'sixth owner recovery request for one email must be rejected';
+  end if;
+
+  for v_index in 1..20 loop
+    select public.consume_owner_password_recovery_rate_limit(
+      repeat('c', 64), md5(v_index::text) || md5(v_index::text), v_now
+    ) into v_allowed;
+    if not v_allowed then
+      raise exception 'owner recovery IP limit rejected request %', v_index;
+    end if;
+  end loop;
+  select public.consume_owner_password_recovery_rate_limit(
+    repeat('c', 64), repeat('d', 64), v_now
+  ) into v_allowed;
+  if v_allowed then
+    raise exception 'twenty-first owner recovery request for one IP must be rejected';
   end if;
 end;
 $$;
@@ -604,6 +628,17 @@ begin
      or has_table_privilege(
        'authenticated', 'public.owner_password_recovery_intents', 'select'
      )
+     or has_table_privilege('anon', 'public.owner_password_recovery_intents', 'insert')
+     or has_table_privilege('anon', 'public.owner_password_recovery_intents', 'update')
+     or has_table_privilege('anon', 'public.owner_password_recovery_intents', 'delete')
+     or has_table_privilege('authenticated', 'public.owner_password_recovery_intents', 'insert')
+     or has_table_privilege('authenticated', 'public.owner_password_recovery_intents', 'update')
+     or has_table_privilege('authenticated', 'public.owner_password_recovery_intents', 'delete')
+     or has_function_privilege(
+       'anon',
+       'public.issue_owner_password_recovery_intent(uuid,text,timestamptz)',
+       'execute'
+     )
      or has_function_privilege(
        'authenticated',
        'public.issue_owner_password_recovery_intent(uuid,text,timestamptz)',
@@ -612,6 +647,36 @@ begin
      or not has_function_privilege(
        'service_role',
        'public.issue_owner_password_recovery_intent(uuid,text,timestamptz)',
+       'execute'
+     )
+     or has_function_privilege(
+       'anon', 'public.claim_owner_password_recovery_intent(text)', 'execute'
+     )
+     or has_function_privilege(
+       'authenticated', 'public.claim_owner_password_recovery_intent(text)', 'execute'
+     )
+     or not has_function_privilege(
+       'service_role', 'public.claim_owner_password_recovery_intent(text)', 'execute'
+     )
+     or has_table_privilege(
+       'anon', 'public.owner_password_recovery_rate_limit_windows', 'select'
+     )
+     or has_table_privilege(
+       'authenticated', 'public.owner_password_recovery_rate_limit_windows', 'select'
+     )
+     or has_function_privilege(
+       'anon',
+       'public.consume_owner_password_recovery_rate_limit(text,text,timestamptz)',
+       'execute'
+     )
+     or has_function_privilege(
+       'authenticated',
+       'public.consume_owner_password_recovery_rate_limit(text,text,timestamptz)',
+       'execute'
+     )
+     or not has_function_privilege(
+       'service_role',
+       'public.consume_owner_password_recovery_rate_limit(text,text,timestamptz)',
        'execute'
      ) then
     raise exception 'staff Auth privileges are not fail-closed';

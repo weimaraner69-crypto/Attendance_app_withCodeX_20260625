@@ -3,6 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/supabase';
 
 import type { OwnerAuthIdentityOperations } from './owner-auth-identity';
+import type { OwnerPasswordRecoveryRateLimitOperations } from './owner-password-recovery-guard';
 import type { OwnerPasswordRecoveryOperations } from './owner-password-recovery';
 
 function escapePostgrestLikePattern(value: string) {
@@ -48,6 +49,23 @@ export function createOwnerPasswordRecoveryOperations(
     async sendPasswordReset(email, redirectTo) {
       const { error } = await auth.auth.resetPasswordForEmail(email, { redirectTo });
       return !error;
+    },
+  };
+}
+
+export function createOwnerPasswordRecoveryRateLimitOperations(
+  admin: SupabaseClient<Database>
+): OwnerPasswordRecoveryRateLimitOperations {
+  return {
+    async consumeRateLimit(ipHash, emailHash) {
+      const { data, error } = await admin.rpc(
+        'consume_owner_password_recovery_rate_limit',
+        {
+          p_ip_hash: ipHash,
+          p_email_hash: emailHash,
+        }
+      );
+      return !error && data === true;
     },
   };
 }

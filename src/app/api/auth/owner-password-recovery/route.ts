@@ -1,6 +1,14 @@
 import { NextResponse } from 'next/server';
 
-import { createOwnerPasswordRecoveryOperations } from '@/lib/auth/owner-auth-operations';
+import {
+  createOwnerPasswordRecoveryOperations,
+  createOwnerPasswordRecoveryRateLimitOperations,
+} from '@/lib/auth/owner-auth-operations';
+import {
+  consumeOwnerPasswordRecoveryRateLimit,
+  enforceOwnerPasswordRecoveryResponseFloor,
+  readOwnerPasswordRecoveryEmail,
+} from '@/lib/auth/owner-password-recovery-guard';
 import {
   buildOwnerPasswordRecoveryUrl,
   requestOwnerPasswordRecovery,
@@ -9,6 +17,7 @@ import {
   createSupabaseAdminClient,
   createSupabaseTransientAuthClient,
 } from '@/lib/supabase';
+import { getSupabaseServiceRoleKey } from '@/lib/supabase/env';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,18 +34,26 @@ function acceptedResponse() {
 }
 
 export async function POST(request: Request) {
-  const requestOrigin = request.headers.get('origin');
-  if (requestOrigin !== new URL(request.url).origin) {
-    return acceptedResponse();
-  }
-
-  const body = (await request.json().catch(() => null)) as { email?: unknown } | null;
-  const email = typeof body?.email === 'string' ? body.email : null;
-  const redirectTo = buildOwnerPasswordRecoveryUrl(process.env.NEXT_PUBLIC_APP_URL);
-  if (!redirectTo) return acceptedResponse();
-
+  const startedAt = Date.now();
   try {
+    const requestOrigin = request.headers.get('origin');
+    if (requestOrigin !== new URL(request.url).origin) {
+      return acceptedResponse();
+    }
+
+    const email = await readOwnerPasswordRecoveryEmail(request);
+    const redirectTo = buildOwnerPasswordRecoveryUrl(process.env.NEXT_PUBLIC_APP_URL);
+    if (!redirectTo) return acceptedResponse();
+
     const admin = createSupabaseAdminClient();
+    const rateLimitAllowed = await consumeOwnerPasswordRecoveryRateLimit({
+      email,
+      headers: request.headers,
+      secret: getSupabaseServiceRoleKey(),
+      operations: createOwnerPasswordRecoveryRateLimitOperations(admin),
+    });
+    if (!rateLimitAllowed) return acceptedResponse();
+
     const auth = createSupabaseTransientAuthClient();
     await requestOwnerPasswordRecovery({
       email,
@@ -45,6 +62,8 @@ export async function POST(request: Request) {
     });
   } catch {
     // Public responses must not reveal account or infrastructure state.
+  } finally {
+    await enforceOwnerPasswordRecoveryResponseFloor(startedAt).catch(() => undefined);
   }
   return acceptedResponse();
 }

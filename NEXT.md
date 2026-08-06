@@ -132,7 +132,7 @@
 
 ### A-001 認証実装（コード実装完了・本番運用設定待ち）
 
-- [ ] Issue #26: オーナー本人向けの公開パスワード再設定を実装済み。公開要求の列挙防止、owner限定のAuth/Profile整合性、短命・単回利用intent、既存staff導線との分離を `docs/specs/issue-26-owner-password-recovery.md` と専用回帰へ固定した。独立レビュー、CI、PRマージ後に完了へ移し、本番Supabase適用と実メール送信は別工程とする。
+- [ ] Issue #26 / PR #27: オーナー本人向けの公開パスワード再設定を実装済み。公開要求の本文・時間・濫用対策、owner限定のAuth/Profile整合性、claim後再照合、短命・単回利用intent、既存staff導線との分離を `docs/specs/issue-26-owner-password-recovery.md` と専用回帰へ固定した。Round 1 Must/Should修正の再検証・独立Round 2レビュー・CI・PRマージ後に完了へ移し、本番Supabase適用と実メール送信は別工程とする。
 
 - GitHub Issue: https://github.com/weimaraner69-crypto/Attendance_app_withCodeX_20260625/issues/13
 

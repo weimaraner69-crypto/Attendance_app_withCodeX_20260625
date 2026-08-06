@@ -31,10 +31,10 @@ Capability Lease（ユーザーが明示的に一時的な自律実行範囲を�
 ### DEC-20260806-002
 
 - 論点: ログイン情報を失ったownerが、Supabase Dashboardの手作業なしに安全に復旧する方法。
-- 判断: staff用の確認・intentを流用せず、owner専用の公開要求、Auth/Profile整合性確認、DB-backed短命・単回利用intent、owner専用の更新APIを追加する。公開要求は常に同じ202応答にし、owner以外・無効・不整合の有無を漏らさない。
-- 理由: staff用intentをowner更新へ受け入れると、役割境界と既存のstaff紐付け前提を壊す。Authメールとprofileメールを照合しないと、古いプロフィールメールで別のAuthユーザーを回復させる危険がある。
+- 判断: staff用の確認・intentを流用せず、owner専用の公開要求、Auth/Profile整合性確認、DB-backed短命・単回利用intent、owner専用の更新APIを追加する。公開要求は常に同じ202応答と最低応答時間を通し、HMAC化したIP・メール別の固定窓レート制限と本文上限を設ける。更新時はintent claim後に本人整合性を再照合する。
+- 理由: staff用intentをowner更新へ受け入れると、役割境界と既存のstaff紐付け前提を壊す。Authメールとprofileメールを照合しないと、古いプロフィールメールで別のAuthユーザーを回復させる危険がある。本文だけでなく応答時間差とメール送信濫用を閉じ、identity確認とclaimの競合窓もfail-closeする必要がある。
 - 影響ファイル: `docs/specs/issue-26-owner-password-recovery.md`、owner recovery Route・画面・intent migration・テスト、GitHub Issue #26。
-- リスク: Auth、権限、Supabase migrationを変更するredリスク。本番DB適用、Supabase設定、実メール送信は本PRの対象外とする。
+- リスク: Auth、権限、Supabase migrationを変更するredリスク。レート制限DB障害時は送信を拒否する。本番DB適用、Supabase設定、実メール送信は本PRの対象外とする。
 - ロールバック: owner recovery機能を同一リリース単位でrevertし、DB適用後の削除は別の安全なrollback migrationで扱う。
 
 ### DEC-20260806-001

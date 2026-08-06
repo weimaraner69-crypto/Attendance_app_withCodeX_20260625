@@ -22,10 +22,12 @@
 - 現在の mode: `daily_development`（Issue #26の公開本人回復導線実装）
 - active branch: `feat/owner-self-service-password-recovery`
 - 直近完了 PR: PR #25（Issue #5詳細APIの実装準備仕様）を2026-08-06に `main` へマージ済み
-- 現在タスク: 公開申請、owner Auth/Profile整合性確認、owner専用OTP確認、短命・単回利用intent、パスワード更新、staff回帰を実装し、独立レビューとCIへ進む
+- 現在タスク: PR #27 Round 1独立reviewのMust 2件・Should 2件に対応中。応答時間列挙対策、HMAC化IP・メール別レート制限、claim後のowner再照合、ledger同期を実装し、Niceの全DML権限・同一token並行claimも回帰へ追加する
 - requirements/spec: GitHub Issue #26、`docs/specs/issue-26-owner-password-recovery.md`、`docs/operations-maintenance.md`
-- 検証状況: 全Vitest 167件、Python policy/migration 39件、policy check、lint、build、diff check成功。一時PostgreSQLで全migration、owner/staff intent権限・単回利用・並行発行、既存staffの競合回帰まで成功
-- 次タスク: フルテスト・build後にコミット、push、PR作成、独立`full_repo_agentic`レビュー、GitHub Actions確認へ進む
+- review baseline: PR #27 Round 1 head `ec4ccaa35a8481d80bc08ba728bc4d0ea1e48ffe`、独立reviewer Socrates `019fd713-9b99-7d62-ba9c-164dcbad3e12`、`full_repo_agentic`。Must 2件、Should 2件、Nice 1件を検出
+- CI状況: initial headのquality-gateとsecret-scanは成功。review-evidence-gateはRound 1証跡未追加のため失敗
+- 検証状況: initial headで全Vitest 167件、Python policy/migration 39件、policy check、lint、build、diff check、一時PostgreSQLの全migration・owner/staff競合回帰まで成功。Round 1修正後の再検証は進行中
+- 次タスク: Round 1指摘を全修正して証跡JSONとともにcommit・pushし、別reviewer/sessionのRound 2 `full_repo_agentic`レビューと全CIへ進む
 - 安全床: `.env.local`を読まない。秘密情報を表示しない。本番Supabase変更、実メール送信、本番デプロイ、日報側実接続、PRマージは対象外
 - 最終更新: 2026-08-06
 

@@ -8,7 +8,7 @@ export type OwnerPasswordIntentRecord = {
 export type OwnerPasswordUpdateOperations = {
   findActiveIntent: (tokenHash: string) => Promise<OwnerPasswordIntentRecord | null>;
   hasValidOwnerIdentity: (userId: string) => Promise<boolean>;
-  claimIntent: (intentId: string) => Promise<boolean>;
+  claimIntent: (tokenHash: string) => Promise<OwnerPasswordIntentRecord | null>;
   updatePassword: (userId: string, password: string) => Promise<boolean>;
 };
 
@@ -31,13 +31,10 @@ export async function updateOwnerPasswordWithIntent(input: {
   operations: OwnerPasswordUpdateOperations;
 }): Promise<OwnerPasswordUpdateResult> {
   const { token, password, operations } = input;
-  const intent = await operations.findActiveIntent(hashOwnerPasswordIntentToken(token));
+  const intent = await operations.claimIntent(hashOwnerPasswordIntentToken(token));
   if (!intent) return { ok: false, code: 'invalid_intent' };
   if (!await operations.hasValidOwnerIdentity(intent.user_id)) {
     return { ok: false, code: 'invalid_identity' };
-  }
-  if (!await operations.claimIntent(intent.id)) {
-    return { ok: false, code: 'already_consumed' };
   }
   if (!await operations.updatePassword(intent.user_id, password)) {
     return { ok: false, code: 'update_failed' };

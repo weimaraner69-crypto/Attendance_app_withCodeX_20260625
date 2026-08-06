@@ -34,17 +34,13 @@ function createOperations(
     hasValidOwnerIdentity: (userId) => (
       hasValidOwnerAuthIdentityForUser(userId, identityOperations)
     ),
-    async claimIntent(intentId) {
-      const now = new Date().toISOString();
-      const { data, error } = await admin
-        .from('owner_password_recovery_intents')
-        .update({ consumed_at: now })
-        .eq('id', intentId)
-        .is('consumed_at', null)
-        .gt('expires_at', now)
-        .select('id')
-        .maybeSingle();
-      return !error && Boolean(data);
+    async claimIntent(tokenHash) {
+      const { data, error } = await admin.rpc(
+        'claim_owner_password_recovery_intent',
+        { p_token_hash: tokenHash }
+      );
+      if (error || !data?.length) return null;
+      return data[0];
     },
     async updatePassword(userId, password) {
       const { error } = await admin.auth.admin.updateUserById(userId, { password });
