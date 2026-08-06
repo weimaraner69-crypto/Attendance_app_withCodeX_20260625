@@ -21,6 +21,21 @@
 
 ## 記録
 
+### EXP-20260806-001
+
+- 元のユーザー意図: 次の作業としてIssue #5の勤怠詳細APIの要件確定を進める。
+- AI の解釈: 日報アプリとの実接続や本番設定を行わず、詳細APIとイベント返却の最小公開契約、実装開始条件、受入条件を勤怠側の正本へ追加する。
+- ユーザー可視の成果: 日報側がA-005へ着手した際に、1件詳細の取得、イベントの必要性、公開しない情報、実装・検証の条件を同じ仕様で確認できる。
+- 非目標: 詳細APIのRoute実装、一覧APIのイベント同梱、本番Supabase変更、日報側へのAPIキー設定、実接続。
+- 制約: 勤怠サマリーは既存一覧契約と整合させ、イベントは最小項目だけを明示要求時に返す案とする。位置、端末、認証、LINE、自由記述、修正申請は公開しない。
+- 影響する requirements: `README.md` の日報アプリ向け読み取りAPI、GitHub Issue #5。
+- 影響する design: `docs/implementation-decisions.md` のA-000、`docs/database-design.md` の日報アプリ連携。
+- 作成・更新した spec: `docs/specs/issue-5-attendance-detail-api.md`、`docs/integrations/attendance-api-spec.md`。
+- plan queue entry: `NEXT.md` A-000 Issue #5。
+- 受入条件: 詳細APIの組織境界、既定サマリー、イベント最小公開、修正申請非公開、実装開始条件、一覧イベント同梱の別判断を明記する。
+- Runtime smoke: 実装時にRoute Handlerレベルで同一組織、他組織、イベント指定、認証拒否をfixtureで確認する。
+- 結果: 実装準備仕様を作成中。日報側A-005がBacklogのため実装は保留。
+
 ### EXP-20260723-002
 
 - 元のユーザー意図: PR #21のマージ後、次の作業へ進める。

@@ -6,7 +6,7 @@
 - 現在の契約スナップショットは `attendance-external-v1-2026-07-16` とする。
 - 連携先は `weimaraner69-crypto/kashio-nippou-app_20260611Start`。
 - 日報側リポジトリにある初期仕様は設計時点の写しであり、SHA-256によるキー照合、Phase 1では `include_events=true` を未対応エラーにする挙動、カーソル形式など、実装確定後の差分は本文書を優先する。
-- 2026-07-14時点で、日報側の勤怠連携 `A-005` はBacklog。日報側へのキー設定、マッピング、取り込み、実接続は同タスクがNextへ昇格するまで保留する。
+- 2026-08-06時点で、日報側の勤怠連携 `A-005` はBacklog。日報側へのキー設定、マッピング、取り込み、実接続は同タスクがNextへ昇格するまで保留する。
 - 接続作業を再開する前に、本文書の契約を日報側へ同期し、双方で同じバージョンを参照していることを確認する。
 
 ## 目的
@@ -20,9 +20,9 @@
 - #2 外部APIキー認証基盤を実装する（2026-07-13完了）
 - #3 `/health` `/stores` `/staff` を実装する（2026-07-13完了）
 - #4 `/attendance` 一覧取得を実装する（2026-07-13完了）
-- #5 `/attendance/{id}` と `include_events` を実装する（日報側の要件確定まで保留）
-- #6 オーナー向けAPIキー管理画面を実装する（2026-07-23着手）
-- #7 レート制限とAPIアクセスログを実装する（2026-07-16コード実装完了）
+- #5 `/attendance/{id}` と `include_events` を実装する（実装準備仕様: `docs/specs/issue-5-attendance-detail-api.md`。日報側の要件確定まで実装は保留）
+- #6 オーナー向けAPIキー管理画面を実装する（PR #22、2026-07-25完了）
+- #7 レート制限とAPIアクセスログを実装する（PR #19、2026-07-16完了）
 
 ## 日報側の初期仕様との差分
 
@@ -123,13 +123,21 @@ insert into public.external_api_keys (
 Issue #5, #6, #7 を対象にする。
 
 - `GET /api/external/v1/attendance/{record_id}`
-- `include_events=true`
+- 詳細APIでの任意の `include_events=true`
 - APIキー管理画面
 - レート制限
 - APIアクセスログ
 - 修正申請承認後の再同期検知
 
 日報側の準備待ち期間は、公開運用の安全性に直接関係する #7、運用性を改善する #6 の順で先行する。レスポンス契約へ影響する #5 は、日報側の利用要件が固まるまで保留する。
+
+### Issue #5 実装準備の契約案
+
+- 現在の公開契約はPhase 1のままとし、一覧APIの `include_events=true` は引き続き `400 INVALID_PARAMS` を返す。
+- 詳細APIは、一覧の勤怠サマリーから自由記述の `note` を除いた固定 `record` を既定で返し、`include_events=true` の場合だけイベントページを返す案とする。
+- イベントの公開候補は `id`、`event_type`、`occurred_at`、`source` に限定する。位置、端末、認証、LINE、自由記述、GPS検証結果の情報は、日報側が必要性を確認するまで外部公開しない。
+- 修正申請は `pending_requests` として返さず、日報側は既存の `is_manual` と `updated_at` で修正済みレコードを判定する。
+- 一覧へのイベント同梱は、日報側が必要性と応答量の上限を承認するまで実装しない。詳細な受入条件と実装開始条件は `docs/specs/issue-5-attendance-detail-api.md` を正とする。
 
 ### APIキー管理
 
@@ -311,8 +319,14 @@ Query:
 
 ### `GET /api/external/v1/attendance/{record_id}`
 
-Phase 2対象。
-単一勤怠記録の詳細を返し、常に `events` と `pending_requests` を含める。
+Phase 2対象。現時点では未実装。
+
+- `record_id` はAPIキーに紐づく組織内だけを検索し、存在しないIDと他組織IDは同じ `404 NOT_FOUND` を返す。
+- `include_events` は任意のbooleanで、未指定、空文字、または `false` のときは `note` を除いた固定形の勤怠サマリーだけを返す。
+- `include_events=true` のときも既定の最上位 `store` と `record` を返し、第三の最上位キー `events.items` に `id`、`event_type`、`occurred_at`、`source` の最小イベントを返す。`events.next_cursor` は続きがなければ `null` とし、1ページは最大100件で、`occurred_at`、`id` の順に並べる。
+- `event_cursor` は `include_events=true` の場合だけ、前ページの不透明な `events.next_cursor` を受け付ける。未指定または空文字は先頭ページ、不正・期限切れ値またはイベント未指定時の指定は `400 INVALID_PARAMS` とする。
+- `pending_requests`、`note`、位置、端末、認証、LINE、GPS検証結果の情報は返さない。
+- 実装開始条件と受入条件は `docs/specs/issue-5-attendance-detail-api.md` を参照する。
 
 ## 日付・時刻
 
@@ -357,4 +371,20 @@ curl -i \
   -H "Accept: application/json" \
   -H "X-External-Api-Key: $ATTENDANCE_API_KEY" \
   "https://attendance.example.com/api/external/v1/attendance?store_id=$ATTENDANCE_STORE_ID&from=2026-06-01&to=2026-06-25"
+```
+
+以下はIssue #5の実装後に有効化する予定の例であり、現時点では未実装である。
+
+```bash
+curl -i \
+  -H "Accept: application/json" \
+  -H "X-External-Api-Key: $ATTENDANCE_API_KEY" \
+  "https://attendance.example.com/api/external/v1/attendance/$ATTENDANCE_RECORD_ID"
+```
+
+```bash
+curl -i \
+  -H "Accept: application/json" \
+  -H "X-External-Api-Key: $ATTENDANCE_API_KEY" \
+  "https://attendance.example.com/api/external/v1/attendance/$ATTENDANCE_RECORD_ID?include_events=true"
 ```

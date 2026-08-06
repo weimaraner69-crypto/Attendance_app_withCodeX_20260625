@@ -17,7 +17,19 @@
 
 ## 記録
 
-### 現在状態（2026-08-06 PR #23完了同期・最新）
+### 現在状態（2026-08-06 Issue #5詳細APIの実装準備・最新）
+
+- 現在の mode: `daily_development`（Issue #5の要件・詳細設計の実装準備）
+- active branch: `docs/issue-5-detail-api-readiness`
+- 直近完了 PR: PR #24（PR #23完了状態同期）を独立CodexレビューMust / Should / Nice 0件、GitHub Actions全3ゲート成功後に2026-08-06 `main` へマージ済み
+- 現在タスク: Issue #5の詳細APIについて、既定サマリー、任意イベント、非公開情報、実装開始条件、受入条件を仕様として固定する
+- requirements/spec: GitHub Issue #5、`docs/specs/issue-5-attendance-detail-api.md`、`docs/integrations/attendance-api-spec.md`
+- Issue同期: GitHub Issue #5へ、既定サマリー、任意イベント、受入条件、実装開始の前提、実装時cURL例を2026-08-06に同期済み
+- 次タスク: 日報側 `A-005` がNextへ昇格し、一覧へのイベント同梱の必要性・応答量と契約同期を確認できた後に、Issue #5のコード実装へ進む
+- 安全床: `.env.local`を読まない。秘密情報を表示しない。本番Supabase変更、実メール送信、本番デプロイ、日報側実接続は対象外
+- 最終更新: 2026-08-06
+
+### 現在状態（2026-08-06 PR #23完了同期・履歴）
 
 - 現在の mode: `daily_development`（PR #23完了状態同期）
 - active branch: `chore/sync-pr23-completion-state`
