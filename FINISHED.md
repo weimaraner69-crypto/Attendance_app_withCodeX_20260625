@@ -12,9 +12,9 @@
 
 ## A-000-6 オーナー向けAPIキー管理画面
 
-- 実施日: 2026-07-24〜2026-07-25
+- 実施日: 2026-07-24〜2026-08-06
 - 種別: 外部API/権限/運用UI
-- 完了PR: #22（2026-07-25 `main` へマージ、merge commit `9c3c3fe4217567c5e75af86ec2dfd4532b7e6f05`）
+- 完了PR: #22（実装、2026-07-25 `main` へマージ、merge commit `9c3c3fe4217567c5e75af86ec2dfd4532b7e6f05`）、#23（監査ログ詳細・完了状態・独立レビュー証跡、2026-08-06 `main` へマージ、squash commit `d4ec77ffe71b9bea9f618d8300d67c782f773599`）
 
 ### 実施内容
 
@@ -32,6 +32,7 @@
 - owner監査ログのSSRスモークで、`external_api_key.issued` の安全なフラットメタデータが「値」テーブルとして表示されることを確認した。
 - follow-up後に、Vitest 118件のフルスイート、`npm run lint`、`npm run build`、`git diff --check` を再実行し、追加した監査ログ詳細表示の回帰を含めて成功した。
 - 独立Codexレビュー3件の最終証跡を保存し、GitHub Actionsの `quality-gate`、`secret-scan`、`review-evidence-gate` がすべて成功した。
+- PR #23では独立CodexレビューのMust / Should / Niceがすべて0件であることを記録し、最新head向けの `review-evidence-gate` を含む3つのGitHub Actionsチェックが成功した。
 - `.env.local` の値は読み取り・表示していない。本番Supabase変更、実キー発行、日報アプリとの実接続は未実施。
 
 ### 残作業

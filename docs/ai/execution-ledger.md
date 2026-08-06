@@ -17,7 +17,18 @@
 
 ## 記録
 
-### 現在状態（2026-07-25 PR #22完了同期と監査ログ詳細整備・最新）
+### 現在状態（2026-08-06 PR #23完了同期・最新）
+
+- 現在の mode: `daily_development`（PR #23完了状態同期）
+- active branch: `chore/sync-pr23-completion-state`
+- 直近完了 PR: PR #23（APIキー監査ログ詳細とPR #22完了状態の同期）を独立CodexレビューMust / Should / Nice 0件、GitHub Actions全3ゲート成功後に2026-08-06 `main` へマージ済み
+- 現在タスク: PR #23のマージ結果を `NEXT.md`、`FINISHED.md`、`CHANGELOG.md`、`docs/ai/execution-ledger.md` へ同期する
+- requirements/spec: `NEXT.md` A-000、`docs/integrations/attendance-api-spec.md`、`docs/specs/issue-6-api-key-management.md`
+- 次タスク: 日報側への契約本文同期と実接続再開は、日報側 `A-005` のNext昇格後に再開する。現時点の勤怠側未完了は #5 詳細APIの要件確定待ちと、外部API・スタッフAuth・LINEの本番運用作業のみ
+- 安全床: `.env.local`を読まない。秘密情報を表示しない。本番Supabase変更、実メール送信、本番デプロイ、日報側実接続は対象外
+- 最終更新: 2026-08-06
+
+### 現在状態（2026-07-25 PR #22完了同期と監査ログ詳細整備・履歴）
 
 - 現在の mode: `daily_development`（PR #22完了同期と監査ログ詳細整備）
 - active branch: `chore/sync-pr22-plan-state`
