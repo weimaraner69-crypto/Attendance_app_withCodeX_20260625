@@ -108,7 +108,7 @@ export function buildStaffPasswordUrl(appUrl: string | undefined) {
       return null;
     }
 
-    return new URL('/auth/staff-password', url.origin).toString();
+    return new URL('/auth/confirm', url.origin).toString();
   } catch {
     return null;
   }

@@ -64,6 +64,14 @@ export type Database = {
         consumed_at: Timestamp | null;
         created_at: Timestamp;
       }>;
+      owner_password_recovery_intents: Table<{
+        id: string;
+        user_id: string;
+        token_hash: string;
+        expires_at: Timestamp;
+        consumed_at: Timestamp | null;
+        created_at: Timestamp;
+      }>;
       stores: Table<{
         id: string;
         organization_id: string;
@@ -349,6 +357,14 @@ export type Database = {
           p_user_id: string;
           p_token_hash: string;
           p_intent_type: 'invite' | 'recovery';
+          p_expires_at: Timestamp;
+        };
+        Returns: undefined;
+      };
+      issue_owner_password_recovery_intent: {
+        Args: {
+          p_user_id: string;
+          p_token_hash: string;
           p_expires_at: Timestamp;
         };
         Returns: undefined;

@@ -7,13 +7,18 @@ function template(name: string) {
 }
 
 describe('staff Auth email templates', () => {
-  it.each([
-    ['invite.html', 'invite'],
-    ['recovery.html', 'recovery'],
-  ])('routes %s through the server token confirmation endpoint', (name, type) => {
-    const html = template(name);
+  it('routes invite email through the staff confirmation endpoint', () => {
+    const html = template('invite.html');
     expect(html).toContain('/auth/confirm?token_hash={{ .TokenHash }}');
-    expect(html).toContain(`type=${type}`);
+    expect(html).toContain('type=invite');
+    expect(html).not.toContain('/auth/staff-password?token_hash=');
+  });
+
+  it('routes recovery email through the server-selected owner or staff endpoint', () => {
+    const html = template('recovery.html');
+    expect(html).toContain('{{ .RedirectTo }}?token_hash={{ .TokenHash }}');
+    expect(html).toContain('type=recovery');
+    expect(html).not.toContain('{{ .SiteURL }}/auth/confirm');
     expect(html).not.toContain('/auth/staff-password?token_hash=');
   });
 

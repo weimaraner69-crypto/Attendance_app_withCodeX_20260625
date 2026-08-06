@@ -430,10 +430,10 @@ describe('staff password reset', () => {
 describe('staff password redirect URL', () => {
   it('accepts HTTPS origins and local development origins only', () => {
     expect(buildStaffPasswordUrl('https://attendance.example.com')).toBe(
-      'https://attendance.example.com/auth/staff-password'
+      'https://attendance.example.com/auth/confirm'
     );
     expect(buildStaffPasswordUrl('http://localhost:3000')).toBe(
-      'http://localhost:3000/auth/staff-password'
+      'http://localhost:3000/auth/confirm'
     );
     expect(buildStaffPasswordUrl('http://attendance.example.com')).toBeNull();
     expect(buildStaffPasswordUrl('ftp://localhost')).toBeNull();

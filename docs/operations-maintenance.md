@@ -25,8 +25,8 @@ Git、Issue、Pull Request、チャット、ログへ値を貼り付けません
 - ステージング: 本番と同じ変数を設定し、LINEはステージング用チャネルを分ける。
 - 本番: Supabase project、LINE Messaging APIチャネル、公開HTTPSドメインを本番用に固定する。
 - `NEXT_PUBLIC_APP_URL` は末尾スラッシュなしにする。
-- Supabase DashboardのAuthentication > URL Configurationで、Site URLを `NEXT_PUBLIC_APP_URL` と同じOriginへ設定し、スタッフ招待・再設定のRedirect URLに `NEXT_PUBLIC_APP_URL` + `/auth/confirm` を登録する。
-- Authentication > Email TemplatesのInvite userへ `supabase/templates/invite.html`、Reset passwordへ `supabase/templates/recovery.html` の内容を反映する。両テンプレートは `/auth/confirm` で `token_hash` をサーバー検証する。
+- Supabase DashboardのAuthentication > URL Configurationで、Site URLを `NEXT_PUBLIC_APP_URL` と同じOriginへ設定し、スタッフ招待・再設定用の `NEXT_PUBLIC_APP_URL` + `/auth/confirm` と、オーナー再設定用の `NEXT_PUBLIC_APP_URL` + `/auth/owner-confirm` をRedirect URLへ登録する。
+- Authentication > Email TemplatesのInvite userへ `supabase/templates/invite.html`、Reset passwordへ `supabase/templates/recovery.html` の内容を反映する。Reset passwordは要求時の `RedirectTo` に従い、staffは `/auth/confirm`、ownerは `/auth/owner-confirm` で `token_hash` をサーバー検証する。
 - service role key、LINE secret、LINE access token はローテーション手順をパスワード管理ツールに残す。
 
 ### 値を表示しない確認方法
@@ -42,6 +42,7 @@ Git、Issue、Pull Request、チャット、ログへ値を貼り付けません
 - `npm run build` が成功する。
 - 必要なSupabaseマイグレーションがSQL EditorまたはSupabase CLIで適用済み。
 - スタッフAuthを使う場合、`20260716034432_secure_staff_password_intents.sql` の適用前に既存 `staff.auth_user_id` と `user_profiles.organization_id` の不整合が0件であることを確認する。
+- オーナー公開再設定を使う場合、`20260806114444_owner_password_recovery_intents.sql` を適用し、Reset passwordテンプレートと2つのRedirect URLを同じリリースで反映する。
 - CIの `ci/test_staff_auth_postgres.sql` が新規Postgresへ全マイグレーションを適用し、複合FK、Auth/組織削除、intent権限・単回利用、staff RLS組織分離を確認する。
 - `docs/supabase-setup.md`、`docs/line-setup.md` の未完了手順が残っていない。
 - `/api/internal/supabase/health` が `ok: true` を返す。
@@ -49,6 +50,7 @@ Git、Issue、Pull Request、チャット、ログへ値を貼り付けません
 - 外部連携APIを使う場合、`20260716055206_external_api_rate_limit_access_logs.sql` を適用し、レートヘッダー、61件目の429、旧窓で現在窓が巻き戻らないこと、429ログの窓単位集約、`external_api_access_logs` 保存を値非表示で確認する。
 - LINEを使う場合、LINE DevelopersのWebhook検証がHTTP 200になる。
 - スタッフAuthを使う場合、招待と再設定の実メールが `/auth/confirm` の確認POSTで検証された後に `/auth/staff-password` へ到達し、設定前は通常画面と打刻を利用できず、設定後に新しいパスワードで `/stamp/mobile` へログインできる。
+- オーナー公開再設定を使う場合、未登録・非owner・無効・不整合メールでも公開画面が同じ案内を返し、有効ownerの実メールだけが `/auth/owner-confirm` の確認POST後に `/auth/owner-password` へ到達することを確認する。
 
 ## 3. エラー監視方針
 

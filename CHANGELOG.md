@@ -5,6 +5,30 @@
 
 ---
 
+## [2026-08-06] オーナー本人向け公開パスワード再設定を追加
+
+### 変更
+
+- ログイン画面から利用できるオーナー専用の再設定申請、メール本人確認、新パスワード設定画面を追加した。
+- 有効ownerのAuth/Profile ID・メール一致時だけ再設定メールを要求し、公開応答はアカウント状態や送信成否にかかわらず同じ202へ統一した。
+- owner専用の短命・単回利用intent、HttpOnly Cookie、更新直前の本人整合性再検証、同一Origin制約を追加した。
+- Recoveryメールを要求時の `RedirectTo` へ分岐させ、既存staffは従来の `/auth/confirm`、ownerは `/auth/owner-confirm` へ到達するようにした。
+- migrationの権限、単回利用、並行発行と、staff導線の回帰を自動テストへ追加した。
+
+### 影響ファイル
+
+- `src/app/owner/password-recovery/**`
+- `src/app/auth/owner-confirm/**`
+- `src/app/auth/owner-password/**`
+- `src/app/api/auth/owner-password*/**`
+- `src/lib/auth/owner-*.ts`
+- `supabase/migrations/20260806114444_owner_password_recovery_intents.sql`
+- `supabase/templates/recovery.html`
+- `ci/test_staff_auth_postgres*`
+- `docs/specs/issue-26-owner-password-recovery.md`
+- `docs/operations-maintenance.md`
+- `NEXT.md`
+
 ## [2026-08-06] Issue #5勤怠詳細APIの実装準備仕様を追加
 
 ### 変更

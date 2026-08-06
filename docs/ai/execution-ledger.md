@@ -17,7 +17,19 @@
 
 ## 記録
 
-### 現在状態（2026-08-06 Issue #5詳細APIの実装準備・最新）
+### 現在状態（2026-08-06 Issue #26オーナーパスワード再設定・最新）
+
+- 現在の mode: `daily_development`（Issue #26の公開本人回復導線実装）
+- active branch: `feat/owner-self-service-password-recovery`
+- 直近完了 PR: PR #25（Issue #5詳細APIの実装準備仕様）を2026-08-06に `main` へマージ済み
+- 現在タスク: 公開申請、owner Auth/Profile整合性確認、owner専用OTP確認、短命・単回利用intent、パスワード更新、staff回帰を実装し、独立レビューとCIへ進む
+- requirements/spec: GitHub Issue #26、`docs/specs/issue-26-owner-password-recovery.md`、`docs/operations-maintenance.md`
+- 検証状況: 全Vitest 167件、Python policy/migration 39件、policy check、lint、build、diff check成功。一時PostgreSQLで全migration、owner/staff intent権限・単回利用・並行発行、既存staffの競合回帰まで成功
+- 次タスク: フルテスト・build後にコミット、push、PR作成、独立`full_repo_agentic`レビュー、GitHub Actions確認へ進む
+- 安全床: `.env.local`を読まない。秘密情報を表示しない。本番Supabase変更、実メール送信、本番デプロイ、日報側実接続、PRマージは対象外
+- 最終更新: 2026-08-06
+
+### 現在状態（2026-08-06 Issue #5詳細APIの実装準備・履歴）
 
 - 現在の mode: `daily_development`（Issue #5の要件・詳細設計の実装準備）
 - active branch: `docs/issue-5-detail-api-readiness`

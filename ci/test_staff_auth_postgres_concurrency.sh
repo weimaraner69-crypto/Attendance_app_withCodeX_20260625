@@ -62,6 +62,47 @@ fi
 
 echo "concurrent staff password intent issuance passed"
 
+owner_user_id="10000000-0000-0000-0000-000000000099"
+owner_first_token="$(printf '1%.0s' {1..64})"
+owner_second_token="$(printf '2%.0s' {1..64})"
+
+psql --set ON_ERROR_STOP=1 --command "
+  begin;
+  select pg_advisory_xact_lock(hashtextextended('${owner_user_id}', 0));
+  select public.issue_owner_password_recovery_intent(
+    '${owner_user_id}', '${owner_first_token}', now() + interval '10 minutes'
+  );
+  select pg_sleep(1);
+  commit;
+" >/dev/null &
+owner_first_pid=$!
+
+sleep 0.1
+
+psql --set ON_ERROR_STOP=1 --command "
+  select public.issue_owner_password_recovery_intent(
+    '${owner_user_id}', '${owner_second_token}', now() + interval '10 minutes'
+  );
+" >/dev/null &
+owner_second_pid=$!
+
+wait "${owner_first_pid}"
+wait "${owner_second_pid}"
+
+owner_active_count="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select count(*)
+  from public.owner_password_recovery_intents
+  where user_id = '${owner_user_id}'
+    and consumed_at is null;
+")"
+
+if [[ "${owner_active_count}" != "1" ]]; then
+  echo "expected exactly one active owner recovery intent, got ${owner_active_count}" >&2
+  exit 1
+fi
+
+echo "concurrent owner password intent issuance passed"
+
 organization_id="00000000-0000-0000-0000-000000000001"
 auth_user_id="10000000-0000-0000-0000-000000000006"
 staff_id="20000000-0000-0000-0000-000000000006"

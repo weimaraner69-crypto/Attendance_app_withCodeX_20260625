@@ -25,6 +25,20 @@ insert into auth.users (id) values
   ('10000000-0000-0000-0000-000000000003'),
   ('10000000-0000-0000-0000-000000000004');
 
+insert into auth.users (id, email) values
+  ('10000000-0000-0000-0000-000000000099', 'owner@example.test');
+
+insert into public.user_profiles (
+  id, organization_id, role, display_name, email, is_active
+) values (
+  '10000000-0000-0000-0000-000000000099',
+  '00000000-0000-0000-0000-000000000001',
+  'owner',
+  'Owner 1',
+  'OWNER@example.test',
+  true
+);
+
 insert into public.staff (id, organization_id, name, email) values
   (
     '20000000-0000-0000-0000-000000000001',
@@ -417,6 +431,57 @@ select public.issue_staff_password_intent(
   'invite',
   now() + interval '10 minutes'
 );
+
+select public.issue_owner_password_recovery_intent(
+  '10000000-0000-0000-0000-000000000099',
+  repeat('f', 64),
+  now() + interval '10 minutes'
+);
+select public.issue_owner_password_recovery_intent(
+  '10000000-0000-0000-0000-000000000099',
+  repeat('0', 64),
+  now() + interval '10 minutes'
+);
+
+do $$
+declare
+  claimed_count integer;
+begin
+  if (
+    select count(*) from public.owner_password_recovery_intents
+    where user_id = '10000000-0000-0000-0000-000000000099'
+      and consumed_at is null
+  ) <> 1 then
+    raise exception 'more than one active owner recovery intent exists';
+  end if;
+
+  with claimed as (
+    update public.owner_password_recovery_intents
+    set consumed_at = now()
+    where token_hash = repeat('0', 64)
+      and consumed_at is null
+      and expires_at > now()
+    returning id
+  )
+  select count(*) into claimed_count from claimed;
+  if claimed_count <> 1 then
+    raise exception 'first owner recovery claim did not succeed exactly once';
+  end if;
+
+  with claimed as (
+    update public.owner_password_recovery_intents
+    set consumed_at = now()
+    where token_hash = repeat('0', 64)
+      and consumed_at is null
+      and expires_at > now()
+    returning id
+  )
+  select count(*) into claimed_count from claimed;
+  if claimed_count <> 0 then
+    raise exception 'owner recovery intent was reused';
+  end if;
+end;
+$$;
 delete from public.organizations
 where id = '00000000-0000-0000-0000-000000000003';
 
@@ -531,6 +596,22 @@ begin
      or not has_function_privilege(
        'service_role',
        'public.issue_staff_password_intent(uuid,text,text,timestamptz)',
+       'execute'
+     )
+     or has_table_privilege(
+       'anon', 'public.owner_password_recovery_intents', 'select'
+     )
+     or has_table_privilege(
+       'authenticated', 'public.owner_password_recovery_intents', 'select'
+     )
+     or has_function_privilege(
+       'authenticated',
+       'public.issue_owner_password_recovery_intent(uuid,text,timestamptz)',
+       'execute'
+     )
+     or not has_function_privilege(
+       'service_role',
+       'public.issue_owner_password_recovery_intent(uuid,text,timestamptz)',
        'execute'
      ) then
     raise exception 'staff Auth privileges are not fail-closed';

@@ -13,7 +13,7 @@ end;
 $$;
 
 create schema auth;
-create table auth.users (id uuid primary key);
+create table auth.users (id uuid primary key, email text);
 create function auth.uid()
 returns uuid
 language sql
@@ -33,3 +33,4 @@ $$;
 \ir ../supabase/migrations/202607130002_performance_advisor_optimization.sql
 \ir ../supabase/migrations/20260716034432_secure_staff_password_intents.sql
 \ir ../supabase/migrations/20260716055206_external_api_rate_limit_access_logs.sql
+\ir ../supabase/migrations/20260806114444_owner_password_recovery_intents.sql

@@ -235,6 +235,34 @@ class StaffAuthSecurityMigrationTest(TestCase):
         )
 
 
+class OwnerPasswordRecoveryMigrationTest(TestCase):
+    MIGRATION = (
+        MIGRATIONS / "20260806114444_owner_password_recovery_intents.sql"
+    )
+
+    def test_owner_intents_are_single_use_and_service_role_only(self) -> None:
+        migration = self.MIGRATION.read_text(encoding="utf-8")
+
+        self.assertTrue(migration.startswith("-- Keep owner recovery"))
+        self.assertIn("create table public.owner_password_recovery_intents", migration)
+        self.assertIn("token_hash text not null unique", migration)
+        self.assertIn("where consumed_at is null", migration)
+        self.assertIn("pg_advisory_xact_lock", migration)
+        self.assertIn("profile.role = 'owner'", migration)
+        self.assertIn("profile.is_active = true", migration)
+        self.assertIn("join auth.users auth_user on auth_user.id = profile.id", migration)
+        self.assertIn("set search_path = ''", migration)
+        self.assertIn(
+            "revoke all on function public.issue_owner_password_recovery_intent",
+            migration,
+        )
+        self.assertIn(
+            "revoke all on public.owner_password_recovery_intents from public, anon, authenticated;",
+            migration,
+        )
+        self.assertTrue(migration.rstrip().endswith("commit;"))
+
+
 class ExternalApiRateLimitMigrationTest(TestCase):
     RATE_LIMIT_MIGRATION = (
         MIGRATIONS / "20260716055206_external_api_rate_limit_access_logs.sql"
