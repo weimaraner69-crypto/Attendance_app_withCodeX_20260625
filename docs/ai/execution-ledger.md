@@ -22,12 +22,12 @@
 - 現在の mode: `daily_development`（Issue #26の公開本人回復導線実装）
 - active branch: `feat/owner-self-service-password-recovery`
 - 直近完了 PR: PR #25（Issue #5詳細APIの実装準備仕様）を2026-08-06に `main` へマージ済み
-- 現在タスク: PR #27 Round 3で検出したMust 1件・Should 2件を、オーナーの明示承認に基づく例外として修正中。intent状態機械、claim中profile変更guard、更新前後本人確認、結果不明時のprofile/Auth補償無効化、明確なAuth拒否時の再試行を実装する
+- 現在タスク: PR #27のRound 3例外修正commit `318d4cfac00945999bf40cec060d4d857f1ef95a`を独立確認し、追加検出したMust 1件・Should 2件へ対応。claim中の新規intent発行拒否、並行claim busyとCookie保持、台帳同期、実DB交差回帰を追加した
 - requirements/spec: GitHub Issue #26、`docs/specs/issue-26-owner-password-recovery.md`、`docs/operations-maintenance.md`
-- review baseline: Round 2修正commit `c497b493c57da301f58a613775ef1bebb442d6e8`を独立reviewer Curie `019fd743-a44c-7932-890d-9e47a414f245`がRound 3 `full_repo_agentic`で確認。Must 1件、Should 2件、Nice 0件を検出しfail-close。2026-08-09にオーナーが追加修正・push・例外後独立確認を明示承認した
-- CI状況: commit `c497b493c57da301f58a613775ef1bebb442d6e8`のRun 84はquality-gate、secret-scan、Vercelが成功。review-evidence-gateだけがRound 3証跡待ちで失敗
-- 検証状況: 例外修正後のVitest 193件、Python 39件、policy、lint、build、diff check、一時PostgreSQLの全migration、claim/release/finalize/quarantine、claim中profile変更拒否、owner/staff全並行競合、migration rollback・writer lockが成功
-- 次タスク: 全品質ゲート後にRound 3証跡と例外修正をcommit・pushし、別reviewer/sessionによる例外後独立確認、証跡専用push、最終CIへ進む。自動Round 4レビューとしては扱わない
+- review baseline: 独立reviewer Herschel `dcf1274e-22a3-4427-be57-32afa8b0728f`がcommit `318d4cfac00945999bf40cec060d4d857f1ef95a`を`full_repo_agentic`で確認。claim中intentのsupersede競合Must 1件、並行POST Cookieと台帳のShould 2件、Nice 0件を検出しfail-closeした
+- CI状況: commit `318d4cfac00945999bf40cec060d4d857f1ef95a`はquality-gate、secret-scan、Vercelが成功。review-evidence-gateだけがexact-head証跡待ちで失敗
+- 検証状況: 追加修正後のtargeted Vitest 28件と、一時PostgreSQL 17の全migration、claim busy、claim中の新規intent発行拒否、profile guard、owner/staff全並行競合が成功。全品質ゲートはcommit前に再実行する
+- 次タスク: 追加修正headを同じ独立reviewerが再確認し、Must・Should 0の機械可読証跡を証跡専用pushして最終CIへ進む。自動Round 4レビューとしては扱わない
 - 安全床: `.env.local`を読まない。秘密情報を表示しない。本番Supabase変更、実メール送信、本番デプロイ、日報側実接続、PRマージは対象外
 - 最終更新: 2026-08-09
 

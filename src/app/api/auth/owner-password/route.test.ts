@@ -13,6 +13,7 @@ vi.mock('@/lib/auth/owner-password-intent', () => ({
   getOwnerPasswordIntentToken: mocks.getIntentToken,
 }));
 vi.mock('@/lib/auth/owner-password-update', () => ({
+  classifyOwnerAuthUpdateError: vi.fn(() => 'unknown'),
   validateOwnerPasswordIntent: mocks.validateIntent,
   updateOwnerPasswordWithIntent: mocks.updateWithIntent,
 }));
@@ -73,6 +74,17 @@ describe('owner password update API', () => {
     const response = await POST(updateRequest());
 
     expect(response.status).toBe(503);
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    await expect(response.json()).resolves.toEqual({ updated: false, retryable: true });
+    expect(mocks.clearIntent).not.toHaveBeenCalled();
+  });
+
+  it('keeps the browser intent when another request owns the database claim', async () => {
+    mocks.updateWithIntent.mockResolvedValue({ ok: false, code: 'claim_busy' });
+
+    const response = await POST(updateRequest());
+
+    expect(response.status).toBe(409);
     expect(response.headers.get('cache-control')).toBe('no-store');
     await expect(response.json()).resolves.toEqual({ updated: false, retryable: true });
     expect(mocks.clearIntent).not.toHaveBeenCalled();

@@ -43,7 +43,10 @@ function createOperations(
         { p_token_hash: tokenHash, p_claim_id: claimId }
       );
       if (error || !data?.length) return null;
-      return data[0];
+      const result = data[0];
+      if (result.claim_status === 'busy') return 'busy';
+      if (result.claim_status !== 'claimed') return null;
+      return { id: result.id, user_id: result.user_id };
     },
     async releaseIntent(intentId, claimId) {
       const { data, error } = await admin.rpc(
@@ -126,11 +129,19 @@ export async function POST(request: Request) {
     operations: createOperations(admin),
   });
 
-  const retryable = !result.ok && result.code === 'update_failed_retryable';
+  const retryable = !result.ok && (
+    result.code === 'claim_busy' || result.code === 'update_failed_retryable'
+  );
   if (!retryable) clearOwnerPasswordIntent();
 
   if (!result.ok) {
-    const status = retryable ? 503 : result.code === 'invalid_intent' ? 401 : 409;
+    const status = result.code === 'claim_busy'
+      ? 409
+      : result.code === 'update_failed_retryable'
+        ? 503
+        : result.code === 'invalid_intent'
+          ? 401
+          : 409;
     return NextResponse.json(
       { updated: false, retryable },
       { status, headers: { 'Cache-Control': 'no-store' } }

@@ -446,6 +446,7 @@ select public.issue_owner_password_recovery_intent(
 do $$
 declare
   claimed_count integer;
+  v_claim_status text;
   v_claim_id uuid := '90000000-0000-0000-0000-000000000001';
 begin
   if (
@@ -462,13 +463,38 @@ begin
     raise exception 'first owner recovery claim did not succeed exactly once';
   end if;
 
-  select count(*) into claimed_count
+  select claim_status into v_claim_status
   from public.claim_owner_password_recovery_intent(
     repeat('0', 64),
     '90000000-0000-0000-0000-000000000002'
   );
-  if claimed_count <> 0 then
-    raise exception 'owner recovery intent was reused';
+  if v_claim_status <> 'busy' then
+    raise exception 'concurrent owner recovery claim was not reported as busy';
+  end if;
+
+  begin
+    perform public.issue_owner_password_recovery_intent(
+      '10000000-0000-0000-0000-000000000099',
+      repeat('9', 64),
+      now() + interval '10 minutes'
+    );
+    raise exception 'new owner recovery intent superseded a claimed intent';
+  exception
+    when raise_exception then
+      if sqlerrm <> 'owner password recovery is already in progress' then
+        raise;
+      end if;
+  end;
+
+  if not exists (
+    select 1
+    from public.owner_password_recovery_intents
+    where token_hash = repeat('0', 64)
+      and claim_id = v_claim_id
+      and consumed_at is null
+      and recovery_outcome is null
+  ) then
+    raise exception 'claimed owner recovery intent changed after rejected issuance';
   end if;
 
   if not public.finalize_owner_password_recovery_claim(

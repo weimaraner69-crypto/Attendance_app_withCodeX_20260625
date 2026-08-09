@@ -112,18 +112,17 @@ psql --set ON_ERROR_STOP=1 --command "
   );
   drop table if exists public.owner_recovery_claim_concurrency_results;
   create unlogged table public.owner_recovery_claim_concurrency_results (
-    succeeded boolean not null
+    claim_status text not null
   );
 " >/dev/null
 
 psql --set ON_ERROR_STOP=1 --command "
   begin;
-  insert into public.owner_recovery_claim_concurrency_results (succeeded)
-  select exists(
-    select 1 from public.claim_owner_password_recovery_intent(
+  insert into public.owner_recovery_claim_concurrency_results (claim_status)
+  select coalesce(max(claim_status), 'invalid')
+  from public.claim_owner_password_recovery_intent(
       '${owner_claim_token}',
       '90000000-0000-0000-0000-000000000011'
-    )
   );
   select pg_sleep(1);
   commit;
@@ -133,12 +132,11 @@ owner_claim_first_pid=$!
 sleep 0.1
 
 psql --set ON_ERROR_STOP=1 --command "
-  insert into public.owner_recovery_claim_concurrency_results (succeeded)
-  select exists(
-    select 1 from public.claim_owner_password_recovery_intent(
+  insert into public.owner_recovery_claim_concurrency_results (claim_status)
+  select coalesce(max(claim_status), 'invalid')
+  from public.claim_owner_password_recovery_intent(
       '${owner_claim_token}',
       '90000000-0000-0000-0000-000000000012'
-    )
   );
 " >/dev/null &
 owner_claim_second_pid=$!
@@ -147,14 +145,16 @@ wait "${owner_claim_first_pid}"
 wait "${owner_claim_second_pid}"
 
 owner_claim_successes="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
-  select count(*) from public.owner_recovery_claim_concurrency_results where succeeded;
+  select count(*) from public.owner_recovery_claim_concurrency_results
+  where claim_status = 'claimed';
 ")"
-owner_claim_rejections="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
-  select count(*) from public.owner_recovery_claim_concurrency_results where not succeeded;
+owner_claim_busy="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select count(*) from public.owner_recovery_claim_concurrency_results
+  where claim_status = 'busy';
 ")"
 
-if [[ "${owner_claim_successes}" != "1" || "${owner_claim_rejections}" != "1" ]]; then
-  echo "expected one successful and one rejected owner intent claim" >&2
+if [[ "${owner_claim_successes}" != "1" || "${owner_claim_busy}" != "1" ]]; then
+  echo "expected one claimed and one busy owner intent result" >&2
   exit 1
 fi
 
@@ -181,6 +181,77 @@ psql --set ON_ERROR_STOP=1 --command "
 " >/dev/null
 
 echo "concurrent owner password intent claim passed"
+
+owner_issue_during_claim_token="$(printf 'c%.0s' {1..64})"
+owner_issue_replacement_token="$(printf 'd%.0s' {1..64})"
+owner_issue_during_claim_id="90000000-0000-0000-0000-000000000014"
+psql --set ON_ERROR_STOP=1 --command "
+  select public.issue_owner_password_recovery_intent(
+    '${owner_user_id}', '${owner_issue_during_claim_token}', now() + interval '10 minutes'
+  );
+" >/dev/null
+
+psql --set ON_ERROR_STOP=1 --command "
+  begin;
+  select * from public.claim_owner_password_recovery_intent(
+    '${owner_issue_during_claim_token}',
+    '${owner_issue_during_claim_id}'
+  );
+  select pg_advisory_xact_lock(
+    hashtextextended('staff-auth-test-ready:owner-issue-during-claim', 0)
+  );
+  select pg_sleep(1);
+  commit;
+" >/dev/null &
+owner_issue_during_claim_pid=$!
+
+wait_for_test_ready "owner-issue-during-claim"
+
+if psql --set ON_ERROR_STOP=1 --command "
+  select public.issue_owner_password_recovery_intent(
+    '${owner_user_id}', '${owner_issue_replacement_token}', now() + interval '10 minutes'
+  );
+" >/dev/null 2>&1; then
+  echo "new owner intent superseded an in-flight claimed intent" >&2
+  exit 1
+fi
+
+wait "${owner_issue_during_claim_pid}"
+
+owner_issue_during_claim_state="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select concat_ws(':', consumed_at is null, recovery_outcome is null, claim_id)
+  from public.owner_password_recovery_intents
+  where token_hash = '${owner_issue_during_claim_token}';
+")"
+owner_issue_replacement_count="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select count(*)
+  from public.owner_password_recovery_intents
+  where token_hash = '${owner_issue_replacement_token}';
+")"
+
+if [[ "${owner_issue_during_claim_state}" != "t:t:${owner_issue_during_claim_id}" ]]; then
+  echo "claimed owner intent changed after concurrent replacement attempt" >&2
+  exit 1
+fi
+if [[ "${owner_issue_replacement_count}" != "0" ]]; then
+  echo "replacement owner intent was inserted during an active claim" >&2
+  exit 1
+fi
+
+owner_issue_during_claim_intent_id="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select id
+  from public.owner_password_recovery_intents
+  where token_hash = '${owner_issue_during_claim_token}';
+")"
+psql --set ON_ERROR_STOP=1 --command "
+  select public.finalize_owner_password_recovery_claim(
+    '${owner_issue_during_claim_intent_id}',
+    '${owner_issue_during_claim_id}',
+    'updated'
+  );
+" >/dev/null
+
+echo "concurrent owner intent issuance during claim passed"
 
 owner_profile_guard_token="$(printf '8%.0s' {1..64})"
 owner_profile_guard_claim_id="90000000-0000-0000-0000-000000000013"

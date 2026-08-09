@@ -1,0 +1,197 @@
+{
+  "schema_version": 2,
+  "phase": "post_push",
+  "provider": "codex",
+  "reviewer_id": "codex-gauss-dcf1274e",
+  "review_session_id": "dcf1274e-22a3-4427-be57-32afa8b0728f",
+  "implementation_session_id": "codex-main-owner-recovery-20260809",
+  "head_sha": "318d4cfac00945999bf40cec060d4d857f1ef95a",
+  "diff_fingerprint": "sha256:2875bba01b6a384ad92d3bdea023cfcb13f8214bb489aac8a317f28ce54aa073",
+  "risk_tier": "red",
+  "round": 3,
+  "exception_round": 4,
+  "exception_approved_by": "repository_owner",
+  "exception_approval_context": "The owner explicitly approved the Round 3 Must and Should fixes, an additional push, and an independent post-exception confirmation. This is an exception confirmation, not an automatic Round 4 review.",
+  "review_status": "completed",
+  "secondary_verification": {
+    "required": true,
+    "method": "dedicated_tests",
+    "status": "passed",
+    "evidence": "The post-exception findings were reproduced and fixed with targeted Vitest plus fresh PostgreSQL 17 migration, claim-state, issuance-during-claim, profile-guard, and full owner/staff concurrency verification.",
+    "commands": [
+      {
+        "command": "npm test -- src/lib/auth/owner-password-update.test.ts src/app/api/auth/owner-password/route.test.ts",
+        "exit_code": 0,
+        "summary": "28 targeted tests passed, including claim_busy and Cookie preservation",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "psql --set ON_ERROR_STOP=1 --file ci/test_staff_auth_postgres.sql",
+        "exit_code": 0,
+        "summary": "Fresh PostgreSQL 17 migrations, state transitions, privileges, and profile guard passed",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "bash ci/test_staff_auth_postgres_concurrency.sh",
+        "exit_code": 0,
+        "summary": "Issuance waited for an in-flight claim and failed without superseding it; all owner/staff concurrency cases passed",
+        "covered_paths": ["**"]
+      }
+    ]
+  },
+  "summary": "The owner-approved post-exception independent review found one Must and two Should issues on 318d4cf. Claimed intents can no longer be superseded, concurrent claim losers retain the browser intent, and the execution ledger is synchronized. Exact-head confirmation remains required after the fix push.",
+  "repository_context_mode": "full_repo_agentic",
+  "diff_only_reason": "",
+  "changed_files": [
+    "CHANGELOG.md",
+    "NEXT.md",
+    "ci/staff_auth_postgres_premigration_setup.sql",
+    "ci/test_staff_auth_postgres.sql",
+    "ci/test_staff_auth_postgres_concurrency.sh",
+    "ci/test_supabase_advisor_migrations.py",
+    "docs/ai/decision-ledger.md",
+    "docs/ai/execution-ledger.md",
+    "docs/ai/reviews/2026-08-09-pr27-round3-codex-curie.json",
+    "docs/implementation-decisions.md",
+    "docs/operations-maintenance.md",
+    "docs/specs/issue-26-owner-password-recovery.md",
+    "next.config.mjs",
+    "package-lock.json",
+    "package.json",
+    "src/app/api/auth/owner-password-recovery/route.test.ts",
+    "src/app/api/auth/owner-password-recovery/route.ts",
+    "src/app/api/auth/owner-password/route.test.ts",
+    "src/app/api/auth/owner-password/route.ts",
+    "src/app/auth/owner-confirm/complete/route.test.ts",
+    "src/app/auth/owner-confirm/complete/route.ts",
+    "src/app/auth/owner-confirm/page.tsx",
+    "src/app/auth/owner-password/page.tsx",
+    "src/app/owner/password-recovery/page.tsx",
+    "src/components/auth/PrivilegedLogin.tsx",
+    "src/lib/auth/owner-auth-confirmation.test.ts",
+    "src/lib/auth/owner-auth-confirmation.ts",
+    "src/lib/auth/owner-auth-identity.test.ts",
+    "src/lib/auth/owner-auth-identity.ts",
+    "src/lib/auth/owner-auth-operations.ts",
+    "src/lib/auth/owner-password-intent.test.ts",
+    "src/lib/auth/owner-password-intent.ts",
+    "src/lib/auth/owner-password-recovery-guard.test.ts",
+    "src/lib/auth/owner-password-recovery-guard.ts",
+    "src/lib/auth/owner-password-recovery.test.ts",
+    "src/lib/auth/owner-password-recovery.ts",
+    "src/lib/auth/owner-password-update.test.ts",
+    "src/lib/auth/owner-password-update.ts",
+    "src/lib/auth/staff-auth-templates.test.ts",
+    "src/lib/auth/staff-auth.test.ts",
+    "src/lib/auth/staff-auth.ts",
+    "src/lib/supabase/database.types.ts",
+    "supabase/migrations/20260806114444_owner_password_recovery_intents.sql",
+    "supabase/templates/recovery.html"
+  ],
+  "related_files": [
+    {
+      "path": "supabase/migrations/20260806114444_owner_password_recovery_intents.sql",
+      "reason": "Intent issuance, claim state, per-user locking, and finalization boundary",
+      "score": 100
+    },
+    {
+      "path": "src/lib/auth/owner-password-update.ts",
+      "reason": "Claim result state and fail-closed Auth update orchestration",
+      "score": 100
+    },
+    {
+      "path": "src/app/api/auth/owner-password/route.ts",
+      "reason": "Busy/retryable response and browser Cookie lifecycle",
+      "score": 100
+    },
+    {
+      "path": "ci/test_staff_auth_postgres_concurrency.sh",
+      "reason": "Two-connection issue-during-claim and claim-busy verification",
+      "score": 100
+    },
+    {
+      "path": "docs/ai/execution-ledger.md",
+      "reason": "Durable current task and review state",
+      "score": 95
+    },
+    {
+      "path": ".github/instructions/review-loop.instructions.md",
+      "reason": "Round 3 fail-close and owner-approved exception handling",
+      "score": 95
+    }
+  ],
+  "scanned_paths": [
+    ".github",
+    "CHANGELOG.md",
+    "FINISHED.md",
+    "NEXT.md",
+    "SECURITY.md",
+    "ci",
+    "docs",
+    "src/app",
+    "src/components",
+    "src/lib",
+    "supabase"
+  ],
+  "commands_run": [
+    {
+      "command": "git rev-parse HEAD and git rev-parse HEAD^{tree}",
+      "exit_code": 0,
+      "summary": "Confirmed reviewed head 318d4cf and tree d791b9b"
+    },
+    {
+      "command": "git diff --binary 1809543f052a2f08f3b724be02d841b24890a240..318d4cfac00945999bf40cec060d4d857f1ef95a | shasum -a 256",
+      "exit_code": 0,
+      "summary": "Computed diff fingerprint 2875bba0"
+    },
+    {
+      "command": "independent full-repository review of PR 27 at 318d4cfac00945999bf40cec060d4d857f1ef95a",
+      "exit_code": 0,
+      "summary": "Reviewed Auth, owner/staff flows, Supabase migration and privileges, CI, tests, and durable documentation without truncation"
+    }
+  ],
+  "context_fingerprint": "git-tree:d791b9b0b43efff2b2e1dcfe6a6f782aa925861e",
+  "context_budget": {
+    "max_related_files": 40,
+    "max_context_chars": 180000,
+    "max_file_excerpt_chars": 12000,
+    "max_context_commands": 12
+  },
+  "context_truncated": false,
+  "context_truncated_reason": "",
+  "issues": [
+    {
+      "severity": "Must",
+      "category": "claimed-intent-supersede-race",
+      "file": "supabase/migrations/20260806114444_owner_password_recovery_intents.sql",
+      "line": 80,
+      "rationale": "Issuing a new intent consumed an already claimed intent while its request could still update Auth, preventing finalize or quarantine from recording and compensating the result.",
+      "fix": "Reject new issuance while an unexpired claimed intent exists under the same per-user advisory lock, and add a two-connection PostgreSQL regression.",
+      "confidence": 0.99,
+      "disposition": "fixed",
+      "disposition_reason": "Issuance now waits for the claim transaction, rejects the replacement, leaves the old claim active, and allows the old request to finalize. The crossing PostgreSQL regression passed."
+    },
+    {
+      "severity": "Should",
+      "category": "concurrent-claim-cookie-loss",
+      "file": "src/app/api/auth/owner-password/route.ts",
+      "line": 129,
+      "rationale": "A concurrent claim loser was treated as invalid and cleared the shared browser Cookie even if the winner later released its claim after an explicit Auth rejection.",
+      "fix": "Return a distinct busy claim status and keep the Cookie for a retryable 409 response.",
+      "confidence": 0.99,
+      "disposition": "fixed",
+      "disposition_reason": "The database RPC returns claimed or busy, orchestration exposes claim_busy, and the route preserves the Cookie. Unit and PostgreSQL concurrent-claim tests passed."
+    },
+    {
+      "severity": "Should",
+      "category": "execution-ledger-staleness",
+      "file": "docs/ai/execution-ledger.md",
+      "line": 25,
+      "rationale": "The ledger still described the first exception fix as uncommitted after 318d4cf was pushed.",
+      "fix": "Record the pushed baseline, independent reviewer findings, CI state, remediation, and exact next step without a stale commit/push instruction.",
+      "confidence": 1,
+      "disposition": "fixed",
+      "disposition_reason": "The current record now names 318d4cf, Herschel's full-repo findings, successful dedicated verification, and the exact-head confirmation step."
+    }
+  ]
+}

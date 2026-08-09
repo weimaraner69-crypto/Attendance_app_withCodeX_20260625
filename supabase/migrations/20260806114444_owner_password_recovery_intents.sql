@@ -77,11 +77,23 @@ begin
     raise exception 'owner password recovery identity is invalid';
   end if;
 
+  if exists (
+    select 1
+    from public.owner_password_recovery_intents intent
+    where intent.user_id = p_user_id
+      and intent.consumed_at is null
+      and intent.claim_id is not null
+      and intent.expires_at > now()
+  ) then
+    raise exception 'owner password recovery is already in progress';
+  end if;
+
   update public.owner_password_recovery_intents
   set consumed_at = now(),
       recovery_outcome = 'superseded'
   where user_id = p_user_id
-    and consumed_at is null;
+    and consumed_at is null
+    and claim_id is null;
 
   insert into public.owner_password_recovery_intents (
     user_id,
@@ -104,7 +116,7 @@ create or replace function public.claim_owner_password_recovery_intent(
   p_token_hash text,
   p_claim_id uuid
 )
-returns table (id uuid, user_id uuid)
+returns table (id uuid, user_id uuid, claim_status text)
 language plpgsql
 security definer
 set search_path = ''
@@ -131,6 +143,26 @@ begin
     hashtextextended('owner-password-recovery:' || v_user_id::text, 0)
   );
 
+  if exists (
+    select 1
+    from public.owner_password_recovery_intents intent
+    where intent.token_hash = p_token_hash
+      and intent.user_id = v_user_id
+      and intent.consumed_at is null
+      and intent.claim_id is not null
+      and intent.expires_at > now()
+  ) then
+    return query
+    select intent.id, intent.user_id, 'busy'::text
+    from public.owner_password_recovery_intents intent
+    where intent.token_hash = p_token_hash
+      and intent.user_id = v_user_id
+      and intent.consumed_at is null
+      and intent.claim_id is not null
+      and intent.expires_at > now();
+    return;
+  end if;
+
   return query
   update public.owner_password_recovery_intents intent
   set claim_id = p_claim_id,
@@ -149,7 +181,7 @@ begin
         and profile.is_active = true
         and lower(btrim(profile.email)) = lower(btrim(coalesce(auth_user.email, '')))
     )
-  returning intent.id, intent.user_id;
+  returning intent.id, intent.user_id, 'claimed'::text;
 end;
 $$;
 

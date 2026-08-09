@@ -265,6 +265,11 @@ class OwnerPasswordRecoveryMigrationTest(TestCase):
             migration,
         )
         self.assertIn("p_claim_id uuid", migration)
+        self.assertIn("owner password recovery is already in progress", migration)
+        self.assertIn("and claim_id is null", migration)
+        self.assertIn("returns table (id uuid, user_id uuid, claim_status text)", migration)
+        self.assertIn("'busy'::text", migration)
+        self.assertIn("'claimed'::text", migration)
         self.assertIn(
             "create or replace function public.release_owner_password_recovery_claim",
             migration,

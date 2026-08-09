@@ -387,6 +387,7 @@ export type Database = {
         Returns: {
           id: string;
           user_id: string;
+          claim_status: string;
         }[];
       };
       release_owner_password_recovery_claim: {

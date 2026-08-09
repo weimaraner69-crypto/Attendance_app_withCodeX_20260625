@@ -10,7 +10,10 @@ export type OwnerPasswordIntentRecord = {
 export type OwnerPasswordUpdateOperations = {
   findActiveIntent: (tokenHash: string) => Promise<OwnerPasswordIntentRecord | null>;
   hasValidOwnerIdentity: (userId: string) => Promise<boolean>;
-  claimIntent: (tokenHash: string, claimId: string) => Promise<OwnerPasswordIntentRecord | null>;
+  claimIntent: (
+    tokenHash: string,
+    claimId: string
+  ) => Promise<OwnerPasswordIntentRecord | 'busy' | null>;
   releaseIntent: (intentId: string, claimId: string) => Promise<boolean>;
   finalizeIntent: (
     intentId: string,
@@ -35,6 +38,7 @@ export type OwnerPasswordUpdateResult =
       ok: false;
       code:
         | 'invalid_intent'
+        | 'claim_busy'
         | 'invalid_identity'
         | 'update_failed_retryable'
         | 'update_unknown'
@@ -66,8 +70,10 @@ export async function updateOwnerPasswordWithIntent(input: {
 }): Promise<OwnerPasswordUpdateResult> {
   const { token, password, operations } = input;
   const claimId = randomUUID();
-  const intent = await operations.claimIntent(hashOwnerPasswordIntentToken(token), claimId);
-  if (!intent) return { ok: false, code: 'invalid_intent' };
+  const claim = await operations.claimIntent(hashOwnerPasswordIntentToken(token), claimId);
+  if (claim === 'busy') return { ok: false, code: 'claim_busy' };
+  if (!claim) return { ok: false, code: 'invalid_intent' };
+  const intent = claim;
 
   if (!await operations.hasValidOwnerIdentity(intent.user_id)) {
     return await operations.finalizeIntent(intent.id, claimId, 'identity_changed')

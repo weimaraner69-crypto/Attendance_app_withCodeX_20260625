@@ -79,7 +79,7 @@ describe('DB-backed owner password intent', () => {
     const updatePassword = vi.fn(async () => 'updated' as const);
     const deps = operations({
       claimIntent: vi.fn(async () => {
-        if (claimed) return null;
+        if (claimed) return 'busy';
         claimed = true;
         return { id: 'intent-1', user_id: 'owner-user-1' };
       }),
@@ -92,8 +92,20 @@ describe('DB-backed owner password intent', () => {
     ]);
 
     expect(results.filter((result) => result.ok)).toHaveLength(1);
-    expect(results.filter((result) => !result.ok && result.code === 'invalid_intent')).toHaveLength(1);
+    expect(results.filter((result) => !result.ok && result.code === 'claim_busy')).toHaveLength(1);
     expect(updatePassword).toHaveBeenCalledOnce();
+  });
+
+  it('keeps a busy claim distinct from an invalid or consumed intent', async () => {
+    const deps = operations({ claimIntent: vi.fn(async () => 'busy') });
+
+    await expect(updateOwnerPasswordWithIntent({
+      token: 'opaque-token',
+      password: 'new-password',
+      operations: deps,
+    })).resolves.toEqual({ ok: false, code: 'claim_busy' });
+    expect(deps.hasValidOwnerIdentity).not.toHaveBeenCalled();
+    expect(deps.updatePassword).not.toHaveBeenCalled();
   });
 
   it('finalizes the intent without updating if identity is invalid before update', async () => {

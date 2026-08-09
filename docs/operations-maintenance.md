@@ -42,7 +42,7 @@ Git、Issue、Pull Request、チャット、ログへ値を貼り付けません
 - `npm run build` が成功する。
 - 必要なSupabaseマイグレーションがSQL EditorまたはSupabase CLIで適用済み。
 - スタッフAuthを使う場合、`20260716034432_secure_staff_password_intents.sql` の適用前に既存 `staff.auth_user_id` と `user_profiles.organization_id` の不整合が0件であることを確認する。
-- オーナー公開再設定を使う場合、`20260806114444_owner_password_recovery_intents.sql` を適用し、owner intentのclaim・release・finalize・quarantine、claim中プロフィール変更guard、IP・メールHMAC別レート制限の権限・上限を確認してから、Reset passwordテンプレートと2つのRedirect URLを同じリリースで反映する。
+- オーナー公開再設定を使う場合、`20260806114444_owner_password_recovery_intents.sql` を適用し、owner intentのclaim・busy・release・finalize・quarantine、claim中の新規発行拒否とプロフィール変更guard、IP・メールHMAC別レート制限の権限・上限を確認してから、Reset passwordテンプレートと2つのRedirect URLを同じリリースで反映する。
 - CIの `ci/test_staff_auth_postgres.sql` が新規Postgresへ全マイグレーションを適用し、複合FK、Auth/組織削除、intent権限・単回利用、staff RLS組織分離を確認する。
 - `docs/supabase-setup.md`、`docs/line-setup.md` の未完了手順が残っていない。
 - `/api/internal/supabase/health` が `ok: true` を返す。
