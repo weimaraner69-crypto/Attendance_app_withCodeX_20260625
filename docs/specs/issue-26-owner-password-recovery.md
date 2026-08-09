@@ -14,9 +14,9 @@
 - owner整合性確認とメール送信はVercelの管理対象バックグラウンドタスクへ分離し、公開応答を外部プロバイダーの所要時間から切り離す。
 - 送信対象は、正規化したメールが一致し、`user_profiles.role = owner`、`user_profiles.is_active = true`、プロフィールIDとAuthユーザーID、プロフィールメールとAuthメールがすべて一致するユーザーだけに限定する。
 - 回復OTPの確認後、owner専用の短命・単回利用のHttpOnly Cookieを発行する。スタッフ用Cookie・intent・更新APIは受け付けない。
-- intentはtoken hashと要求ごとのclaim IDを使うDB関数で更新前に原子的にclaimする。claim中はownerプロフィールのrole・有効状態・メール変更と削除、新しいintent発行を同じadvisory lockで拒否する。並行claimの敗者は無効intentではなくbusyとして扱う。
+- intentはtoken hashと要求ごとのclaim IDを使うDB関数で更新前に原子的にclaimする。claim中はownerプロフィールのrole・有効状態・メール変更と削除、新しいintent発行を同じadvisory lockで拒否する。未失効またはclaim後5分以内は処理中とし、期限とleaseの両方が切れたclaimだけをsupersededへ終端化して新規発行を許可する。並行claimの敗者は無効intentではなくbusyとして扱う。
 - Auth更新の直前と直後にownerの有効状態とAuth/Profileメール一致を再検証する。明確なAuth拒否ではclaimをreleaseして再試行を許可し、成功時はfinalizeする。更新結果不明または更新後不整合ではprofile行lock、user単位advisory lockの順にintentをquarantineし、プロフィール無効化とAuth資格情報のランダム化・banを行う。
-- callbackと更新APIは同一Originだけを許可し、失敗時はowner intent Cookieを消去する。
+- callbackと更新APIは同一Originだけを許可する。無効・失効・結果不明・補償失敗ではowner intent Cookieを消去し、claim busyと明確なAuth 4xx拒否では再試行のため保持する。
 - トークン、平文パスワード、メールアドレス、送信成否を画面、URL、監査ログ、エラー応答へ出さない。
 
 ## 設計
@@ -34,7 +34,7 @@
 - [ ] 公開要求は本文上限とIP・メール別レート制限を通り、owner確認・メール送信の完了を待たず、制限時・障害時も同じ202を返す。DBへ平文IP・メールを保存しない。
 - [ ] owner callbackは`recovery`だけを受け入れ、無効OTP・非owner・メール不整合・cross-originでintentを発行しない。
 - [ ] owner更新APIは有効かつ未消費のowner intentだけを受け入れ、弱いパスワード・cross-origin・失効・二重送信・更新前後のrole剥奪・メール不整合・Auth結果不明をfail-closeする。claim busyと明確な更新拒否は同じCookieで再試行できる。
-- [ ] 実PostgreSQLでowner intentとレート窓の公開ロール全DML・関数実行拒否、同一tokenの並行claimが1件だけ成功してcommit後の敗者もbusyになること、claim中の新規intent発行とプロフィール変更拒否、release後の再claim、profile更新とquarantineの交差時も無効化が完了すること、IP上限後にメール行が増えないことを確認する。
+- [ ] 実PostgreSQLでowner intentとレート窓の公開ロール全DML・関数実行拒否、同一tokenの並行claimが1件だけ成功してcommit後の敗者もbusyになること、claim中の新規intent発行とプロフィール変更拒否、期限・lease切れclaimの終端化と再発行、release後の再claim、profile更新とquarantineの交差時も無効化が完了すること、IP上限後にメール行が増えないことを確認する。
 - [ ] owner用とstaff用のCookie、intent、更新APIを相互に流用できない。
 - [ ] `npm test`、`npm run lint`、`npm run build`、`python3 -m unittest ci.test_policy_check ci.test_supabase_advisor_migrations`、`python3 ci/policy_check.py`、`git diff --check`が成功する。
 - [ ] Runtime smokeは、実メールを送らないfixtureまたはモックで公開画面、同一文言、更新画面の無効リンク表示を確認する。

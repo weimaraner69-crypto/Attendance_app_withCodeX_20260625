@@ -253,6 +253,56 @@ psql --set ON_ERROR_STOP=1 --command "
 
 echo "concurrent owner intent issuance during claim passed"
 
+owner_expired_claim_token="$(printf 'ab%.0s' {1..32})"
+owner_expired_replacement_token="$(printf 'ba%.0s' {1..32})"
+owner_expired_claim_id="90000000-0000-0000-0000-000000000016"
+psql --set ON_ERROR_STOP=1 --command "
+  select public.issue_owner_password_recovery_intent(
+    '${owner_user_id}', '${owner_expired_claim_token}', now() + interval '10 minutes'
+  );
+" >/dev/null
+
+owner_expired_claim_status="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select claim_status
+  from public.claim_owner_password_recovery_intent(
+    '${owner_expired_claim_token}',
+    '${owner_expired_claim_id}'
+  );
+")"
+if [[ "${owner_expired_claim_status}" != "claimed" ]]; then
+  echo "owner intent was not claimed before stale-lease recovery" >&2
+  exit 1
+fi
+
+psql --set ON_ERROR_STOP=1 --command "
+  update public.owner_password_recovery_intents
+  set created_at = now() - interval '20 minutes',
+      claimed_at = now() - interval '6 minutes',
+      expires_at = now() - interval '1 minute'
+  where token_hash = '${owner_expired_claim_token}';
+" >/dev/null
+
+psql --set ON_ERROR_STOP=1 --command "
+  select public.issue_owner_password_recovery_intent(
+    '${owner_user_id}', '${owner_expired_replacement_token}', now() + interval '10 minutes'
+  );
+" >/dev/null
+
+owner_expired_claim_state="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select concat_ws(':', old_intent.recovery_outcome, new_intent.consumed_at is null)
+  from public.owner_password_recovery_intents old_intent
+  join public.owner_password_recovery_intents new_intent
+    on new_intent.user_id = old_intent.user_id
+  where old_intent.token_hash = '${owner_expired_claim_token}'
+    and new_intent.token_hash = '${owner_expired_replacement_token}';
+")"
+if [[ "${owner_expired_claim_state}" != "superseded:t" ]]; then
+  echo "expired owner claim did not release the active-intent slot" >&2
+  exit 1
+fi
+
+echo "expired owner claim lease recovery passed"
+
 owner_quarantine_token="$(printf 'e%.0s' {1..64})"
 owner_quarantine_claim_id="90000000-0000-0000-0000-000000000015"
 psql --set ON_ERROR_STOP=1 --command "

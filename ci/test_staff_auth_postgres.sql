@@ -605,6 +605,50 @@ begin
 end;
 $$;
 
+select public.issue_owner_password_recovery_intent(
+  '10000000-0000-0000-0000-000000000099',
+  repeat('a', 64),
+  now() + interval '10 minutes'
+);
+select *
+from public.claim_owner_password_recovery_intent(
+  repeat('a', 64),
+  '90000000-0000-0000-0000-000000000006'
+);
+update public.owner_password_recovery_intents
+set created_at = now() - interval '20 minutes',
+    claimed_at = now() - interval '6 minutes',
+    expires_at = now() - interval '1 minute'
+where token_hash = repeat('a', 64);
+select public.issue_owner_password_recovery_intent(
+  '10000000-0000-0000-0000-000000000099',
+  repeat('b', 64),
+  now() + interval '10 minutes'
+);
+
+do $$
+begin
+  if not exists (
+    select 1
+    from public.owner_password_recovery_intents
+    where token_hash = repeat('a', 64)
+      and consumed_at is not null
+      and recovery_outcome = 'superseded'
+  ) then
+    raise exception 'expired owner recovery claim was not terminalized';
+  end if;
+  if not exists (
+    select 1
+    from public.owner_password_recovery_intents
+    where token_hash = repeat('b', 64)
+      and consumed_at is null
+      and claim_id is null
+  ) then
+    raise exception 'replacement owner recovery intent was not issued';
+  end if;
+end;
+$$;
+
 do $$
 declare
   v_allowed boolean;

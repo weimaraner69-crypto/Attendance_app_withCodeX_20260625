@@ -56,6 +56,8 @@ language plpgsql
 security definer
 set search_path = ''
 as $$
+declare
+  v_claim_lease constant interval := interval '5 minutes';
 begin
   perform pg_advisory_xact_lock(
     hashtextextended('owner-password-recovery:' || p_user_id::text, 0)
@@ -83,7 +85,10 @@ begin
     where intent.user_id = p_user_id
       and intent.consumed_at is null
       and intent.claim_id is not null
-      and intent.expires_at > now()
+      and (
+        intent.expires_at > now()
+        or intent.claimed_at > now() - v_claim_lease
+      )
   ) then
     raise exception 'owner password recovery is already in progress';
   end if;
@@ -93,7 +98,13 @@ begin
       recovery_outcome = 'superseded'
   where user_id = p_user_id
     and consumed_at is null
-    and claim_id is null;
+    and (
+      claim_id is null
+      or (
+        expires_at <= now()
+        and claimed_at <= now() - v_claim_lease
+      )
+    );
 
   insert into public.owner_password_recovery_intents (
     user_id,
