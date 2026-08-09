@@ -132,7 +132,6 @@ begin
   from public.owner_password_recovery_intents intent
   where intent.token_hash = p_token_hash
     and intent.consumed_at is null
-    and intent.claim_id is null
     and intent.expires_at > now();
 
   if v_user_id is null then
@@ -303,6 +302,15 @@ begin
     and intent.consumed_at is null;
 
   if v_user_id is null then
+    return false;
+  end if;
+
+  perform 1
+  from public.user_profiles profile
+  where profile.id = v_user_id
+  for update;
+
+  if not found then
     return false;
   end if;
 

@@ -16,6 +16,7 @@
 - パスワード更新intentをclaim・release・finalizeへ分離し、明確なAuth拒否時だけ同じリンクで再試行できるようにした。claim中のownerプロフィール変更はDB advisory lockとtriggerで拒否する。
 - claim中は同一ownerへの新規intent発行も同じDB lockで拒否し、並行POSTの敗者は `claim_busy` としてCookieを保持することで、進行中の更新状態と再試行可能性を維持する。
 - Auth更新後にowner整合性が失われた場合や更新結果が不明な場合は、プロフィールを無効化し、Authパスワードを未知の乱数へ置換してbanする補償処理を追加した。
+- quarantineはprofile行lockを取得してからuser単位advisory lockを取得し、通常のprofile更新triggerと同じ順序に統一して補償経路のdeadlockを防止した。
 - owner専用の短命・単回利用intent、HttpOnly Cookie、更新直前の本人整合性再検証、同一Origin制約を追加した。
 - Recoveryメールを要求時の `RedirectTo` へ分岐させ、既存staffは従来の `/auth/confirm`、ownerは `/auth/owner-confirm` へ到達するようにした。
 - migrationの全DML権限、単回利用、並行発行・並行claim、claim中の新規発行とプロフィール変更拒否、release・finalize・quarantine、レート制限と、staff導線の回帰を自動テストへ追加した。

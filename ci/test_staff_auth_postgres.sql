@@ -468,7 +468,7 @@ begin
     repeat('0', 64),
     '90000000-0000-0000-0000-000000000002'
   );
-  if v_claim_status <> 'busy' then
+  if v_claim_status is distinct from 'busy' then
     raise exception 'concurrent owner recovery claim was not reported as busy';
   end if;
 
@@ -520,7 +520,9 @@ select public.issue_owner_password_recovery_intent(
 do $$
 declare
   v_claim_id uuid := '90000000-0000-0000-0000-000000000003';
+  v_retry_claim_id uuid := '90000000-0000-0000-0000-000000000005';
   v_intent_id uuid;
+  v_retry_status text;
 begin
   select id into v_intent_id
   from public.claim_owner_password_recovery_intent(repeat('6', 64), v_claim_id);
@@ -550,6 +552,22 @@ begin
   update public.user_profiles
   set role = 'owner'
   where id = '10000000-0000-0000-0000-000000000099';
+
+  select claim_status into v_retry_status
+  from public.claim_owner_password_recovery_intent(
+    repeat('6', 64),
+    v_retry_claim_id
+  );
+  if v_retry_status is distinct from 'claimed' then
+    raise exception 'released owner recovery claim was not retryable';
+  end if;
+  if not public.finalize_owner_password_recovery_claim(
+    v_intent_id,
+    v_retry_claim_id,
+    'updated'
+  ) then
+    raise exception 'retried owner recovery claim did not finalize';
+  end if;
 end;
 $$;
 

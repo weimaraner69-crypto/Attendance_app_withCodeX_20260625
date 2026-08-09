@@ -253,6 +253,76 @@ psql --set ON_ERROR_STOP=1 --command "
 
 echo "concurrent owner intent issuance during claim passed"
 
+owner_quarantine_token="$(printf 'e%.0s' {1..64})"
+owner_quarantine_claim_id="90000000-0000-0000-0000-000000000015"
+psql --set ON_ERROR_STOP=1 --command "
+  select public.issue_owner_password_recovery_intent(
+    '${owner_user_id}', '${owner_quarantine_token}', now() + interval '10 minutes'
+  );
+  select * from public.claim_owner_password_recovery_intent(
+    '${owner_quarantine_token}',
+    '${owner_quarantine_claim_id}'
+  );
+" >/dev/null
+
+owner_quarantine_intent_id="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select id
+  from public.owner_password_recovery_intents
+  where token_hash = '${owner_quarantine_token}';
+")"
+
+psql --set ON_ERROR_STOP=1 --command "
+  begin;
+  select 1
+  from public.user_profiles
+  where id = '${owner_user_id}'
+  for update;
+  select pg_advisory_xact_lock(
+    hashtextextended('staff-auth-test-ready:owner-quarantine-lock-order', 0)
+  );
+  select pg_sleep(1);
+  update public.user_profiles
+  set role = 'manager'
+  where id = '${owner_user_id}';
+  commit;
+" >/dev/null 2>&1 &
+owner_quarantine_profile_pid=$!
+
+wait_for_test_ready "owner-quarantine-lock-order"
+
+owner_quarantine_result="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select public.quarantine_owner_password_recovery_claim(
+    '${owner_quarantine_intent_id}',
+    '${owner_quarantine_claim_id}',
+    'update_unknown'
+  );
+")"
+
+if wait "${owner_quarantine_profile_pid}"; then
+  echo "owner profile mutation unexpectedly succeeded during quarantine" >&2
+  exit 1
+fi
+
+owner_quarantine_state="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select concat_ws(':', intent.recovery_outcome, profile.is_active)
+  from public.owner_password_recovery_intents intent
+  join public.user_profiles profile on profile.id = intent.user_id
+  where intent.id = '${owner_quarantine_intent_id}';
+")"
+
+if [[ "${owner_quarantine_result}" != "t" || "${owner_quarantine_state}" != "update_unknown:f" ]]; then
+  echo "owner quarantine did not complete after the competing profile mutation failed" >&2
+  exit 1
+fi
+
+psql --set ON_ERROR_STOP=1 --command "
+  update public.user_profiles
+  set is_active = true
+  where id = '${owner_user_id}';
+" >/dev/null
+
+echo "concurrent owner quarantine lock order passed"
+
 owner_profile_guard_token="$(printf '8%.0s' {1..64})"
 owner_profile_guard_claim_id="90000000-0000-0000-0000-000000000013"
 psql --set ON_ERROR_STOP=1 --command "

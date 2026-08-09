@@ -270,6 +270,7 @@ class OwnerPasswordRecoveryMigrationTest(TestCase):
         self.assertIn("returns table (id uuid, user_id uuid, claim_status text)", migration)
         self.assertIn("'busy'::text", migration)
         self.assertIn("'claimed'::text", migration)
+        self.assertIn("from public.user_profiles profile\n  where profile.id = v_user_id\n  for update", migration)
         self.assertIn(
             "create or replace function public.release_owner_password_recovery_claim",
             migration,
