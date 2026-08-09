@@ -617,8 +617,64 @@ from public.claim_owner_password_recovery_intent(
 );
 update public.owner_password_recovery_intents
 set created_at = now() - interval '20 minutes',
-    claimed_at = now() - interval '6 minutes',
+    claimed_at = now(),
     expires_at = now() - interval '1 minute'
+where token_hash = repeat('a', 64);
+
+do $$
+declare
+  v_claim_status text;
+  v_intent_id uuid;
+begin
+  select id into v_intent_id
+  from public.owner_password_recovery_intents
+  where token_hash = repeat('a', 64);
+
+  select claim_status into v_claim_status
+  from public.claim_owner_password_recovery_intent(
+    repeat('a', 64),
+    '90000000-0000-0000-0000-000000000007'
+  );
+  if v_claim_status is distinct from 'busy' then
+    raise exception 'expired intent with an active claim lease was not busy';
+  end if;
+  if not public.is_owner_password_recovery_claim_active(
+    v_intent_id,
+    '90000000-0000-0000-0000-000000000006'
+  ) then
+    raise exception 'active owner recovery claim fence was not visible';
+  end if;
+
+  begin
+    update public.user_profiles
+    set role = 'manager'
+    where id = '10000000-0000-0000-0000-000000000099';
+    raise exception 'profile changed while the owner claim lease was active';
+  exception
+    when raise_exception then
+      if sqlerrm <> 'owner profile change blocked during password recovery' then
+        raise;
+      end if;
+  end;
+
+  begin
+    perform public.issue_owner_password_recovery_intent(
+      '10000000-0000-0000-0000-000000000099',
+      repeat('b', 64),
+      now() + interval '10 minutes'
+    );
+    raise exception 'replacement issued while the owner claim lease was active';
+  exception
+    when raise_exception then
+      if sqlerrm <> 'owner password recovery is already in progress' then
+        raise;
+      end if;
+  end;
+end;
+$$;
+
+update public.owner_password_recovery_intents
+set claimed_at = now() - interval '6 minutes'
 where token_hash = repeat('a', 64);
 select public.issue_owner_password_recovery_intent(
   '10000000-0000-0000-0000-000000000099',
@@ -627,7 +683,18 @@ select public.issue_owner_password_recovery_intent(
 );
 
 do $$
+declare
+  v_old_intent_id uuid;
 begin
+  select id into v_old_intent_id
+  from public.owner_password_recovery_intents
+  where token_hash = repeat('a', 64);
+  if public.is_owner_password_recovery_claim_active(
+    v_old_intent_id,
+    '90000000-0000-0000-0000-000000000006'
+  ) then
+    raise exception 'superseded owner recovery claim fence remained active';
+  end if;
   if not exists (
     select 1
     from public.owner_password_recovery_intents
@@ -894,6 +961,21 @@ begin
      )
      or not has_function_privilege(
        'service_role', 'public.claim_owner_password_recovery_intent(text,uuid)', 'execute'
+     )
+     or has_function_privilege(
+       'anon',
+       'public.is_owner_password_recovery_claim_active(uuid,uuid)',
+       'execute'
+     )
+     or has_function_privilege(
+       'authenticated',
+       'public.is_owner_password_recovery_claim_active(uuid,uuid)',
+       'execute'
+     )
+     or not has_function_privilege(
+       'service_role',
+       'public.is_owner_password_recovery_claim_active(uuid,uuid)',
+       'execute'
      )
      or has_function_privilege(
        'anon', 'public.release_owner_password_recovery_claim(uuid,uuid)', 'execute'

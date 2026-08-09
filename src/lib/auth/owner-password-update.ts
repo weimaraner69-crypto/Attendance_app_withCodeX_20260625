@@ -14,6 +14,7 @@ export type OwnerPasswordUpdateOperations = {
     tokenHash: string,
     claimId: string
   ) => Promise<OwnerPasswordIntentRecord | 'busy' | null>;
+  hasActiveClaim: (intentId: string, claimId: string) => Promise<boolean>;
   releaseIntent: (intentId: string, claimId: string) => Promise<boolean>;
   finalizeIntent: (
     intentId: string,
@@ -39,6 +40,7 @@ export type OwnerPasswordUpdateResult =
       code:
         | 'invalid_intent'
         | 'claim_busy'
+        | 'stale_claim'
         | 'invalid_identity'
         | 'update_failed_retryable'
         | 'update_unknown'
@@ -81,6 +83,10 @@ export async function updateOwnerPasswordWithIntent(input: {
       : { ok: false, code: 'finalize_failed' };
   }
 
+  if (!await operations.hasActiveClaim(intent.id, claimId)) {
+    return { ok: false, code: 'stale_claim' };
+  }
+
   const updateResult = await operations.updatePassword(intent.user_id, password);
   if (updateResult === 'rejected') {
     return await operations.releaseIntent(intent.id, claimId)
@@ -89,15 +95,23 @@ export async function updateOwnerPasswordWithIntent(input: {
   }
 
   if (updateResult === 'unknown') {
+    if (!await operations.hasActiveClaim(intent.id, claimId)) {
+      return { ok: false, code: 'stale_claim' };
+    }
     const quarantined = await operations.quarantineIntent(
       intent.id,
       claimId,
       'update_unknown'
     );
+    if (!quarantined) return { ok: false, code: 'stale_claim' };
     const credentialsDisabled = await operations.disableAuthCredentials(intent.user_id);
-    return quarantined && credentialsDisabled
+    return credentialsDisabled
       ? { ok: false, code: 'update_unknown' }
       : { ok: false, code: 'compensation_failed' };
+  }
+
+  if (!await operations.hasActiveClaim(intent.id, claimId)) {
+    return { ok: false, code: 'stale_claim' };
   }
 
   if (!await operations.hasValidOwnerIdentity(intent.user_id)) {
@@ -106,8 +120,9 @@ export async function updateOwnerPasswordWithIntent(input: {
       claimId,
       'identity_changed'
     );
+    if (!quarantined) return { ok: false, code: 'stale_claim' };
     const credentialsDisabled = await operations.disableAuthCredentials(intent.user_id);
-    return quarantined && credentialsDisabled
+    return credentialsDisabled
       ? { ok: false, code: 'invalid_identity' }
       : { ok: false, code: 'compensation_failed' };
   }

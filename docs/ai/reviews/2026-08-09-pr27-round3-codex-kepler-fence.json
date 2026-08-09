@@ -1,0 +1,192 @@
+{
+  "schema_version": 2,
+  "phase": "post_push",
+  "provider": "codex",
+  "reviewer_id": "codex-kepler-977bc91d",
+  "review_session_id": "977bc91d-be8f-4447-8377-dd21f76ec459",
+  "implementation_session_id": "codex-main-owner-recovery-20260809",
+  "head_sha": "de68b2ed2e590ca5212ca5687a596edf2ba5293a",
+  "diff_fingerprint": "sha256:42c3e4fcc26beb15ddc9ad193fc7c32e283ca9520595f997619862907b03ba2d",
+  "risk_tier": "red",
+  "round": 3,
+  "exception_round": 7,
+  "exception_approved_by": "repository_owner",
+  "exception_approval_context": "The owner explicitly approved completing the Round 3 findings and exact-head post-exception confirmation. This is the same bounded exception workflow, not an automatic Round 4 review.",
+  "review_status": "completed",
+  "secondary_verification": {
+    "required": true,
+    "method": "dedicated_tests",
+    "status": "passed",
+    "evidence": "Fresh PostgreSQL 17 and TypeScript tests verified the execution bound, claim ownership fences, active expired-link lease protection, stale-worker compensation refusal, runtime privileges, all migrations, and all owner/staff concurrency scenarios.",
+    "commands": [
+      {
+        "command": "npm test -- src/lib/auth/owner-password-update.test.ts src/app/api/auth/owner-password/route.test.ts src/lib/http/fetch-with-timeout.test.ts",
+        "exit_code": 0,
+        "summary": "34 focused timeout, stale worker, compensation, Cookie, and owner update tests passed",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "psql --set ON_ERROR_STOP=1 --file ci/test_staff_auth_postgres.sql",
+        "exit_code": 0,
+        "summary": "Fresh PostgreSQL verified migrations, claim fence privileges, active lease protection, and stale claim replacement",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "bash ci/test_staff_auth_postgres_concurrency.sh",
+        "exit_code": 0,
+        "summary": "Separate connections preserved busy and profile guards during an expired-link active lease, then recovered after lease expiry",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "bash ci/test_staff_auth_migration_atomicity.sh",
+        "exit_code": 0,
+        "summary": "Migration rollback and writer locking passed",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "python3 -m unittest ci.test_policy_check ci.test_supabase_advisor_migrations",
+        "exit_code": 0,
+        "summary": "39 policy and migration tests passed",
+        "covered_paths": ["**"]
+      }
+    ]
+  },
+  "summary": "The exact-head review of de68b2e found one Must stale-worker execution issue, one Should active-lease predicate issue, and one Nice ledger issue. The route and Supabase requests now have hard bounds below the claim lease, Auth updates are fenced before and after, compensation requires the same live claim, and all live-lease predicates are aligned.",
+  "repository_context_mode": "full_repo_agentic",
+  "diff_only_reason": "",
+  "changed_files": [
+    "CHANGELOG.md",
+    "NEXT.md",
+    "ci/staff_auth_postgres_premigration_setup.sql",
+    "ci/test_staff_auth_postgres.sql",
+    "ci/test_staff_auth_postgres_concurrency.sh",
+    "ci/test_supabase_advisor_migrations.py",
+    "docs/ai/decision-ledger.md",
+    "docs/ai/execution-ledger.md",
+    "docs/ai/reviews/2026-08-06-pr27-round1-codex-socrates.json",
+    "docs/ai/reviews/2026-08-06-pr27-round2-codex-confucius.json",
+    "docs/ai/reviews/2026-08-09-pr27-round3-codex-curie.json",
+    "docs/ai/reviews/2026-08-09-pr27-round3-codex-herschel.json",
+    "docs/ai/reviews/2026-08-09-pr27-round3-codex-kepler-expiry.json",
+    "docs/ai/reviews/2026-08-09-pr27-round3-codex-kepler.json",
+    "docs/implementation-decisions.md",
+    "docs/operations-maintenance.md",
+    "docs/specs/issue-26-owner-password-recovery.md",
+    "next.config.mjs",
+    "package-lock.json",
+    "package.json",
+    "src/app/api/auth/owner-password-recovery/route.test.ts",
+    "src/app/api/auth/owner-password-recovery/route.ts",
+    "src/app/api/auth/owner-password/route.test.ts",
+    "src/app/api/auth/owner-password/route.ts",
+    "src/app/auth/owner-confirm/complete/route.test.ts",
+    "src/app/auth/owner-confirm/complete/route.ts",
+    "src/app/auth/owner-confirm/page.tsx",
+    "src/app/auth/owner-password/page.tsx",
+    "src/app/owner/password-recovery/page.tsx",
+    "src/components/auth/PrivilegedLogin.tsx",
+    "src/lib/auth/owner-auth-confirmation.test.ts",
+    "src/lib/auth/owner-auth-confirmation.ts",
+    "src/lib/auth/owner-auth-identity.test.ts",
+    "src/lib/auth/owner-auth-identity.ts",
+    "src/lib/auth/owner-auth-operations.ts",
+    "src/lib/auth/owner-password-intent.test.ts",
+    "src/lib/auth/owner-password-intent.ts",
+    "src/lib/auth/owner-password-recovery-guard.test.ts",
+    "src/lib/auth/owner-password-recovery-guard.ts",
+    "src/lib/auth/owner-password-recovery.test.ts",
+    "src/lib/auth/owner-password-recovery.ts",
+    "src/lib/auth/owner-password-update.test.ts",
+    "src/lib/auth/owner-password-update.ts",
+    "src/lib/auth/staff-auth-templates.test.ts",
+    "src/lib/auth/staff-auth.test.ts",
+    "src/lib/auth/staff-auth.ts",
+    "src/lib/supabase/database.types.ts",
+    "supabase/migrations/20260806114444_owner_password_recovery_intents.sql",
+    "supabase/templates/recovery.html"
+  ],
+  "related_files": [
+    {
+      "path": "src/lib/auth/owner-password-update.ts",
+      "reason": "Auth update and compensation ownership fences",
+      "score": 100
+    },
+    {
+      "path": "supabase/migrations/20260806114444_owner_password_recovery_intents.sql",
+      "reason": "Claim lease predicate, ownership RPC, and profile guard",
+      "score": 100
+    },
+    {
+      "path": "src/app/api/auth/owner-password/route.ts",
+      "reason": "Route and per-request execution bounds",
+      "score": 98
+    },
+    {
+      "path": "ci/test_staff_auth_postgres_concurrency.sh",
+      "reason": "Separate-connection active and stale lease regression",
+      "score": 98
+    }
+  ],
+  "scanned_paths": [".github", "CHANGELOG.md", "FINISHED.md", "NEXT.md", "SECURITY.md", "ci", "docs", "src", "supabase"],
+  "commands_run": [
+    {
+      "command": "git rev-parse HEAD and git rev-parse HEAD^{tree}",
+      "exit_code": 0,
+      "summary": "Confirmed reviewed head de68b2e and tree 5667ca5"
+    },
+    {
+      "command": "git diff --binary 1809543f052a2f08f3b724be02d841b24890a240..de68b2ed2e590ca5212ca5687a596edf2ba5293a | shasum -a 256",
+      "exit_code": 0,
+      "summary": "Computed diff fingerprint 42c3e4fc"
+    },
+    {
+      "command": "independent full-repository exact-head review of PR 27 at de68b2ed2e590ca5212ca5687a596edf2ba5293a",
+      "exit_code": 0,
+      "summary": "Reviewed all changed files and related Auth, migration, test, CI, and durable documentation context without truncation"
+    }
+  ],
+  "context_fingerprint": "git-tree:5667ca566d14f9816b4d0cd19e712cabd5f8cf93",
+  "context_budget": {
+    "max_related_files": 40,
+    "max_context_chars": 180000,
+    "max_file_excerpt_chars": 12000,
+    "max_context_commands": 12
+  },
+  "context_truncated": false,
+  "context_truncated_reason": "",
+  "issues": [
+    {
+      "severity": "Must",
+      "category": "stale-worker-claim-fence",
+      "file": "src/lib/auth/owner-password-update.ts",
+      "line": 84,
+      "rationale": "A worker that resumed after its claim lease was superseded could still update Auth or disable credentials.",
+      "fix": "Bound route and transport execution below the lease, fence before and after Auth update, and require claim ownership before compensation.",
+      "confidence": 0.99,
+      "disposition": "fixed",
+      "disposition_reason": "The 60-second route bound and 15-second Supabase timeout keep work inside the five-minute lease; active-claim RPC fences and dedicated tests block stale update and compensation paths."
+    },
+    {
+      "severity": "Should",
+      "category": "active-expired-link-lease-predicate",
+      "file": "supabase/migrations/20260806114444_owner_password_recovery_intents.sql",
+      "line": 144,
+      "rationale": "Duplicate claim and profile guard checks used link expiry without preserving an active claim lease after the link expired.",
+      "fix": "Use the same unexpired-link OR active-five-minute-claim-lease predicate in claim, issuance, and profile guard paths.",
+      "confidence": 0.99,
+      "disposition": "fixed",
+      "disposition_reason": "Fresh PostgreSQL and separate connections prove busy, profile mutation rejection, and issuance rejection during the active lease, followed by replacement after lease expiry."
+    },
+    {
+      "severity": "Nice",
+      "category": "execution-ledger-staleness",
+      "file": "docs/ai/execution-ledger.md",
+      "line": 29,
+      "rationale": "The ledger described completed verification as future work.",
+      "fix": "Record exact reviewed head, findings, completed gates, and only the remaining exact-head confirmation.",
+      "confidence": 1,
+      "disposition": "fixed",
+      "disposition_reason": "The ledger now records de68b2e, the latest findings, 201 Vitest and 39 Python tests, fresh PostgreSQL validation, and the next exact-head confirmation."
+    }
+  ]
+}

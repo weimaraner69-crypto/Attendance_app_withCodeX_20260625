@@ -15,9 +15,17 @@ import {
   validateOwnerPasswordIntent,
   type OwnerPasswordUpdateOperations,
 } from '@/lib/auth/owner-password-update';
+import { createFetchWithTimeout } from '@/lib/http/fetch-with-timeout';
 import { createSupabaseAdminClient, type Database } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
+
+const ownerPasswordAdminFetch = createFetchWithTimeout(15_000);
+
+function createOwnerPasswordAdminClient() {
+  return createSupabaseAdminClient({ fetch: ownerPasswordAdminFetch });
+}
 
 function createOperations(
   admin: SupabaseClient<Database>
@@ -51,6 +59,13 @@ function createOperations(
     async releaseIntent(intentId, claimId) {
       const { data, error } = await admin.rpc(
         'release_owner_password_recovery_claim',
+        { p_intent_id: intentId, p_claim_id: claimId }
+      );
+      return !error && data === true;
+    },
+    async hasActiveClaim(intentId, claimId) {
+      const { data, error } = await admin.rpc(
+        'is_owner_password_recovery_claim_active',
         { p_intent_id: intentId, p_claim_id: claimId }
       );
       return !error && data === true;
@@ -95,7 +110,7 @@ function createOperations(
 
 export async function GET() {
   const token = getOwnerPasswordIntentToken();
-  const admin = createSupabaseAdminClient();
+  const admin = createOwnerPasswordAdminClient();
   const intent = token
     ? await validateOwnerPasswordIntent(token, createOperations(admin))
     : null;
@@ -122,7 +137,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ updated: false }, { status: 401 });
   }
 
-  const admin = createSupabaseAdminClient();
+  const admin = createOwnerPasswordAdminClient();
   const result = await updateOwnerPasswordWithIntent({
     token,
     password: body.password,

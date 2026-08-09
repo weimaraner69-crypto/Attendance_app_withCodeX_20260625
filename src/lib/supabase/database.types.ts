@@ -390,6 +390,13 @@ export type Database = {
           claim_status: string;
         }[];
       };
+      is_owner_password_recovery_claim_active: {
+        Args: {
+          p_intent_id: string;
+          p_claim_id: string;
+        };
+        Returns: boolean;
+      };
       release_owner_password_recovery_claim: {
         Args: {
           p_intent_id: string;

@@ -16,6 +16,7 @@
 - パスワード更新intentをclaim・release・finalizeへ分離し、明確なAuth拒否時だけ同じリンクで再試行できるようにした。claim中のownerプロフィール変更はDB advisory lockとtriggerで拒否する。
 - claim中は同一ownerへの新規intent発行も同じDB lockで拒否し、並行POSTの敗者は `claim_busy` としてCookieを保持することで、進行中の更新状態と再試行可能性を維持する。
 - 実行主体が失われたclaimは、リンク期限と5分のclaim leaseが両方切れた場合だけsupersededへ終端化し、部分一意索引を解放して新しい回復リンクを発行できるようにした。
+- 更新Routeを60秒で終了し、各Supabase通信を15秒で中断する実行上限を追加した。Auth更新の直前・直後にclaim所有権を再確認し、古いworkerによる更新や補償処理を拒否する。
 - Auth更新後にowner整合性が失われた場合や更新結果が不明な場合は、プロフィールを無効化し、Authパスワードを未知の乱数へ置換してbanする補償処理を追加した。
 - quarantineはprofile行lockを取得してからuser単位advisory lockを取得し、通常のprofile更新triggerと同じ順序に統一して補償経路のdeadlockを防止した。
 - owner専用の短命・単回利用intent、HttpOnly Cookie、更新直前の本人整合性再検証、同一Origin制約を追加した。

@@ -134,6 +134,7 @@ set search_path = ''
 as $$
 declare
   v_user_id uuid;
+  v_claim_lease constant interval := interval '5 minutes';
 begin
   if p_claim_id is null then
     raise exception 'owner password recovery claim id is required';
@@ -143,7 +144,13 @@ begin
   from public.owner_password_recovery_intents intent
   where intent.token_hash = p_token_hash
     and intent.consumed_at is null
-    and intent.expires_at > now();
+    and (
+      intent.expires_at > now()
+      or (
+        intent.claim_id is not null
+        and intent.claimed_at > now() - v_claim_lease
+      )
+    );
 
   if v_user_id is null then
     return;
@@ -160,7 +167,10 @@ begin
       and intent.user_id = v_user_id
       and intent.consumed_at is null
       and intent.claim_id is not null
-      and intent.expires_at > now()
+      and (
+        intent.expires_at > now()
+        or intent.claimed_at > now() - v_claim_lease
+      )
   ) then
     return query
     select intent.id, intent.user_id, 'busy'::text
@@ -169,7 +179,10 @@ begin
       and intent.user_id = v_user_id
       and intent.consumed_at is null
       and intent.claim_id is not null
-      and intent.expires_at > now();
+      and (
+        intent.expires_at > now()
+        or intent.claimed_at > now() - v_claim_lease
+      );
     return;
   end if;
 
@@ -198,6 +211,31 @@ $$;
 revoke all on function public.claim_owner_password_recovery_intent(text, uuid)
   from public, anon, authenticated;
 grant execute on function public.claim_owner_password_recovery_intent(text, uuid)
+  to service_role;
+
+create or replace function public.is_owner_password_recovery_claim_active(
+  p_intent_id uuid,
+  p_claim_id uuid
+)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public.owner_password_recovery_intents intent
+    where intent.id = p_intent_id
+      and intent.claim_id = p_claim_id
+      and intent.consumed_at is null
+      and intent.claimed_at > now() - interval '5 minutes'
+  );
+$$;
+
+revoke all on function public.is_owner_password_recovery_claim_active(uuid, uuid)
+  from public, anon, authenticated;
+grant execute on function public.is_owner_password_recovery_claim_active(uuid, uuid)
   to service_role;
 
 create or replace function public.release_owner_password_recovery_claim(
@@ -371,7 +409,10 @@ begin
     where intent.user_id = old.id
       and intent.claim_id is not null
       and intent.consumed_at is null
-      and intent.expires_at > now()
+      and (
+        intent.expires_at > now()
+        or intent.claimed_at > now() - interval '5 minutes'
+      )
   ) then
     raise exception 'owner profile change blocked during password recovery';
   end if;

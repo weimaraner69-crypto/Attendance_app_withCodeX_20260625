@@ -100,6 +100,16 @@ describe('owner password update API', () => {
     expect(mocks.clearIntent).toHaveBeenCalledOnce();
   });
 
+  it('clears the browser intent when the worker no longer owns the claim', async () => {
+    mocks.updateWithIntent.mockResolvedValue({ ok: false, code: 'stale_claim' });
+
+    const response = await POST(updateRequest());
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toEqual({ updated: false, retryable: false });
+    expect(mocks.clearIntent).toHaveBeenCalledOnce();
+  });
+
   it('rejects cross-origin updates before reading the intent', async () => {
     const response = await POST(updateRequest(['https:', '', 'foreign.example'].join('/')));
     expect(response.status).toBe(403);

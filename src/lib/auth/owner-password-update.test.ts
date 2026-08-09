@@ -29,6 +29,7 @@ function operations(
     findActiveIntent: vi.fn(async () => ({ id: 'intent-1', user_id: 'owner-user-1' })),
     hasValidOwnerIdentity: vi.fn(async () => true),
     claimIntent: vi.fn(async () => ({ id: 'intent-1', user_id: 'owner-user-1' })),
+    hasActiveClaim: vi.fn(async () => true),
     releaseIntent: vi.fn(async () => true),
     finalizeIntent: vi.fn(async () => true),
     quarantineIntent: vi.fn(async () => true),
@@ -50,6 +51,10 @@ describe('DB-backed owner password intent', () => {
         order.push('identity');
         return true;
       }),
+      hasActiveClaim: vi.fn(async () => {
+        order.push('fence');
+        return true;
+      }),
       updatePassword: vi.fn(async () => {
         order.push('update');
         return 'updated';
@@ -65,7 +70,15 @@ describe('DB-backed owner password intent', () => {
       password: 'new-password',
       operations: deps,
     })).resolves.toEqual({ ok: true, code: 'updated' });
-    expect(order).toEqual(['claim', 'identity', 'update', 'identity', 'finalize']);
+    expect(order).toEqual([
+      'claim',
+      'identity',
+      'fence',
+      'update',
+      'fence',
+      'identity',
+      'finalize',
+    ]);
     expect(deps.claimIntent).toHaveBeenCalledWith(expect.any(String), expect.any(String));
     expect(deps.finalizeIntent).toHaveBeenCalledWith(
       'intent-1',
@@ -157,6 +170,34 @@ describe('DB-backed owner password intent', () => {
     expect(deps.disableAuthCredentials).not.toHaveBeenCalled();
   });
 
+  it('fences a stale worker before it can update Auth credentials', async () => {
+    const deps = operations({ hasActiveClaim: vi.fn(async () => false) });
+
+    await expect(updateOwnerPasswordWithIntent({
+      token: 'opaque-token',
+      password: 'new-password',
+      operations: deps,
+    })).resolves.toEqual({ ok: false, code: 'stale_claim' });
+    expect(deps.updatePassword).not.toHaveBeenCalled();
+    expect(deps.disableAuthCredentials).not.toHaveBeenCalled();
+  });
+
+  it('does not compensate after claim ownership is lost during the Auth update', async () => {
+    const hasActiveClaim = vi.fn()
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false);
+    const deps = operations({ hasActiveClaim });
+
+    await expect(updateOwnerPasswordWithIntent({
+      token: 'opaque-token',
+      password: 'new-password',
+      operations: deps,
+    })).resolves.toEqual({ ok: false, code: 'stale_claim' });
+    expect(deps.updatePassword).toHaveBeenCalledOnce();
+    expect(deps.quarantineIntent).not.toHaveBeenCalled();
+    expect(deps.disableAuthCredentials).not.toHaveBeenCalled();
+  });
+
   it('quarantines the profile and disables Auth credentials after an unknown update result', async () => {
     const deps = operations({
       updatePassword: vi.fn(async () => 'unknown'),
@@ -195,7 +236,21 @@ describe('DB-backed owner password intent', () => {
     expect(deps.finalizeIntent).not.toHaveBeenCalled();
   });
 
-  it('fails closed when either post-update compensation barrier fails', async () => {
+  it('fails closed when Auth credentials cannot be disabled after quarantine', async () => {
+    const deps = operations({
+      updatePassword: vi.fn(async () => 'unknown'),
+      disableAuthCredentials: vi.fn(async () => false),
+    });
+
+    await expect(updateOwnerPasswordWithIntent({
+      token: 'opaque-token',
+      password: 'new-password',
+      operations: deps,
+    })).resolves.toEqual({ ok: false, code: 'compensation_failed' });
+    expect(deps.disableAuthCredentials).toHaveBeenCalledOnce();
+  });
+
+  it('does not disable credentials if quarantine loses claim ownership', async () => {
     const deps = operations({
       updatePassword: vi.fn(async () => 'unknown'),
       quarantineIntent: vi.fn(async () => false),
@@ -205,8 +260,8 @@ describe('DB-backed owner password intent', () => {
       token: 'opaque-token',
       password: 'new-password',
       operations: deps,
-    })).resolves.toEqual({ ok: false, code: 'compensation_failed' });
-    expect(deps.disableAuthCredentials).toHaveBeenCalledOnce();
+    })).resolves.toEqual({ ok: false, code: 'stale_claim' });
+    expect(deps.disableAuthCredentials).not.toHaveBeenCalled();
   });
 
   it('does not report success unless the claimed intent is finalized', async () => {

@@ -275,6 +275,18 @@ class OwnerPasswordRecoveryMigrationTest(TestCase):
         self.assertIn("'claimed'::text", migration)
         self.assertIn("from public.user_profiles profile\n  where profile.id = v_user_id\n  for update", migration)
         self.assertIn(
+            "create or replace function public.is_owner_password_recovery_claim_active",
+            migration,
+        )
+        self.assertIn(
+            "intent.claimed_at > now() - interval '5 minutes'",
+            migration,
+        )
+        self.assertIn(
+            "revoke all on function public.is_owner_password_recovery_claim_active",
+            migration,
+        )
+        self.assertIn(
             "create or replace function public.release_owner_password_recovery_claim",
             migration,
         )

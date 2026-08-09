@@ -277,8 +277,56 @@ fi
 psql --set ON_ERROR_STOP=1 --command "
   update public.owner_password_recovery_intents
   set created_at = now() - interval '20 minutes',
-      claimed_at = now() - interval '6 minutes',
+      claimed_at = now(),
       expires_at = now() - interval '1 minute'
+  where token_hash = '${owner_expired_claim_token}';
+" >/dev/null
+
+owner_expired_busy_status="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select claim_status
+  from public.claim_owner_password_recovery_intent(
+    '${owner_expired_claim_token}',
+    '90000000-0000-0000-0000-000000000017'
+  );
+")"
+if [[ "${owner_expired_busy_status}" != "busy" ]]; then
+  echo "expired owner intent was not busy during its active claim lease" >&2
+  exit 1
+fi
+
+owner_expired_claim_active="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select public.is_owner_password_recovery_claim_active(
+    (select id from public.owner_password_recovery_intents
+     where token_hash = '${owner_expired_claim_token}'),
+    '${owner_expired_claim_id}'
+  );
+")"
+if [[ "${owner_expired_claim_active}" != "t" ]]; then
+  echo "expired owner claim did not remain fenced during its active lease" >&2
+  exit 1
+fi
+
+if psql --set ON_ERROR_STOP=1 --command "
+  update public.user_profiles
+  set role = 'manager'
+  where id = '${owner_user_id}';
+" >/dev/null 2>&1; then
+  echo "owner profile changed during an active expired-link claim lease" >&2
+  exit 1
+fi
+
+if psql --set ON_ERROR_STOP=1 --command "
+  select public.issue_owner_password_recovery_intent(
+    '${owner_user_id}', '${owner_expired_replacement_token}', now() + interval '10 minutes'
+  );
+" >/dev/null 2>&1; then
+  echo "replacement owner intent was issued during an active claim lease" >&2
+  exit 1
+fi
+
+psql --set ON_ERROR_STOP=1 --command "
+  update public.owner_password_recovery_intents
+  set claimed_at = now() - interval '6 minutes'
   where token_hash = '${owner_expired_claim_token}';
 " >/dev/null
 
@@ -298,6 +346,18 @@ owner_expired_claim_state="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1
 ")"
 if [[ "${owner_expired_claim_state}" != "superseded:t" ]]; then
   echo "expired owner claim did not release the active-intent slot" >&2
+  exit 1
+fi
+
+owner_expired_claim_active="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select public.is_owner_password_recovery_claim_active(
+    (select id from public.owner_password_recovery_intents
+     where token_hash = '${owner_expired_claim_token}'),
+    '${owner_expired_claim_id}'
+  );
+")"
+if [[ "${owner_expired_claim_active}" != "f" ]]; then
+  echo "superseded owner claim remained active" >&2
   exit 1
 fi
 

@@ -42,7 +42,7 @@ Git、Issue、Pull Request、チャット、ログへ値を貼り付けません
 - `npm run build` が成功する。
 - 必要なSupabaseマイグレーションがSQL EditorまたはSupabase CLIで適用済み。
 - スタッフAuthを使う場合、`20260716034432_secure_staff_password_intents.sql` の適用前に既存 `staff.auth_user_id` と `user_profiles.organization_id` の不整合が0件であることを確認する。
-- オーナー公開再設定を使う場合、`20260806114444_owner_password_recovery_intents.sql` を適用し、owner intentのclaim・busy・release・finalize・quarantine、claim中の新規発行拒否、期限と5分lease切れclaimの終端化、プロフィール変更guard、IP・メールHMAC別レート制限の権限・上限を確認してから、Reset passwordテンプレートと2つのRedirect URLを同じリリースで反映する。
+- オーナー公開再設定を使う場合、`20260806114444_owner_password_recovery_intents.sql` を適用し、owner intentのclaim・busy・release・finalize・quarantine、claim所有権fence、claim中の新規発行拒否、期限と5分lease切れclaimの終端化、プロフィール変更guard、IP・メールHMAC別レート制限の権限・上限を確認してから、Reset passwordテンプレートと2つのRedirect URLを同じリリースで反映する。更新Routeの60秒上限とSupabase通信15秒timeoutも維持する。
 - CIの `ci/test_staff_auth_postgres.sql` が新規Postgresへ全マイグレーションを適用し、複合FK、Auth/組織削除、intent権限・単回利用、staff RLS組織分離を確認する。
 - `docs/supabase-setup.md`、`docs/line-setup.md` の未完了手順が残っていない。
 - `/api/internal/supabase/health` が `ok: true` を返す。
@@ -53,6 +53,7 @@ Git、Issue、Pull Request、チャット、ログへ値を貼り付けません
 - オーナー公開再設定を使う場合、未登録・非owner・無効・不整合・レート制限時でも公開画面が同じ案内を即時に返し、owner確認とメール送信がレスポンス後の管理対象タスクで完了すること、有効ownerの実メールだけが `/auth/owner-confirm` の確認POST後に `/auth/owner-password` へ到達することを確認する。レート制限テーブルにはHMAC、窓、件数以外を保存しない。
 - 更新結果不明または更新後の本人不整合でquarantineされた場合は、対象profileが非active、Authユーザーが未知パスワードとban状態になっていることを管理者が確認する。本人性とメール整合を手動確認してから、profile再有効化とAuth unban、新しい再設定メール発行を行う。
 - quarantineのDB確認では、同時のprofile更新がguardで拒否されてもdeadlockせず、intentのoutcome記録とprofile無効化が完了していることを専用並行回帰で確認する。
+- `stale_claim` が発生した場合は、期限切れworkerがAuth更新や資格情報無効化を継続していないこと、新しいclaimだけが有効であることを確認する。claim所有権を失ったworkerから補償処理を再実行しない。
 
 ## 3. エラー監視方針
 
