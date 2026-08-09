@@ -64,6 +64,30 @@ describe('owner password update API', () => {
     expect(mocks.clearIntent).toHaveBeenCalledOnce();
   });
 
+  it('keeps the browser intent when Auth explicitly rejects a retryable update', async () => {
+    mocks.updateWithIntent.mockResolvedValue({
+      ok: false,
+      code: 'update_failed_retryable',
+    });
+
+    const response = await POST(updateRequest());
+
+    expect(response.status).toBe(503);
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    await expect(response.json()).resolves.toEqual({ updated: false, retryable: true });
+    expect(mocks.clearIntent).not.toHaveBeenCalled();
+  });
+
+  it('clears the browser intent after an unknown or compensated update outcome', async () => {
+    mocks.updateWithIntent.mockResolvedValue({ ok: false, code: 'update_unknown' });
+
+    const response = await POST(updateRequest());
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toEqual({ updated: false, retryable: false });
+    expect(mocks.clearIntent).toHaveBeenCalledOnce();
+  });
+
   it('rejects cross-origin updates before reading the intent', async () => {
     const response = await POST(updateRequest(['https:', '', 'foreign.example'].join('/')));
     expect(response.status).toBe(403);

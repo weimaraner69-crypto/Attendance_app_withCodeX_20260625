@@ -1,3 +1,5 @@
+import { randomUUID } from 'crypto';
+
 import { hashOwnerPasswordIntentToken } from './owner-password-intent';
 
 export type OwnerPasswordIntentRecord = {
@@ -8,13 +10,45 @@ export type OwnerPasswordIntentRecord = {
 export type OwnerPasswordUpdateOperations = {
   findActiveIntent: (tokenHash: string) => Promise<OwnerPasswordIntentRecord | null>;
   hasValidOwnerIdentity: (userId: string) => Promise<boolean>;
-  claimIntent: (tokenHash: string) => Promise<OwnerPasswordIntentRecord | null>;
-  updatePassword: (userId: string, password: string) => Promise<boolean>;
+  claimIntent: (tokenHash: string, claimId: string) => Promise<OwnerPasswordIntentRecord | null>;
+  releaseIntent: (intentId: string, claimId: string) => Promise<boolean>;
+  finalizeIntent: (
+    intentId: string,
+    claimId: string,
+    outcome: 'updated' | 'identity_changed' | 'update_unknown'
+  ) => Promise<boolean>;
+  quarantineIntent: (
+    intentId: string,
+    claimId: string,
+    outcome: 'identity_changed' | 'update_unknown'
+  ) => Promise<boolean>;
+  updatePassword: (
+    userId: string,
+    password: string
+  ) => Promise<'updated' | 'rejected' | 'unknown'>;
+  disableAuthCredentials: (userId: string) => Promise<boolean>;
 };
 
 export type OwnerPasswordUpdateResult =
   | { ok: true; code: 'updated' }
-  | { ok: false; code: 'invalid_intent' | 'invalid_identity' | 'already_consumed' | 'update_failed' };
+  | {
+      ok: false;
+      code:
+        | 'invalid_intent'
+        | 'invalid_identity'
+        | 'update_failed_retryable'
+        | 'update_unknown'
+        | 'finalize_failed'
+        | 'compensation_failed';
+    };
+
+export function classifyOwnerAuthUpdateError(
+  status: unknown
+): 'rejected' | 'unknown' {
+  return typeof status === 'number' && status >= 400 && status < 500
+    ? 'rejected'
+    : 'unknown';
+}
 
 export async function validateOwnerPasswordIntent(
   token: string,
@@ -31,13 +65,48 @@ export async function updateOwnerPasswordWithIntent(input: {
   operations: OwnerPasswordUpdateOperations;
 }): Promise<OwnerPasswordUpdateResult> {
   const { token, password, operations } = input;
-  const intent = await operations.claimIntent(hashOwnerPasswordIntentToken(token));
+  const claimId = randomUUID();
+  const intent = await operations.claimIntent(hashOwnerPasswordIntentToken(token), claimId);
   if (!intent) return { ok: false, code: 'invalid_intent' };
+
   if (!await operations.hasValidOwnerIdentity(intent.user_id)) {
-    return { ok: false, code: 'invalid_identity' };
+    return await operations.finalizeIntent(intent.id, claimId, 'identity_changed')
+      ? { ok: false, code: 'invalid_identity' }
+      : { ok: false, code: 'finalize_failed' };
   }
-  if (!await operations.updatePassword(intent.user_id, password)) {
-    return { ok: false, code: 'update_failed' };
+
+  const updateResult = await operations.updatePassword(intent.user_id, password);
+  if (updateResult === 'rejected') {
+    return await operations.releaseIntent(intent.id, claimId)
+      ? { ok: false, code: 'update_failed_retryable' }
+      : { ok: false, code: 'finalize_failed' };
   }
-  return { ok: true, code: 'updated' };
+
+  if (updateResult === 'unknown') {
+    const quarantined = await operations.quarantineIntent(
+      intent.id,
+      claimId,
+      'update_unknown'
+    );
+    const credentialsDisabled = await operations.disableAuthCredentials(intent.user_id);
+    return quarantined && credentialsDisabled
+      ? { ok: false, code: 'update_unknown' }
+      : { ok: false, code: 'compensation_failed' };
+  }
+
+  if (!await operations.hasValidOwnerIdentity(intent.user_id)) {
+    const quarantined = await operations.quarantineIntent(
+      intent.id,
+      claimId,
+      'identity_changed'
+    );
+    const credentialsDisabled = await operations.disableAuthCredentials(intent.user_id);
+    return quarantined && credentialsDisabled
+      ? { ok: false, code: 'invalid_identity' }
+      : { ok: false, code: 'compensation_failed' };
+  }
+
+  return await operations.finalizeIntent(intent.id, claimId, 'updated')
+    ? { ok: true, code: 'updated' }
+    : { ok: false, code: 'finalize_failed' };
 }

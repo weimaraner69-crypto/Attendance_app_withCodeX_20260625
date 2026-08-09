@@ -446,6 +446,7 @@ select public.issue_owner_password_recovery_intent(
 do $$
 declare
   claimed_count integer;
+  v_claim_id uuid := '90000000-0000-0000-0000-000000000001';
 begin
   if (
     select count(*) from public.owner_password_recovery_intents
@@ -456,16 +457,107 @@ begin
   end if;
 
   select count(*) into claimed_count
-  from public.claim_owner_password_recovery_intent(repeat('0', 64));
+  from public.claim_owner_password_recovery_intent(repeat('0', 64), v_claim_id);
   if claimed_count <> 1 then
     raise exception 'first owner recovery claim did not succeed exactly once';
   end if;
 
   select count(*) into claimed_count
-  from public.claim_owner_password_recovery_intent(repeat('0', 64));
+  from public.claim_owner_password_recovery_intent(
+    repeat('0', 64),
+    '90000000-0000-0000-0000-000000000002'
+  );
   if claimed_count <> 0 then
     raise exception 'owner recovery intent was reused';
   end if;
+
+  if not public.finalize_owner_password_recovery_claim(
+    (
+      select id
+      from public.owner_password_recovery_intents
+      where token_hash = repeat('0', 64)
+    ),
+    v_claim_id,
+    'updated'
+  ) then
+    raise exception 'owner recovery intent did not finalize';
+  end if;
+end;
+$$;
+
+select public.issue_owner_password_recovery_intent(
+  '10000000-0000-0000-0000-000000000099',
+  repeat('6', 64),
+  now() + interval '10 minutes'
+);
+
+do $$
+declare
+  v_claim_id uuid := '90000000-0000-0000-0000-000000000003';
+  v_intent_id uuid;
+begin
+  select id into v_intent_id
+  from public.claim_owner_password_recovery_intent(repeat('6', 64), v_claim_id);
+  if v_intent_id is null then
+    raise exception 'owner recovery claim for release test failed';
+  end if;
+
+  begin
+    update public.user_profiles
+    set role = 'manager'
+    where id = '10000000-0000-0000-0000-000000000099';
+    raise exception 'owner profile changed while password recovery was claimed';
+  exception
+    when raise_exception then
+      if sqlerrm <> 'owner profile change blocked during password recovery' then
+        raise;
+      end if;
+  end;
+
+  if not public.release_owner_password_recovery_claim(v_intent_id, v_claim_id) then
+    raise exception 'owner recovery claim did not release';
+  end if;
+
+  update public.user_profiles
+  set role = 'manager'
+  where id = '10000000-0000-0000-0000-000000000099';
+  update public.user_profiles
+  set role = 'owner'
+  where id = '10000000-0000-0000-0000-000000000099';
+end;
+$$;
+
+select public.issue_owner_password_recovery_intent(
+  '10000000-0000-0000-0000-000000000099',
+  repeat('7', 64),
+  now() + interval '10 minutes'
+);
+
+do $$
+declare
+  v_claim_id uuid := '90000000-0000-0000-0000-000000000004';
+  v_intent_id uuid;
+begin
+  select id into v_intent_id
+  from public.claim_owner_password_recovery_intent(repeat('7', 64), v_claim_id);
+  if not public.quarantine_owner_password_recovery_claim(
+    v_intent_id,
+    v_claim_id,
+    'identity_changed'
+  ) then
+    raise exception 'owner recovery quarantine did not succeed';
+  end if;
+  if (
+    select is_active
+    from public.user_profiles
+    where id = '10000000-0000-0000-0000-000000000099'
+  ) then
+    raise exception 'owner recovery quarantine left the profile active';
+  end if;
+
+  update public.user_profiles
+  set is_active = true
+  where id = '10000000-0000-0000-0000-000000000099';
 end;
 $$;
 
@@ -707,13 +799,50 @@ begin
        'execute'
      )
      or has_function_privilege(
-       'anon', 'public.claim_owner_password_recovery_intent(text)', 'execute'
+       'anon', 'public.claim_owner_password_recovery_intent(text,uuid)', 'execute'
      )
      or has_function_privilege(
-       'authenticated', 'public.claim_owner_password_recovery_intent(text)', 'execute'
+       'authenticated', 'public.claim_owner_password_recovery_intent(text,uuid)', 'execute'
      )
      or not has_function_privilege(
-       'service_role', 'public.claim_owner_password_recovery_intent(text)', 'execute'
+       'service_role', 'public.claim_owner_password_recovery_intent(text,uuid)', 'execute'
+     )
+     or has_function_privilege(
+       'anon', 'public.release_owner_password_recovery_claim(uuid,uuid)', 'execute'
+     )
+     or has_function_privilege(
+       'authenticated', 'public.release_owner_password_recovery_claim(uuid,uuid)', 'execute'
+     )
+     or not has_function_privilege(
+       'service_role', 'public.release_owner_password_recovery_claim(uuid,uuid)', 'execute'
+     )
+     or has_function_privilege(
+       'anon', 'public.finalize_owner_password_recovery_claim(uuid,uuid,text)', 'execute'
+     )
+     or has_function_privilege(
+       'authenticated',
+       'public.finalize_owner_password_recovery_claim(uuid,uuid,text)',
+       'execute'
+     )
+     or not has_function_privilege(
+       'service_role',
+       'public.finalize_owner_password_recovery_claim(uuid,uuid,text)',
+       'execute'
+     )
+     or has_function_privilege(
+       'anon',
+       'public.quarantine_owner_password_recovery_claim(uuid,uuid,text)',
+       'execute'
+     )
+     or has_function_privilege(
+       'authenticated',
+       'public.quarantine_owner_password_recovery_claim(uuid,uuid,text)',
+       'execute'
+     )
+     or not has_function_privilege(
+       'service_role',
+       'public.quarantine_owner_password_recovery_claim(uuid,uuid,text)',
+       'execute'
      )
      or has_table_privilege(
        'anon', 'public.owner_password_recovery_rate_limit_windows', 'select'

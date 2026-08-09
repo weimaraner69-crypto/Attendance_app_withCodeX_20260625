@@ -68,7 +68,9 @@ owner_second_token="$(printf '2%.0s' {1..64})"
 
 psql --set ON_ERROR_STOP=1 --command "
   begin;
-  select pg_advisory_xact_lock(hashtextextended('${owner_user_id}', 0));
+  select pg_advisory_xact_lock(
+    hashtextextended('owner-password-recovery:${owner_user_id}', 0)
+  );
   select public.issue_owner_password_recovery_intent(
     '${owner_user_id}', '${owner_first_token}', now() + interval '10 minutes'
   );
@@ -118,7 +120,10 @@ psql --set ON_ERROR_STOP=1 --command "
   begin;
   insert into public.owner_recovery_claim_concurrency_results (succeeded)
   select exists(
-    select 1 from public.claim_owner_password_recovery_intent('${owner_claim_token}')
+    select 1 from public.claim_owner_password_recovery_intent(
+      '${owner_claim_token}',
+      '90000000-0000-0000-0000-000000000011'
+    )
   );
   select pg_sleep(1);
   commit;
@@ -130,7 +135,10 @@ sleep 0.1
 psql --set ON_ERROR_STOP=1 --command "
   insert into public.owner_recovery_claim_concurrency_results (succeeded)
   select exists(
-    select 1 from public.claim_owner_password_recovery_intent('${owner_claim_token}')
+    select 1 from public.claim_owner_password_recovery_intent(
+      '${owner_claim_token}',
+      '90000000-0000-0000-0000-000000000012'
+    )
   );
 " >/dev/null &
 owner_claim_second_pid=$!
@@ -150,11 +158,78 @@ if [[ "${owner_claim_successes}" != "1" || "${owner_claim_rejections}" != "1" ]]
   exit 1
 fi
 
+owner_winning_claim_id="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select claim_id
+  from public.owner_password_recovery_intents
+  where token_hash = '${owner_claim_token}';
+")"
+owner_claim_intent_id="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select id
+  from public.owner_password_recovery_intents
+  where token_hash = '${owner_claim_token}';
+")"
+psql --set ON_ERROR_STOP=1 --command "
+  select public.finalize_owner_password_recovery_claim(
+    '${owner_claim_intent_id}',
+    '${owner_winning_claim_id}',
+    'updated'
+  );
+" >/dev/null
+
 psql --set ON_ERROR_STOP=1 --command "
   drop table public.owner_recovery_claim_concurrency_results;
 " >/dev/null
 
 echo "concurrent owner password intent claim passed"
+
+owner_profile_guard_token="$(printf '8%.0s' {1..64})"
+owner_profile_guard_claim_id="90000000-0000-0000-0000-000000000013"
+psql --set ON_ERROR_STOP=1 --command "
+  select public.issue_owner_password_recovery_intent(
+    '${owner_user_id}', '${owner_profile_guard_token}', now() + interval '10 minutes'
+  );
+" >/dev/null
+
+psql --set ON_ERROR_STOP=1 --command "
+  begin;
+  select * from public.claim_owner_password_recovery_intent(
+    '${owner_profile_guard_token}',
+    '${owner_profile_guard_claim_id}'
+  );
+  select pg_advisory_xact_lock(
+    hashtextextended('staff-auth-test-ready:owner-profile-guard', 0)
+  );
+  select pg_sleep(1);
+  commit;
+" >/dev/null &
+owner_profile_guard_pid=$!
+
+wait_for_test_ready "owner-profile-guard"
+
+if psql --set ON_ERROR_STOP=1 --command "
+  update public.user_profiles
+  set role = 'manager'
+  where id = '${owner_user_id}';
+" >/dev/null 2>&1; then
+  echo "owner profile change bypassed an in-flight password recovery claim" >&2
+  exit 1
+fi
+
+wait "${owner_profile_guard_pid}"
+
+owner_profile_guard_intent_id="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select id
+  from public.owner_password_recovery_intents
+  where token_hash = '${owner_profile_guard_token}';
+")"
+psql --set ON_ERROR_STOP=1 --command "
+  select public.release_owner_password_recovery_claim(
+    '${owner_profile_guard_intent_id}',
+    '${owner_profile_guard_claim_id}'
+  );
+" >/dev/null
+
+echo "concurrent owner profile mutation guard passed"
 
 rate_limit_ip_hash="$(printf '4%.0s' {1..64})"
 rate_limit_email_hash="$(printf '5%.0s' {1..64})"

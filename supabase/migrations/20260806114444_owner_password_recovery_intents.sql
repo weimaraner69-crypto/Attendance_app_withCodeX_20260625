@@ -7,10 +7,17 @@ create table public.owner_password_recovery_intents (
   user_id uuid not null references auth.users(id) on delete cascade,
   token_hash text not null unique check (token_hash ~ '^[0-9a-f]{64}$'),
   expires_at timestamptz not null,
+  claim_id uuid,
+  claimed_at timestamptz,
   consumed_at timestamptz,
+  recovery_outcome text check (
+    recovery_outcome in ('updated', 'identity_changed', 'update_unknown', 'superseded')
+  ),
   created_at timestamptz not null default now(),
   check (expires_at > created_at),
-  check (consumed_at is null or consumed_at >= created_at)
+  check (consumed_at is null or consumed_at >= created_at),
+  check ((claim_id is null) = (claimed_at is null)),
+  check (recovery_outcome is null or consumed_at is not null)
 );
 
 create unique index idx_owner_password_recovery_intents_active_user
@@ -50,7 +57,9 @@ security definer
 set search_path = ''
 as $$
 begin
-  perform pg_advisory_xact_lock(hashtextextended(p_user_id::text, 0));
+  perform pg_advisory_xact_lock(
+    hashtextextended('owner-password-recovery:' || p_user_id::text, 0)
+  );
 
   if p_expires_at <= now() then
     raise exception 'owner password recovery intent expiry must be in the future';
@@ -69,7 +78,8 @@ begin
   end if;
 
   update public.owner_password_recovery_intents
-  set consumed_at = now()
+  set consumed_at = now(),
+      recovery_outcome = 'superseded'
   where user_id = p_user_id
     and consumed_at is null;
 
@@ -91,25 +101,244 @@ grant execute on function public.issue_owner_password_recovery_intent(uuid, text
   to service_role;
 
 create or replace function public.claim_owner_password_recovery_intent(
-  p_token_hash text
+  p_token_hash text,
+  p_claim_id uuid
 )
 returns table (id uuid, user_id uuid)
-language sql
+language plpgsql
 security definer
 set search_path = ''
 as $$
-  update public.owner_password_recovery_intents intent
-  set consumed_at = now()
+declare
+  v_user_id uuid;
+begin
+  if p_claim_id is null then
+    raise exception 'owner password recovery claim id is required';
+  end if;
+
+  select intent.user_id into v_user_id
+  from public.owner_password_recovery_intents intent
   where intent.token_hash = p_token_hash
     and intent.consumed_at is null
+    and intent.claim_id is null
+    and intent.expires_at > now();
+
+  if v_user_id is null then
+    return;
+  end if;
+
+  perform pg_advisory_xact_lock(
+    hashtextextended('owner-password-recovery:' || v_user_id::text, 0)
+  );
+
+  return query
+  update public.owner_password_recovery_intents intent
+  set claim_id = p_claim_id,
+      claimed_at = now()
+  where intent.token_hash = p_token_hash
+    and intent.user_id = v_user_id
+    and intent.consumed_at is null
+    and intent.claim_id is null
     and intent.expires_at > now()
+    and exists (
+      select 1
+      from public.user_profiles profile
+      join auth.users auth_user on auth_user.id = profile.id
+      where profile.id = intent.user_id
+        and profile.role = 'owner'
+        and profile.is_active = true
+        and lower(btrim(profile.email)) = lower(btrim(coalesce(auth_user.email, '')))
+    )
   returning intent.id, intent.user_id;
+end;
 $$;
 
-revoke all on function public.claim_owner_password_recovery_intent(text)
+revoke all on function public.claim_owner_password_recovery_intent(text, uuid)
   from public, anon, authenticated;
-grant execute on function public.claim_owner_password_recovery_intent(text)
+grant execute on function public.claim_owner_password_recovery_intent(text, uuid)
   to service_role;
+
+create or replace function public.release_owner_password_recovery_claim(
+  p_intent_id uuid,
+  p_claim_id uuid
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user_id uuid;
+begin
+  select intent.user_id into v_user_id
+  from public.owner_password_recovery_intents intent
+  where intent.id = p_intent_id
+    and intent.claim_id = p_claim_id
+    and intent.consumed_at is null;
+
+  if v_user_id is null then
+    return false;
+  end if;
+
+  perform pg_advisory_xact_lock(
+    hashtextextended('owner-password-recovery:' || v_user_id::text, 0)
+  );
+
+  update public.owner_password_recovery_intents intent
+  set claim_id = null,
+      claimed_at = null
+  where intent.id = p_intent_id
+    and intent.claim_id = p_claim_id
+    and intent.consumed_at is null;
+
+  return found;
+end;
+$$;
+
+revoke all on function public.release_owner_password_recovery_claim(uuid, uuid)
+  from public, anon, authenticated;
+grant execute on function public.release_owner_password_recovery_claim(uuid, uuid)
+  to service_role;
+
+create or replace function public.finalize_owner_password_recovery_claim(
+  p_intent_id uuid,
+  p_claim_id uuid,
+  p_outcome text
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user_id uuid;
+begin
+  if p_outcome not in ('updated', 'identity_changed', 'update_unknown') then
+    raise exception 'owner password recovery outcome is invalid';
+  end if;
+
+  select intent.user_id into v_user_id
+  from public.owner_password_recovery_intents intent
+  where intent.id = p_intent_id
+    and intent.claim_id = p_claim_id
+    and intent.consumed_at is null;
+
+  if v_user_id is null then
+    return false;
+  end if;
+
+  perform pg_advisory_xact_lock(
+    hashtextextended('owner-password-recovery:' || v_user_id::text, 0)
+  );
+
+  update public.owner_password_recovery_intents intent
+  set consumed_at = now(),
+      recovery_outcome = p_outcome
+  where intent.id = p_intent_id
+    and intent.claim_id = p_claim_id
+    and intent.consumed_at is null;
+
+  return found;
+end;
+$$;
+
+revoke all on function public.finalize_owner_password_recovery_claim(uuid, uuid, text)
+  from public, anon, authenticated;
+grant execute on function public.finalize_owner_password_recovery_claim(uuid, uuid, text)
+  to service_role;
+
+create or replace function public.quarantine_owner_password_recovery_claim(
+  p_intent_id uuid,
+  p_claim_id uuid,
+  p_outcome text
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user_id uuid;
+begin
+  if p_outcome not in ('identity_changed', 'update_unknown') then
+    raise exception 'owner password recovery quarantine outcome is invalid';
+  end if;
+
+  select intent.user_id into v_user_id
+  from public.owner_password_recovery_intents intent
+  where intent.id = p_intent_id
+    and intent.claim_id = p_claim_id
+    and intent.consumed_at is null;
+
+  if v_user_id is null then
+    return false;
+  end if;
+
+  perform pg_advisory_xact_lock(
+    hashtextextended('owner-password-recovery:' || v_user_id::text, 0)
+  );
+
+  update public.owner_password_recovery_intents intent
+  set consumed_at = now(),
+      recovery_outcome = p_outcome
+  where intent.id = p_intent_id
+    and intent.claim_id = p_claim_id
+    and intent.consumed_at is null;
+
+  if not found then
+    return false;
+  end if;
+
+  update public.user_profiles profile
+  set is_active = false
+  where profile.id = v_user_id
+    and profile.is_active = true;
+
+  return true;
+end;
+$$;
+
+revoke all on function public.quarantine_owner_password_recovery_claim(uuid, uuid, text)
+  from public, anon, authenticated;
+grant execute on function public.quarantine_owner_password_recovery_claim(uuid, uuid, text)
+  to service_role;
+
+create or replace function private.guard_owner_password_recovery_claim()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  perform pg_advisory_xact_lock(
+    hashtextextended('owner-password-recovery:' || old.id::text, 0)
+  );
+
+  if exists (
+    select 1
+    from public.owner_password_recovery_intents intent
+    where intent.user_id = old.id
+      and intent.claim_id is not null
+      and intent.consumed_at is null
+      and intent.expires_at > now()
+  ) then
+    raise exception 'owner profile change blocked during password recovery';
+  end if;
+
+  if tg_op = 'DELETE' then
+    return old;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists guard_owner_password_recovery_claim on public.user_profiles;
+create trigger guard_owner_password_recovery_claim
+before update of email, role, is_active or delete on public.user_profiles
+for each row execute function private.guard_owner_password_recovery_claim();
+
+revoke execute on function private.guard_owner_password_recovery_claim()
+  from public, anon, authenticated, service_role;
 
 create or replace function public.consume_owner_password_recovery_rate_limit(
   p_ip_hash text,

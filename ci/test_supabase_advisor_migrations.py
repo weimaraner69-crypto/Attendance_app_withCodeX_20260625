@@ -264,6 +264,21 @@ class OwnerPasswordRecoveryMigrationTest(TestCase):
             "create or replace function public.claim_owner_password_recovery_intent",
             migration,
         )
+        self.assertIn("p_claim_id uuid", migration)
+        self.assertIn(
+            "create or replace function public.release_owner_password_recovery_claim",
+            migration,
+        )
+        self.assertIn(
+            "create or replace function public.finalize_owner_password_recovery_claim",
+            migration,
+        )
+        self.assertIn(
+            "create or replace function public.quarantine_owner_password_recovery_claim",
+            migration,
+        )
+        self.assertIn("create trigger guard_owner_password_recovery_claim", migration)
+        self.assertIn("set is_active = false", migration)
         self.assertIn(
             "create table public.owner_password_recovery_rate_limit_windows",
             migration,

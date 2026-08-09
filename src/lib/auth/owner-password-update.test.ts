@@ -1,9 +1,26 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  classifyOwnerAuthUpdateError,
   updateOwnerPasswordWithIntent,
   type OwnerPasswordUpdateOperations,
 } from './owner-password-update';
+
+describe('owner Auth update error classification', () => {
+  it.each([400, 401, 409, 422, 429])(
+    'treats HTTP %s as an explicit rejection',
+    (status) => {
+      expect(classifyOwnerAuthUpdateError(status)).toBe('rejected');
+    }
+  );
+
+  it.each([undefined, null, 399, 500, 503, '500'])(
+    'treats %s as an unknown update result',
+    (status) => {
+      expect(classifyOwnerAuthUpdateError(status)).toBe('unknown');
+    }
+  );
+});
 
 function operations(
   overrides: Partial<OwnerPasswordUpdateOperations> = {}
@@ -12,13 +29,17 @@ function operations(
     findActiveIntent: vi.fn(async () => ({ id: 'intent-1', user_id: 'owner-user-1' })),
     hasValidOwnerIdentity: vi.fn(async () => true),
     claimIntent: vi.fn(async () => ({ id: 'intent-1', user_id: 'owner-user-1' })),
-    updatePassword: vi.fn(async () => true),
+    releaseIntent: vi.fn(async () => true),
+    finalizeIntent: vi.fn(async () => true),
+    quarantineIntent: vi.fn(async () => true),
+    updatePassword: vi.fn(async () => 'updated'),
+    disableAuthCredentials: vi.fn(async () => true),
     ...overrides,
   };
 }
 
 describe('DB-backed owner password intent', () => {
-  it('claims the intent, revalidates identity, then updates the owner Auth user', async () => {
+  it('claims, checks identity immediately around the Auth update, then finalizes', async () => {
     const order: string[] = [];
     const deps = operations({
       claimIntent: vi.fn(async () => {
@@ -31,6 +52,10 @@ describe('DB-backed owner password intent', () => {
       }),
       updatePassword: vi.fn(async () => {
         order.push('update');
+        return 'updated';
+      }),
+      finalizeIntent: vi.fn(async () => {
+        order.push('finalize');
         return true;
       }),
     });
@@ -40,12 +65,18 @@ describe('DB-backed owner password intent', () => {
       password: 'new-password',
       operations: deps,
     })).resolves.toEqual({ ok: true, code: 'updated' });
-    expect(order).toEqual(['claim', 'identity', 'update']);
+    expect(order).toEqual(['claim', 'identity', 'update', 'identity', 'finalize']);
+    expect(deps.claimIntent).toHaveBeenCalledWith(expect.any(String), expect.any(String));
+    expect(deps.finalizeIntent).toHaveBeenCalledWith(
+      'intent-1',
+      expect.any(String),
+      'updated'
+    );
   });
 
   it('allows only one concurrent request to claim an intent', async () => {
     let claimed = false;
-    const updatePassword = vi.fn(async () => true);
+    const updatePassword = vi.fn(async () => 'updated' as const);
     const deps = operations({
       claimIntent: vi.fn(async () => {
         if (claimed) return null;
@@ -65,7 +96,7 @@ describe('DB-backed owner password intent', () => {
     expect(updatePassword).toHaveBeenCalledOnce();
   });
 
-  it('consumes the intent and fails closed if the owner identity changed before update', async () => {
+  it('finalizes the intent without updating if identity is invalid before update', async () => {
     const deps = operations({ hasValidOwnerIdentity: vi.fn(async () => false) });
     await expect(updateOwnerPasswordWithIntent({
       token: 'opaque-token',
@@ -74,6 +105,11 @@ describe('DB-backed owner password intent', () => {
     })).resolves.toEqual({ ok: false, code: 'invalid_identity' });
     expect(deps.claimIntent).toHaveBeenCalledOnce();
     expect(deps.updatePassword).not.toHaveBeenCalled();
+    expect(deps.finalizeIntent).toHaveBeenCalledWith(
+      'intent-1',
+      expect.any(String),
+      'identity_changed'
+    );
   });
 
   it('rechecks identity after a role change during the atomic claim', async () => {
@@ -92,5 +128,82 @@ describe('DB-backed owner password intent', () => {
       operations: deps,
     })).resolves.toEqual({ ok: false, code: 'invalid_identity' });
     expect(deps.updatePassword).not.toHaveBeenCalled();
+  });
+
+  it('releases the claim after an explicit Auth rejection so the link can be retried', async () => {
+    const deps = operations({
+      updatePassword: vi.fn(async () => 'rejected'),
+    });
+
+    await expect(updateOwnerPasswordWithIntent({
+      token: 'opaque-token',
+      password: 'new-password',
+      operations: deps,
+    })).resolves.toEqual({ ok: false, code: 'update_failed_retryable' });
+    expect(deps.releaseIntent).toHaveBeenCalledWith('intent-1', expect.any(String));
+    expect(deps.finalizeIntent).not.toHaveBeenCalled();
+    expect(deps.disableAuthCredentials).not.toHaveBeenCalled();
+  });
+
+  it('quarantines the profile and disables Auth credentials after an unknown update result', async () => {
+    const deps = operations({
+      updatePassword: vi.fn(async () => 'unknown'),
+    });
+
+    await expect(updateOwnerPasswordWithIntent({
+      token: 'opaque-token',
+      password: 'new-password',
+      operations: deps,
+    })).resolves.toEqual({ ok: false, code: 'update_unknown' });
+    expect(deps.quarantineIntent).toHaveBeenCalledWith(
+      'intent-1',
+      expect.any(String),
+      'update_unknown'
+    );
+    expect(deps.disableAuthCredentials).toHaveBeenCalledWith('owner-user-1');
+  });
+
+  it('compensates if identity changes after the Auth password update', async () => {
+    const hasValidOwnerIdentity = vi.fn()
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false);
+    const deps = operations({ hasValidOwnerIdentity });
+
+    await expect(updateOwnerPasswordWithIntent({
+      token: 'opaque-token',
+      password: 'new-password',
+      operations: deps,
+    })).resolves.toEqual({ ok: false, code: 'invalid_identity' });
+    expect(deps.quarantineIntent).toHaveBeenCalledWith(
+      'intent-1',
+      expect.any(String),
+      'identity_changed'
+    );
+    expect(deps.disableAuthCredentials).toHaveBeenCalledWith('owner-user-1');
+    expect(deps.finalizeIntent).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when either post-update compensation barrier fails', async () => {
+    const deps = operations({
+      updatePassword: vi.fn(async () => 'unknown'),
+      quarantineIntent: vi.fn(async () => false),
+    });
+
+    await expect(updateOwnerPasswordWithIntent({
+      token: 'opaque-token',
+      password: 'new-password',
+      operations: deps,
+    })).resolves.toEqual({ ok: false, code: 'compensation_failed' });
+    expect(deps.disableAuthCredentials).toHaveBeenCalledOnce();
+  });
+
+  it('does not report success unless the claimed intent is finalized', async () => {
+    const deps = operations({ finalizeIntent: vi.fn(async () => false) });
+
+    await expect(updateOwnerPasswordWithIntent({
+      token: 'opaque-token',
+      password: 'new-password',
+      operations: deps,
+    })).resolves.toEqual({ ok: false, code: 'finalize_failed' });
   });
 });

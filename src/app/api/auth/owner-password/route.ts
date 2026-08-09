@@ -1,3 +1,5 @@
+import { randomBytes } from 'crypto';
+
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
@@ -8,6 +10,7 @@ import {
   getOwnerPasswordIntentToken,
 } from '@/lib/auth/owner-password-intent';
 import {
+  classifyOwnerAuthUpdateError,
   updateOwnerPasswordWithIntent,
   validateOwnerPasswordIntent,
   type OwnerPasswordUpdateOperations,
@@ -34,17 +37,55 @@ function createOperations(
     hasValidOwnerIdentity: (userId) => (
       hasValidOwnerAuthIdentityForUser(userId, identityOperations)
     ),
-    async claimIntent(tokenHash) {
+    async claimIntent(tokenHash, claimId) {
       const { data, error } = await admin.rpc(
         'claim_owner_password_recovery_intent',
-        { p_token_hash: tokenHash }
+        { p_token_hash: tokenHash, p_claim_id: claimId }
       );
       if (error || !data?.length) return null;
       return data[0];
     },
+    async releaseIntent(intentId, claimId) {
+      const { data, error } = await admin.rpc(
+        'release_owner_password_recovery_claim',
+        { p_intent_id: intentId, p_claim_id: claimId }
+      );
+      return !error && data === true;
+    },
+    async finalizeIntent(intentId, claimId, outcome) {
+      const { data, error } = await admin.rpc(
+        'finalize_owner_password_recovery_claim',
+        { p_intent_id: intentId, p_claim_id: claimId, p_outcome: outcome }
+      );
+      return !error && data === true;
+    },
+    async quarantineIntent(intentId, claimId, outcome) {
+      const { data, error } = await admin.rpc(
+        'quarantine_owner_password_recovery_claim',
+        { p_intent_id: intentId, p_claim_id: claimId, p_outcome: outcome }
+      );
+      return !error && data === true;
+    },
     async updatePassword(userId, password) {
-      const { error } = await admin.auth.admin.updateUserById(userId, { password });
-      return !error;
+      try {
+        const { error } = await admin.auth.admin.updateUserById(userId, { password });
+        if (!error) return 'updated';
+        return classifyOwnerAuthUpdateError(error.status);
+      } catch {
+        return 'unknown';
+      }
+    },
+    async disableAuthCredentials(userId) {
+      const password = randomBytes(48).toString('base64url');
+      try {
+        const { error } = await admin.auth.admin.updateUserById(userId, {
+          password,
+          ban_duration: '876000h',
+        });
+        return !error;
+      } catch {
+        return false;
+      }
     },
   };
 }
@@ -84,11 +125,16 @@ export async function POST(request: Request) {
     password: body.password,
     operations: createOperations(admin),
   });
-  clearOwnerPasswordIntent();
+
+  const retryable = !result.ok && result.code === 'update_failed_retryable';
+  if (!retryable) clearOwnerPasswordIntent();
 
   if (!result.ok) {
-    const status = result.code === 'update_failed' ? 400 : 401;
-    return NextResponse.json({ updated: false }, { status });
+    const status = retryable ? 503 : result.code === 'invalid_intent' ? 401 : 409;
+    return NextResponse.json(
+      { updated: false, retryable },
+      { status, headers: { 'Cache-Control': 'no-store' } }
+    );
   }
   return NextResponse.json(
     { updated: true },

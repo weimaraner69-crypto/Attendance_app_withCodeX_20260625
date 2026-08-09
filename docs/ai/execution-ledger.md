@@ -17,19 +17,19 @@
 
 ## 記録
 
-### 現在状態（2026-08-06 Issue #26オーナーパスワード再設定・最新）
+### 現在状態（2026-08-09 Issue #26オーナーパスワード再設定Round 3例外・最新）
 
 - 現在の mode: `daily_development`（Issue #26の公開本人回復導線実装）
 - active branch: `feat/owner-self-service-password-recovery`
 - 直近完了 PR: PR #25（Issue #5詳細APIの実装準備仕様）を2026-08-06に `main` へマージ済み
-- 現在タスク: PR #27 Round 2独立reviewのMust 1件・Should 2件・Nice 1件に対応中。owner確認・メール送信のレスポンス後分離、IP遮断後のメール行増加防止、古い窓の段階削除、レート窓の全DML権限・窓更新回帰を追加する
+- 現在タスク: PR #27 Round 3で検出したMust 1件・Should 2件を、オーナーの明示承認に基づく例外として修正中。intent状態機械、claim中profile変更guard、更新前後本人確認、結果不明時のprofile/Auth補償無効化、明確なAuth拒否時の再試行を実装する
 - requirements/spec: GitHub Issue #26、`docs/specs/issue-26-owner-password-recovery.md`、`docs/operations-maintenance.md`
-- review baseline: Round 1 head `ec4ccaa35a8481d80bc08ba728bc4d0ea1e48ffe`をSocratesが確認し、全指摘をcommit `66be35d48c2d6168607f616f38ccfa9d1c058905`へ反映。Round 2は同headを独立reviewer Confucius `019fd72b-43a6-7512-aa34-bfe6a478edfa`が`full_repo_agentic`で確認し、Must 1件、Should 2件、Nice 1件を検出
-- CI状況: commit `66be35d48c2d6168607f616f38ccfa9d1c058905`のRun 83はquality-gateとsecret-scanが成功。review-evidence-gateはRound 2証跡未追加のため失敗
-- 検証状況: Round 1修正後に全Vitest 177件、Python policy/migration 39件、policy check、lint、build、diff check、一時PostgreSQLの全migration、owner/staff intent競合、owner claim、メール5件・IP20件の並行レート制限が成功
-- 次タスク: Round 2指摘を全修正・再検証して証跡JSONとともにcommit・pushし、別reviewer/sessionのRound 3 `full_repo_agentic`レビューと全CIへ進む
+- review baseline: Round 2修正commit `c497b493c57da301f58a613775ef1bebb442d6e8`を独立reviewer Curie `019fd743-a44c-7932-890d-9e47a414f245`がRound 3 `full_repo_agentic`で確認。Must 1件、Should 2件、Nice 0件を検出しfail-close。2026-08-09にオーナーが追加修正・push・例外後独立確認を明示承認した
+- CI状況: commit `c497b493c57da301f58a613775ef1bebb442d6e8`のRun 84はquality-gate、secret-scan、Vercelが成功。review-evidence-gateだけがRound 3証跡待ちで失敗
+- 検証状況: 例外修正後のVitest 193件、Python 39件、policy、lint、build、diff check、一時PostgreSQLの全migration、claim/release/finalize/quarantine、claim中profile変更拒否、owner/staff全並行競合、migration rollback・writer lockが成功
+- 次タスク: 全品質ゲート後にRound 3証跡と例外修正をcommit・pushし、別reviewer/sessionによる例外後独立確認、証跡専用push、最終CIへ進む。自動Round 4レビューとしては扱わない
 - 安全床: `.env.local`を読まない。秘密情報を表示しない。本番Supabase変更、実メール送信、本番デプロイ、日報側実接続、PRマージは対象外
-- 最終更新: 2026-08-06
+- 最終更新: 2026-08-09
 
 ### 現在状態（2026-08-06 Issue #5詳細APIの実装準備・履歴）
 

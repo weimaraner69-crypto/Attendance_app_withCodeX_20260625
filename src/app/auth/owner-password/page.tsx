@@ -54,7 +54,10 @@ export default function OwnerPasswordPage() {
       body: JSON.stringify({ password }),
     }).catch(() => null);
     if (!response?.ok) {
-      setErrorMessage('パスワードを更新できませんでした。新しいリンクでやり直してください。');
+      const result = await response?.json().catch(() => null) as { retryable?: boolean } | null;
+      setErrorMessage(result?.retryable
+        ? '更新サービスが一時的に利用できません。この画面のまま、しばらくしてから再度お試しください。'
+        : 'パスワードを更新できませんでした。新しいリンクでやり直してください。');
       setIsSubmitting(false);
       return;
     }
