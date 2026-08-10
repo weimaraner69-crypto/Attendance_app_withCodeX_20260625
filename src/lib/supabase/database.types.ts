@@ -64,6 +64,24 @@ export type Database = {
         consumed_at: Timestamp | null;
         created_at: Timestamp;
       }>;
+      owner_password_recovery_intents: Table<{
+        id: string;
+        user_id: string;
+        token_hash: string;
+        expires_at: Timestamp;
+        claim_id: string | null;
+        claimed_at: Timestamp | null;
+        consumed_at: Timestamp | null;
+        recovery_outcome: 'updated' | 'identity_changed' | 'update_unknown' | 'superseded' | null;
+        created_at: Timestamp;
+      }>;
+      owner_password_recovery_rate_limit_windows: Table<{
+        scope: 'ip' | 'email';
+        subject_hash: string;
+        window_started_at: Timestamp;
+        request_count: number;
+        updated_at: Timestamp;
+      }>;
       stores: Table<{
         id: string;
         organization_id: string;
@@ -352,6 +370,63 @@ export type Database = {
           p_expires_at: Timestamp;
         };
         Returns: undefined;
+      };
+      issue_owner_password_recovery_intent: {
+        Args: {
+          p_user_id: string;
+          p_token_hash: string;
+          p_expires_at: Timestamp;
+        };
+        Returns: undefined;
+      };
+      claim_owner_password_recovery_intent: {
+        Args: {
+          p_token_hash: string;
+          p_claim_id: string;
+        };
+        Returns: {
+          id: string;
+          user_id: string;
+          claim_status: string;
+        }[];
+      };
+      is_owner_password_recovery_claim_active: {
+        Args: {
+          p_intent_id: string;
+          p_claim_id: string;
+        };
+        Returns: boolean;
+      };
+      release_owner_password_recovery_claim: {
+        Args: {
+          p_intent_id: string;
+          p_claim_id: string;
+        };
+        Returns: boolean;
+      };
+      finalize_owner_password_recovery_claim: {
+        Args: {
+          p_intent_id: string;
+          p_claim_id: string;
+          p_outcome: 'updated' | 'identity_changed' | 'update_unknown';
+        };
+        Returns: boolean;
+      };
+      quarantine_owner_password_recovery_claim: {
+        Args: {
+          p_intent_id: string;
+          p_claim_id: string;
+          p_outcome: 'identity_changed' | 'update_unknown';
+        };
+        Returns: boolean;
+      };
+      consume_owner_password_recovery_rate_limit: {
+        Args: {
+          p_ip_hash: string;
+          p_email_hash: string;
+          p_now?: Timestamp;
+        };
+        Returns: boolean;
       };
       consume_external_api_rate_limit: {
         Args: {

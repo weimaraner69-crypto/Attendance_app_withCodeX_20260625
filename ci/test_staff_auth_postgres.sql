@@ -25,6 +25,20 @@ insert into auth.users (id) values
   ('10000000-0000-0000-0000-000000000003'),
   ('10000000-0000-0000-0000-000000000004');
 
+insert into auth.users (id, email) values
+  ('10000000-0000-0000-0000-000000000099', 'owner@example.test');
+
+insert into public.user_profiles (
+  id, organization_id, role, display_name, email, is_active
+) values (
+  '10000000-0000-0000-0000-000000000099',
+  '00000000-0000-0000-0000-000000000001',
+  'owner',
+  'Owner 1',
+  'OWNER@example.test',
+  true
+);
+
 insert into public.staff (id, organization_id, name, email) values
   (
     '20000000-0000-0000-0000-000000000001',
@@ -417,6 +431,385 @@ select public.issue_staff_password_intent(
   'invite',
   now() + interval '10 minutes'
 );
+
+select public.issue_owner_password_recovery_intent(
+  '10000000-0000-0000-0000-000000000099',
+  repeat('f', 64),
+  now() + interval '10 minutes'
+);
+select public.issue_owner_password_recovery_intent(
+  '10000000-0000-0000-0000-000000000099',
+  repeat('0', 64),
+  now() + interval '10 minutes'
+);
+
+do $$
+declare
+  claimed_count integer;
+  v_claim_status text;
+  v_claim_id uuid := '90000000-0000-0000-0000-000000000001';
+begin
+  if (
+    select count(*) from public.owner_password_recovery_intents
+    where user_id = '10000000-0000-0000-0000-000000000099'
+      and consumed_at is null
+  ) <> 1 then
+    raise exception 'more than one active owner recovery intent exists';
+  end if;
+
+  select count(*) into claimed_count
+  from public.claim_owner_password_recovery_intent(repeat('0', 64), v_claim_id);
+  if claimed_count <> 1 then
+    raise exception 'first owner recovery claim did not succeed exactly once';
+  end if;
+
+  select claim_status into v_claim_status
+  from public.claim_owner_password_recovery_intent(
+    repeat('0', 64),
+    '90000000-0000-0000-0000-000000000002'
+  );
+  if v_claim_status is distinct from 'busy' then
+    raise exception 'concurrent owner recovery claim was not reported as busy';
+  end if;
+
+  begin
+    perform public.issue_owner_password_recovery_intent(
+      '10000000-0000-0000-0000-000000000099',
+      repeat('9', 64),
+      now() + interval '10 minutes'
+    );
+    raise exception 'new owner recovery intent superseded a claimed intent';
+  exception
+    when raise_exception then
+      if sqlerrm <> 'owner password recovery is already in progress' then
+        raise;
+      end if;
+  end;
+
+  if not exists (
+    select 1
+    from public.owner_password_recovery_intents
+    where token_hash = repeat('0', 64)
+      and claim_id = v_claim_id
+      and consumed_at is null
+      and recovery_outcome is null
+  ) then
+    raise exception 'claimed owner recovery intent changed after rejected issuance';
+  end if;
+
+  if not public.finalize_owner_password_recovery_claim(
+    (
+      select id
+      from public.owner_password_recovery_intents
+      where token_hash = repeat('0', 64)
+    ),
+    v_claim_id,
+    'updated'
+  ) then
+    raise exception 'owner recovery intent did not finalize';
+  end if;
+end;
+$$;
+
+select public.issue_owner_password_recovery_intent(
+  '10000000-0000-0000-0000-000000000099',
+  repeat('6', 64),
+  now() + interval '10 minutes'
+);
+
+do $$
+declare
+  v_claim_id uuid := '90000000-0000-0000-0000-000000000003';
+  v_retry_claim_id uuid := '90000000-0000-0000-0000-000000000005';
+  v_intent_id uuid;
+  v_retry_status text;
+begin
+  select id into v_intent_id
+  from public.claim_owner_password_recovery_intent(repeat('6', 64), v_claim_id);
+  if v_intent_id is null then
+    raise exception 'owner recovery claim for release test failed';
+  end if;
+
+  begin
+    update public.user_profiles
+    set role = 'manager'
+    where id = '10000000-0000-0000-0000-000000000099';
+    raise exception 'owner profile changed while password recovery was claimed';
+  exception
+    when raise_exception then
+      if sqlerrm <> 'owner profile change blocked during password recovery' then
+        raise;
+      end if;
+  end;
+
+  if not public.release_owner_password_recovery_claim(v_intent_id, v_claim_id) then
+    raise exception 'owner recovery claim did not release';
+  end if;
+
+  update public.user_profiles
+  set role = 'manager'
+  where id = '10000000-0000-0000-0000-000000000099';
+  update public.user_profiles
+  set role = 'owner'
+  where id = '10000000-0000-0000-0000-000000000099';
+
+  select claim_status into v_retry_status
+  from public.claim_owner_password_recovery_intent(
+    repeat('6', 64),
+    v_retry_claim_id
+  );
+  if v_retry_status is distinct from 'claimed' then
+    raise exception 'released owner recovery claim was not retryable';
+  end if;
+  if not public.finalize_owner_password_recovery_claim(
+    v_intent_id,
+    v_retry_claim_id,
+    'updated'
+  ) then
+    raise exception 'retried owner recovery claim did not finalize';
+  end if;
+end;
+$$;
+
+select public.issue_owner_password_recovery_intent(
+  '10000000-0000-0000-0000-000000000099',
+  repeat('7', 64),
+  now() + interval '10 minutes'
+);
+
+do $$
+declare
+  v_claim_id uuid := '90000000-0000-0000-0000-000000000004';
+  v_intent_id uuid;
+begin
+  select id into v_intent_id
+  from public.claim_owner_password_recovery_intent(repeat('7', 64), v_claim_id);
+  if not public.quarantine_owner_password_recovery_claim(
+    v_intent_id,
+    v_claim_id,
+    'identity_changed'
+  ) then
+    raise exception 'owner recovery quarantine did not succeed';
+  end if;
+  if (
+    select is_active
+    from public.user_profiles
+    where id = '10000000-0000-0000-0000-000000000099'
+  ) then
+    raise exception 'owner recovery quarantine left the profile active';
+  end if;
+
+  update public.user_profiles
+  set is_active = true
+  where id = '10000000-0000-0000-0000-000000000099';
+end;
+$$;
+
+select public.issue_owner_password_recovery_intent(
+  '10000000-0000-0000-0000-000000000099',
+  repeat('a', 64),
+  now() + interval '10 minutes'
+);
+select *
+from public.claim_owner_password_recovery_intent(
+  repeat('a', 64),
+  '90000000-0000-0000-0000-000000000006'
+);
+update public.owner_password_recovery_intents
+set created_at = now() - interval '20 minutes',
+    claimed_at = now(),
+    expires_at = now() - interval '1 minute'
+where token_hash = repeat('a', 64);
+
+do $$
+declare
+  v_claim_status text;
+  v_intent_id uuid;
+begin
+  select id into v_intent_id
+  from public.owner_password_recovery_intents
+  where token_hash = repeat('a', 64);
+
+  select claim_status into v_claim_status
+  from public.claim_owner_password_recovery_intent(
+    repeat('a', 64),
+    '90000000-0000-0000-0000-000000000007'
+  );
+  if v_claim_status is distinct from 'busy' then
+    raise exception 'expired intent with an active claim lease was not busy';
+  end if;
+  if not public.is_owner_password_recovery_claim_active(
+    v_intent_id,
+    '90000000-0000-0000-0000-000000000006'
+  ) then
+    raise exception 'active owner recovery claim fence was not visible';
+  end if;
+
+  begin
+    update public.user_profiles
+    set role = 'manager'
+    where id = '10000000-0000-0000-0000-000000000099';
+    raise exception 'profile changed while the owner claim lease was active';
+  exception
+    when raise_exception then
+      if sqlerrm <> 'owner profile change blocked during password recovery' then
+        raise;
+      end if;
+  end;
+
+  begin
+    perform public.issue_owner_password_recovery_intent(
+      '10000000-0000-0000-0000-000000000099',
+      repeat('b', 64),
+      now() + interval '10 minutes'
+    );
+    raise exception 'replacement issued while the owner claim lease was active';
+  exception
+    when raise_exception then
+      if sqlerrm <> 'owner password recovery is already in progress' then
+        raise;
+      end if;
+  end;
+end;
+$$;
+
+update public.owner_password_recovery_intents
+set claimed_at = now() - interval '6 minutes'
+where token_hash = repeat('a', 64);
+select public.issue_owner_password_recovery_intent(
+  '10000000-0000-0000-0000-000000000099',
+  repeat('b', 64),
+  now() + interval '10 minutes'
+);
+
+do $$
+declare
+  v_old_intent_id uuid;
+begin
+  select id into v_old_intent_id
+  from public.owner_password_recovery_intents
+  where token_hash = repeat('a', 64);
+  if public.is_owner_password_recovery_claim_active(
+    v_old_intent_id,
+    '90000000-0000-0000-0000-000000000006'
+  ) then
+    raise exception 'superseded owner recovery claim fence remained active';
+  end if;
+  if not exists (
+    select 1
+    from public.owner_password_recovery_intents
+    where token_hash = repeat('a', 64)
+      and consumed_at is not null
+      and recovery_outcome = 'superseded'
+  ) then
+    raise exception 'expired owner recovery claim was not terminalized';
+  end if;
+  if not exists (
+    select 1
+    from public.owner_password_recovery_intents
+    where token_hash = repeat('b', 64)
+      and consumed_at is null
+      and claim_id is null
+  ) then
+    raise exception 'replacement owner recovery intent was not issued';
+  end if;
+end;
+$$;
+
+do $$
+declare
+  v_allowed boolean;
+  v_email_rows_before integer;
+  v_email_rows_after integer;
+  v_index integer;
+  v_now timestamptz := '2026-08-06T12:00:00Z';
+begin
+  for v_index in 1..5 loop
+    select public.consume_owner_password_recovery_rate_limit(
+      repeat('a', 64), repeat('b', 64), v_now
+    ) into v_allowed;
+    if not v_allowed then
+      raise exception 'owner recovery email limit rejected request %', v_index;
+    end if;
+  end loop;
+  select public.consume_owner_password_recovery_rate_limit(
+    repeat('a', 64), repeat('b', 64), v_now
+  ) into v_allowed;
+  if v_allowed then
+    raise exception 'sixth owner recovery request for one email must be rejected';
+  end if;
+
+  for v_index in 1..20 loop
+    select public.consume_owner_password_recovery_rate_limit(
+      repeat('c', 64), md5(v_index::text) || md5(v_index::text), v_now
+    ) into v_allowed;
+    if not v_allowed then
+      raise exception 'owner recovery IP limit rejected request %', v_index;
+    end if;
+  end loop;
+  select public.consume_owner_password_recovery_rate_limit(
+    repeat('c', 64), repeat('d', 64), v_now
+  ) into v_allowed;
+  if v_allowed then
+    raise exception 'twenty-first owner recovery request for one IP must be rejected';
+  end if;
+
+  select count(*) into v_email_rows_before
+  from public.owner_password_recovery_rate_limit_windows
+  where scope = 'email';
+  select public.consume_owner_password_recovery_rate_limit(
+    repeat('c', 64), repeat('e', 64), v_now
+  ) into v_allowed;
+  select count(*) into v_email_rows_after
+  from public.owner_password_recovery_rate_limit_windows
+  where scope = 'email';
+  if v_allowed or v_email_rows_after <> v_email_rows_before then
+    raise exception 'blocked IP created or changed an email rate-limit row';
+  end if;
+
+  for v_index in 1..5 loop
+    perform public.consume_owner_password_recovery_rate_limit(
+      repeat('1', 64), repeat('2', 64), v_now
+    );
+  end loop;
+  select public.consume_owner_password_recovery_rate_limit(
+    repeat('1', 64), repeat('2', 64), v_now + interval '15 minutes'
+  ) into v_allowed;
+  if not v_allowed then
+    raise exception 'owner recovery rate limit did not reset in a new window';
+  end if;
+  select public.consume_owner_password_recovery_rate_limit(
+    repeat('1', 64), repeat('2', 64), v_now + interval '14 minutes'
+  ) into v_allowed;
+  if not v_allowed or not exists (
+    select 1
+    from public.owner_password_recovery_rate_limit_windows
+    where scope = 'email'
+      and subject_hash = repeat('2', 64)
+      and window_started_at = v_now + interval '15 minutes'
+      and request_count = 2
+      and updated_at = v_now + interval '15 minutes'
+  ) then
+    raise exception 'delayed owner recovery request rewound the active window';
+  end if;
+
+  insert into public.owner_password_recovery_rate_limit_windows (
+    scope, subject_hash, window_started_at, request_count, updated_at
+  ) values (
+    'email', repeat('3', 64), v_now - interval '2 days', 1, v_now - interval '2 days'
+  );
+  perform public.consume_owner_password_recovery_rate_limit(
+    repeat('4', 64), repeat('5', 64), v_now
+  );
+  if exists (
+    select 1
+    from public.owner_password_recovery_rate_limit_windows
+    where scope = 'email' and subject_hash = repeat('3', 64)
+  ) then
+    raise exception 'stale owner recovery rate-limit row was not removed';
+  end if;
+end;
+$$;
 delete from public.organizations
 where id = '00000000-0000-0000-0000-000000000003';
 
@@ -531,6 +924,133 @@ begin
      or not has_function_privilege(
        'service_role',
        'public.issue_staff_password_intent(uuid,text,text,timestamptz)',
+       'execute'
+     )
+     or has_table_privilege(
+       'anon', 'public.owner_password_recovery_intents', 'select'
+     )
+     or has_table_privilege(
+       'authenticated', 'public.owner_password_recovery_intents', 'select'
+     )
+     or has_table_privilege('anon', 'public.owner_password_recovery_intents', 'insert')
+     or has_table_privilege('anon', 'public.owner_password_recovery_intents', 'update')
+     or has_table_privilege('anon', 'public.owner_password_recovery_intents', 'delete')
+     or has_table_privilege('authenticated', 'public.owner_password_recovery_intents', 'insert')
+     or has_table_privilege('authenticated', 'public.owner_password_recovery_intents', 'update')
+     or has_table_privilege('authenticated', 'public.owner_password_recovery_intents', 'delete')
+     or has_function_privilege(
+       'anon',
+       'public.issue_owner_password_recovery_intent(uuid,text,timestamptz)',
+       'execute'
+     )
+     or has_function_privilege(
+       'authenticated',
+       'public.issue_owner_password_recovery_intent(uuid,text,timestamptz)',
+       'execute'
+     )
+     or not has_function_privilege(
+       'service_role',
+       'public.issue_owner_password_recovery_intent(uuid,text,timestamptz)',
+       'execute'
+     )
+     or has_function_privilege(
+       'anon', 'public.claim_owner_password_recovery_intent(text,uuid)', 'execute'
+     )
+     or has_function_privilege(
+       'authenticated', 'public.claim_owner_password_recovery_intent(text,uuid)', 'execute'
+     )
+     or not has_function_privilege(
+       'service_role', 'public.claim_owner_password_recovery_intent(text,uuid)', 'execute'
+     )
+     or has_function_privilege(
+       'anon',
+       'public.is_owner_password_recovery_claim_active(uuid,uuid)',
+       'execute'
+     )
+     or has_function_privilege(
+       'authenticated',
+       'public.is_owner_password_recovery_claim_active(uuid,uuid)',
+       'execute'
+     )
+     or not has_function_privilege(
+       'service_role',
+       'public.is_owner_password_recovery_claim_active(uuid,uuid)',
+       'execute'
+     )
+     or has_function_privilege(
+       'anon', 'public.release_owner_password_recovery_claim(uuid,uuid)', 'execute'
+     )
+     or has_function_privilege(
+       'authenticated', 'public.release_owner_password_recovery_claim(uuid,uuid)', 'execute'
+     )
+     or not has_function_privilege(
+       'service_role', 'public.release_owner_password_recovery_claim(uuid,uuid)', 'execute'
+     )
+     or has_function_privilege(
+       'anon', 'public.finalize_owner_password_recovery_claim(uuid,uuid,text)', 'execute'
+     )
+     or has_function_privilege(
+       'authenticated',
+       'public.finalize_owner_password_recovery_claim(uuid,uuid,text)',
+       'execute'
+     )
+     or not has_function_privilege(
+       'service_role',
+       'public.finalize_owner_password_recovery_claim(uuid,uuid,text)',
+       'execute'
+     )
+     or has_function_privilege(
+       'anon',
+       'public.quarantine_owner_password_recovery_claim(uuid,uuid,text)',
+       'execute'
+     )
+     or has_function_privilege(
+       'authenticated',
+       'public.quarantine_owner_password_recovery_claim(uuid,uuid,text)',
+       'execute'
+     )
+     or not has_function_privilege(
+       'service_role',
+       'public.quarantine_owner_password_recovery_claim(uuid,uuid,text)',
+       'execute'
+     )
+     or has_table_privilege(
+       'anon', 'public.owner_password_recovery_rate_limit_windows', 'select'
+     )
+     or has_table_privilege(
+       'authenticated', 'public.owner_password_recovery_rate_limit_windows', 'select'
+     )
+     or has_table_privilege(
+       'anon', 'public.owner_password_recovery_rate_limit_windows', 'insert'
+     )
+     or has_table_privilege(
+       'anon', 'public.owner_password_recovery_rate_limit_windows', 'update'
+     )
+     or has_table_privilege(
+       'anon', 'public.owner_password_recovery_rate_limit_windows', 'delete'
+     )
+     or has_table_privilege(
+       'authenticated', 'public.owner_password_recovery_rate_limit_windows', 'insert'
+     )
+     or has_table_privilege(
+       'authenticated', 'public.owner_password_recovery_rate_limit_windows', 'update'
+     )
+     or has_table_privilege(
+       'authenticated', 'public.owner_password_recovery_rate_limit_windows', 'delete'
+     )
+     or has_function_privilege(
+       'anon',
+       'public.consume_owner_password_recovery_rate_limit(text,text,timestamptz)',
+       'execute'
+     )
+     or has_function_privilege(
+       'authenticated',
+       'public.consume_owner_password_recovery_rate_limit(text,text,timestamptz)',
+       'execute'
+     )
+     or not has_function_privilege(
+       'service_role',
+       'public.consume_owner_password_recovery_rate_limit(text,text,timestamptz)',
        'execute'
      ) then
     raise exception 'staff Auth privileges are not fail-closed';

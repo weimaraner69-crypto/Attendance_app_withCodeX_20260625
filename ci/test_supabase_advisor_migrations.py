@@ -235,6 +235,93 @@ class StaffAuthSecurityMigrationTest(TestCase):
         )
 
 
+class OwnerPasswordRecoveryMigrationTest(TestCase):
+    MIGRATION = (
+        MIGRATIONS / "20260806114444_owner_password_recovery_intents.sql"
+    )
+
+    def test_owner_intents_are_single_use_and_service_role_only(self) -> None:
+        migration = self.MIGRATION.read_text(encoding="utf-8")
+
+        self.assertTrue(migration.startswith("-- Keep owner recovery"))
+        self.assertIn("create table public.owner_password_recovery_intents", migration)
+        self.assertIn("token_hash text not null unique", migration)
+        self.assertIn("where consumed_at is null", migration)
+        self.assertIn("pg_advisory_xact_lock", migration)
+        self.assertIn("profile.role = 'owner'", migration)
+        self.assertIn("profile.is_active = true", migration)
+        self.assertIn("join auth.users auth_user on auth_user.id = profile.id", migration)
+        self.assertIn("set search_path = ''", migration)
+        self.assertIn(
+            "revoke all on function public.issue_owner_password_recovery_intent",
+            migration,
+        )
+        self.assertIn(
+            "revoke all on public.owner_password_recovery_intents from public, anon, authenticated;",
+            migration,
+        )
+        self.assertIn(
+            "create or replace function public.claim_owner_password_recovery_intent",
+            migration,
+        )
+        self.assertIn("p_claim_id uuid", migration)
+        self.assertIn("owner password recovery is already in progress", migration)
+        self.assertIn("v_claim_lease constant interval := interval '5 minutes'", migration)
+        self.assertIn("expires_at <= now()", migration)
+        self.assertIn("claimed_at <= now() - v_claim_lease", migration)
+        self.assertIn("claim_id is null", migration)
+        self.assertIn("returns table (id uuid, user_id uuid, claim_status text)", migration)
+        self.assertIn("'busy'::text", migration)
+        self.assertIn("'claimed'::text", migration)
+        self.assertIn("from public.user_profiles profile\n  where profile.id = v_user_id\n  for update", migration)
+        self.assertIn(
+            "create or replace function public.is_owner_password_recovery_claim_active",
+            migration,
+        )
+        self.assertIn(
+            "intent.claimed_at > now() - interval '5 minutes'",
+            migration,
+        )
+        self.assertIn(
+            "revoke all on function public.is_owner_password_recovery_claim_active",
+            migration,
+        )
+        self.assertIn(
+            "create or replace function public.release_owner_password_recovery_claim",
+            migration,
+        )
+        self.assertIn(
+            "create or replace function public.finalize_owner_password_recovery_claim",
+            migration,
+        )
+        self.assertIn(
+            "create or replace function public.quarantine_owner_password_recovery_claim",
+            migration,
+        )
+        self.assertIn("create trigger guard_owner_password_recovery_claim", migration)
+        self.assertIn("set is_active = false", migration)
+        self.assertIn(
+            "create table public.owner_password_recovery_rate_limit_windows",
+            migration,
+        )
+        self.assertIn(
+            "create or replace function public.consume_owner_password_recovery_rate_limit",
+            migration,
+        )
+        self.assertIn(
+            "create index idx_owner_password_recovery_rate_limit_windows_updated_at",
+            migration,
+        )
+        self.assertIn("if v_ip_count > 20 then", migration)
+        self.assertIn("return v_email_count <= 5", migration)
+        self.assertIn("rate_window.updated_at < p_now - interval '1 day'", migration)
+        self.assertIn(
+            "revoke all on function public.consume_owner_password_recovery_rate_limit",
+            migration,
+        )
+        self.assertTrue(migration.rstrip().endswith("commit;"))
+
+
 class ExternalApiRateLimitMigrationTest(TestCase):
     RATE_LIMIT_MIGRATION = (
         MIGRATIONS / "20260716055206_external_api_rate_limit_access_logs.sql"

@@ -5,6 +5,38 @@
 
 ---
 
+## [2026-08-06] オーナー本人向け公開パスワード再設定を追加
+
+### 変更
+
+- ログイン画面から利用できるオーナー専用の再設定申請、メール本人確認、新パスワード設定画面を追加した。
+- 有効ownerのAuth/Profile ID・メール一致時だけ再設定メールを要求し、公開応答はアカウント状態や送信成否にかかわらず同じ202へ統一した。
+- 公開要求へHMAC化したIP・メール別の15分固定窓レート制限と2KB本文上限を追加し、owner確認とメール送信をレスポンス後の管理対象タスクへ分離して、濫用と応答時間によるアカウント列挙を抑止した。
+- IP上限到達後はメール別レート行へ触れず、古いレート窓を段階的に削除することで、遮断中の不要な行増加を防止した。
+- パスワード更新intentをclaim・release・finalizeへ分離し、明確なAuth拒否時だけ同じリンクで再試行できるようにした。claim中のownerプロフィール変更はDB advisory lockとtriggerで拒否する。
+- claim中は同一ownerへの新規intent発行も同じDB lockで拒否し、並行POSTの敗者は `claim_busy` としてCookieを保持することで、進行中の更新状態と再試行可能性を維持する。
+- 実行主体が失われたclaimは、リンク期限と5分のclaim leaseが両方切れた場合だけsupersededへ終端化し、部分一意索引を解放して新しい回復リンクを発行できるようにした。
+- 更新Routeを60秒で終了し、各Supabase通信を15秒で中断する実行上限を追加した。Auth更新の直前・直後にclaim所有権を再確認し、古いworkerによる更新や補償処理を拒否する。
+- Auth更新後にowner整合性が失われた場合や更新結果が不明な場合は、プロフィールを無効化し、Authパスワードを未知の乱数へ置換してbanする補償処理を追加した。
+- quarantineはprofile行lockを取得してからuser単位advisory lockを取得し、通常のprofile更新triggerと同じ順序に統一して補償経路のdeadlockを防止した。
+- owner専用の短命・単回利用intent、HttpOnly Cookie、更新直前の本人整合性再検証、同一Origin制約を追加した。
+- Recoveryメールを要求時の `RedirectTo` へ分岐させ、既存staffは従来の `/auth/confirm`、ownerは `/auth/owner-confirm` へ到達するようにした。
+- migrationの全DML権限、単回利用、並行発行・並行claim、claim中の新規発行とプロフィール変更拒否、release・finalize・quarantine、レート制限と、staff導線の回帰を自動テストへ追加した。
+
+### 影響ファイル
+
+- `src/app/owner/password-recovery/**`
+- `src/app/auth/owner-confirm/**`
+- `src/app/auth/owner-password/**`
+- `src/app/api/auth/owner-password*/**`
+- `src/lib/auth/owner-*.ts`
+- `supabase/migrations/20260806114444_owner_password_recovery_intents.sql`
+- `supabase/templates/recovery.html`
+- `ci/test_staff_auth_postgres*`
+- `docs/specs/issue-26-owner-password-recovery.md`
+- `docs/operations-maintenance.md`
+- `NEXT.md`
+
 ## [2026-08-06] Issue #5勤怠詳細APIの実装準備仕様を追加
 
 ### 変更

@@ -1,0 +1,163 @@
+{
+  "schema_version": 2,
+  "phase": "post_push",
+  "provider": "codex",
+  "reviewer_id": "codex-kepler-977bc91d",
+  "review_session_id": "977bc91d-be8f-4447-8377-dd21f76ec459",
+  "implementation_session_id": "codex-main-owner-recovery-20260809",
+  "head_sha": "a42a3e4297cf9acb1aeedfb4a4c8ab6500d58853",
+  "diff_fingerprint": "sha256:d82082bf9d926ff305a23ed8131590fdaecf2507c216e17cfb0868c765d76a4c",
+  "risk_tier": "red",
+  "round": 3,
+  "exception_round": 8,
+  "exception_approved_by": "repository_owner",
+  "exception_approval_context": "The owner explicitly approved completing the Round 3 findings and exact-head post-exception confirmation. This is the same bounded exception workflow, not an automatic Round 4 review.",
+  "review_status": "completed",
+  "secondary_verification": {
+    "required": true,
+    "method": "dedicated_tests",
+    "status": "passed",
+    "evidence": "Fresh PostgreSQL 17.10, 201 Vitest tests, 39 Python tests, policy, lint, production build, shell syntax, and diff checks verified the exact reviewed implementation and its claim fencing behavior.",
+    "commands": [
+      {
+        "command": "npm test",
+        "exit_code": 0,
+        "summary": "35 files and 201 tests passed",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "python3 -m unittest ci.test_policy_check ci.test_supabase_advisor_migrations",
+        "exit_code": 0,
+        "summary": "39 policy and migration tests passed",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "psql --set ON_ERROR_STOP=1 --file ci/test_staff_auth_postgres.sql",
+        "exit_code": 0,
+        "summary": "Fresh PostgreSQL applied all migrations and passed runtime privilege and Auth integration checks",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "bash ci/test_staff_auth_postgres_concurrency.sh",
+        "exit_code": 0,
+        "summary": "All owner and staff separate-connection concurrency scenarios passed",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "bash ci/test_staff_auth_migration_atomicity.sh",
+        "exit_code": 0,
+        "summary": "Migration rollback and writer locking passed",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "npm run lint and npm run build and git diff --check",
+        "exit_code": 0,
+        "summary": "Lint, type checking, production build, and whitespace validation passed",
+        "covered_paths": ["**"]
+      }
+    ]
+  },
+  "summary": "Independent exact-head review found Must 0, Should 0, and Nice 0. The stale-worker fence, active expired-link lease predicate, runtime privileges, dedicated regressions, and execution ledger are complete with no same-kind or new regressions detected.",
+  "repository_context_mode": "full_repo_agentic",
+  "diff_only_reason": "",
+  "changed_files": [
+    "CHANGELOG.md",
+    "NEXT.md",
+    "ci/staff_auth_postgres_premigration_setup.sql",
+    "ci/test_staff_auth_postgres.sql",
+    "ci/test_staff_auth_postgres_concurrency.sh",
+    "ci/test_supabase_advisor_migrations.py",
+    "docs/ai/decision-ledger.md",
+    "docs/ai/execution-ledger.md",
+    "docs/implementation-decisions.md",
+    "docs/operations-maintenance.md",
+    "docs/specs/issue-26-owner-password-recovery.md",
+    "next.config.mjs",
+    "package-lock.json",
+    "package.json",
+    "src/app/api/auth/owner-password-recovery/route.test.ts",
+    "src/app/api/auth/owner-password-recovery/route.ts",
+    "src/app/api/auth/owner-password/route.test.ts",
+    "src/app/api/auth/owner-password/route.ts",
+    "src/app/auth/confirm/page.tsx",
+    "src/app/auth/owner-confirm/complete/route.test.ts",
+    "src/app/auth/owner-confirm/complete/route.ts",
+    "src/app/auth/owner-confirm/page.tsx",
+    "src/app/auth/owner-password/page.tsx",
+    "src/app/auth/staff-password/page.tsx",
+    "src/app/owner/password-recovery/page.tsx",
+    "src/components/auth/PrivilegedLogin.tsx",
+    "src/lib/auth/owner-auth-confirmation.test.ts",
+    "src/lib/auth/owner-auth-confirmation.ts",
+    "src/lib/auth/owner-auth-identity.test.ts",
+    "src/lib/auth/owner-auth-identity.ts",
+    "src/lib/auth/owner-auth-operations.ts",
+    "src/lib/auth/owner-password-intent.test.ts",
+    "src/lib/auth/owner-password-intent.ts",
+    "src/lib/auth/owner-password-recovery-guard.test.ts",
+    "src/lib/auth/owner-password-recovery-guard.ts",
+    "src/lib/auth/owner-password-recovery.test.ts",
+    "src/lib/auth/owner-password-recovery.ts",
+    "src/lib/auth/owner-password-update.test.ts",
+    "src/lib/auth/owner-password-update.ts",
+    "src/lib/auth/staff-auth-templates.test.ts",
+    "src/lib/auth/staff-auth.test.ts",
+    "src/lib/auth/staff-auth.ts",
+    "src/lib/http/fetch-with-timeout.test.ts",
+    "src/lib/http/fetch-with-timeout.ts",
+    "src/lib/supabase/admin.ts",
+    "src/lib/supabase/database.types.ts",
+    "supabase/migrations/20260806114444_owner_password_recovery_intents.sql",
+    "supabase/templates/recovery.html"
+  ],
+  "related_files": [
+    {
+      "path": "src/lib/auth/owner-password-update.ts",
+      "reason": "Exact-head stale worker and compensation ownership fences",
+      "score": 100
+    },
+    {
+      "path": "src/app/api/auth/owner-password/route.ts",
+      "reason": "Vercel route duration and Supabase transport timeout",
+      "score": 100
+    },
+    {
+      "path": "supabase/migrations/20260806114444_owner_password_recovery_intents.sql",
+      "reason": "Unified claim lease predicate, active-claim RPC, and runtime privileges",
+      "score": 100
+    },
+    {
+      "path": "ci/test_staff_auth_postgres_concurrency.sh",
+      "reason": "Separate-connection active lease and stale lease regressions",
+      "score": 98
+    }
+  ],
+  "scanned_paths": [".github", "CHANGELOG.md", "FINISHED.md", "NEXT.md", "SECURITY.md", "ci", "docs", "src", "supabase"],
+  "commands_run": [
+    {
+      "command": "git rev-parse HEAD and git rev-parse HEAD^{tree}",
+      "exit_code": 0,
+      "summary": "Confirmed reviewed head a42a3e4 and tree 400ff06"
+    },
+    {
+      "command": "git diff --binary 1809543f052a2f08f3b724be02d841b24890a240..a42a3e4297cf9acb1aeedfb4a4c8ab6500d58853 | shasum -a 256",
+      "exit_code": 0,
+      "summary": "Confirmed exact policy-normalized diff fingerprint d82082bf"
+    },
+    {
+      "command": "independent full-repository exact-head review of PR 27 at a42a3e4297cf9acb1aeedfb4a4c8ab6500d58853",
+      "exit_code": 0,
+      "summary": "Reviewed 53 changed files, all related Auth paths, all 13 migrations, DB types, CI, tests, specifications, operations, and durable ledgers without truncation"
+    }
+  ],
+  "context_fingerprint": "git-tree:400ff065b167861f880d7f02b18d5cf096a9b9ab",
+  "context_budget": {
+    "max_related_files": 53,
+    "max_context_chars": 180000,
+    "max_file_excerpt_chars": 12000,
+    "max_context_commands": 12
+  },
+  "context_truncated": false,
+  "context_truncated_reason": "",
+  "issues": []
+}

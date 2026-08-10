@@ -62,6 +62,511 @@ fi
 
 echo "concurrent staff password intent issuance passed"
 
+owner_user_id="10000000-0000-0000-0000-000000000099"
+owner_first_token="$(printf '1%.0s' {1..64})"
+owner_second_token="$(printf '2%.0s' {1..64})"
+
+psql --set ON_ERROR_STOP=1 --command "
+  begin;
+  select pg_advisory_xact_lock(
+    hashtextextended('owner-password-recovery:${owner_user_id}', 0)
+  );
+  select public.issue_owner_password_recovery_intent(
+    '${owner_user_id}', '${owner_first_token}', now() + interval '10 minutes'
+  );
+  select pg_sleep(1);
+  commit;
+" >/dev/null &
+owner_first_pid=$!
+
+sleep 0.1
+
+psql --set ON_ERROR_STOP=1 --command "
+  select public.issue_owner_password_recovery_intent(
+    '${owner_user_id}', '${owner_second_token}', now() + interval '10 minutes'
+  );
+" >/dev/null &
+owner_second_pid=$!
+
+wait "${owner_first_pid}"
+wait "${owner_second_pid}"
+
+owner_active_count="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select count(*)
+  from public.owner_password_recovery_intents
+  where user_id = '${owner_user_id}'
+    and consumed_at is null;
+")"
+
+if [[ "${owner_active_count}" != "1" ]]; then
+  echo "expected exactly one active owner recovery intent, got ${owner_active_count}" >&2
+  exit 1
+fi
+
+echo "concurrent owner password intent issuance passed"
+
+owner_claim_token="$(printf '3%.0s' {1..64})"
+psql --set ON_ERROR_STOP=1 --command "
+  select public.issue_owner_password_recovery_intent(
+    '${owner_user_id}', '${owner_claim_token}', now() + interval '10 minutes'
+  );
+  drop table if exists public.owner_recovery_claim_concurrency_results;
+  create unlogged table public.owner_recovery_claim_concurrency_results (
+    claim_status text not null
+  );
+" >/dev/null
+
+psql --set ON_ERROR_STOP=1 --command "
+  begin;
+  insert into public.owner_recovery_claim_concurrency_results (claim_status)
+  select coalesce(max(claim_status), 'invalid')
+  from public.claim_owner_password_recovery_intent(
+      '${owner_claim_token}',
+      '90000000-0000-0000-0000-000000000011'
+  );
+  select pg_sleep(1);
+  commit;
+" >/dev/null &
+owner_claim_first_pid=$!
+
+sleep 0.1
+
+psql --set ON_ERROR_STOP=1 --command "
+  insert into public.owner_recovery_claim_concurrency_results (claim_status)
+  select coalesce(max(claim_status), 'invalid')
+  from public.claim_owner_password_recovery_intent(
+      '${owner_claim_token}',
+      '90000000-0000-0000-0000-000000000012'
+  );
+" >/dev/null &
+owner_claim_second_pid=$!
+
+wait "${owner_claim_first_pid}"
+wait "${owner_claim_second_pid}"
+
+owner_claim_successes="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select count(*) from public.owner_recovery_claim_concurrency_results
+  where claim_status = 'claimed';
+")"
+owner_claim_busy="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select count(*) from public.owner_recovery_claim_concurrency_results
+  where claim_status = 'busy';
+")"
+
+if [[ "${owner_claim_successes}" != "1" || "${owner_claim_busy}" != "1" ]]; then
+  echo "expected one claimed and one busy owner intent result" >&2
+  exit 1
+fi
+
+owner_winning_claim_id="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select claim_id
+  from public.owner_password_recovery_intents
+  where token_hash = '${owner_claim_token}';
+")"
+owner_claim_intent_id="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select id
+  from public.owner_password_recovery_intents
+  where token_hash = '${owner_claim_token}';
+")"
+psql --set ON_ERROR_STOP=1 --command "
+  select public.finalize_owner_password_recovery_claim(
+    '${owner_claim_intent_id}',
+    '${owner_winning_claim_id}',
+    'updated'
+  );
+" >/dev/null
+
+psql --set ON_ERROR_STOP=1 --command "
+  drop table public.owner_recovery_claim_concurrency_results;
+" >/dev/null
+
+echo "concurrent owner password intent claim passed"
+
+owner_issue_during_claim_token="$(printf 'c%.0s' {1..64})"
+owner_issue_replacement_token="$(printf 'd%.0s' {1..64})"
+owner_issue_during_claim_id="90000000-0000-0000-0000-000000000014"
+psql --set ON_ERROR_STOP=1 --command "
+  select public.issue_owner_password_recovery_intent(
+    '${owner_user_id}', '${owner_issue_during_claim_token}', now() + interval '10 minutes'
+  );
+" >/dev/null
+
+psql --set ON_ERROR_STOP=1 --command "
+  begin;
+  select * from public.claim_owner_password_recovery_intent(
+    '${owner_issue_during_claim_token}',
+    '${owner_issue_during_claim_id}'
+  );
+  select pg_advisory_xact_lock(
+    hashtextextended('staff-auth-test-ready:owner-issue-during-claim', 0)
+  );
+  select pg_sleep(1);
+  commit;
+" >/dev/null &
+owner_issue_during_claim_pid=$!
+
+wait_for_test_ready "owner-issue-during-claim"
+
+if psql --set ON_ERROR_STOP=1 --command "
+  select public.issue_owner_password_recovery_intent(
+    '${owner_user_id}', '${owner_issue_replacement_token}', now() + interval '10 minutes'
+  );
+" >/dev/null 2>&1; then
+  echo "new owner intent superseded an in-flight claimed intent" >&2
+  exit 1
+fi
+
+wait "${owner_issue_during_claim_pid}"
+
+owner_issue_during_claim_state="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select concat_ws(':', consumed_at is null, recovery_outcome is null, claim_id)
+  from public.owner_password_recovery_intents
+  where token_hash = '${owner_issue_during_claim_token}';
+")"
+owner_issue_replacement_count="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select count(*)
+  from public.owner_password_recovery_intents
+  where token_hash = '${owner_issue_replacement_token}';
+")"
+
+if [[ "${owner_issue_during_claim_state}" != "t:t:${owner_issue_during_claim_id}" ]]; then
+  echo "claimed owner intent changed after concurrent replacement attempt" >&2
+  exit 1
+fi
+if [[ "${owner_issue_replacement_count}" != "0" ]]; then
+  echo "replacement owner intent was inserted during an active claim" >&2
+  exit 1
+fi
+
+owner_issue_during_claim_intent_id="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select id
+  from public.owner_password_recovery_intents
+  where token_hash = '${owner_issue_during_claim_token}';
+")"
+psql --set ON_ERROR_STOP=1 --command "
+  select public.finalize_owner_password_recovery_claim(
+    '${owner_issue_during_claim_intent_id}',
+    '${owner_issue_during_claim_id}',
+    'updated'
+  );
+" >/dev/null
+
+echo "concurrent owner intent issuance during claim passed"
+
+owner_expired_claim_token="$(printf 'ab%.0s' {1..32})"
+owner_expired_replacement_token="$(printf 'ba%.0s' {1..32})"
+owner_expired_claim_id="90000000-0000-0000-0000-000000000016"
+psql --set ON_ERROR_STOP=1 --command "
+  select public.issue_owner_password_recovery_intent(
+    '${owner_user_id}', '${owner_expired_claim_token}', now() + interval '10 minutes'
+  );
+" >/dev/null
+
+owner_expired_claim_status="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select claim_status
+  from public.claim_owner_password_recovery_intent(
+    '${owner_expired_claim_token}',
+    '${owner_expired_claim_id}'
+  );
+")"
+if [[ "${owner_expired_claim_status}" != "claimed" ]]; then
+  echo "owner intent was not claimed before stale-lease recovery" >&2
+  exit 1
+fi
+
+psql --set ON_ERROR_STOP=1 --command "
+  update public.owner_password_recovery_intents
+  set created_at = now() - interval '20 minutes',
+      claimed_at = now(),
+      expires_at = now() - interval '1 minute'
+  where token_hash = '${owner_expired_claim_token}';
+" >/dev/null
+
+owner_expired_busy_status="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select claim_status
+  from public.claim_owner_password_recovery_intent(
+    '${owner_expired_claim_token}',
+    '90000000-0000-0000-0000-000000000017'
+  );
+")"
+if [[ "${owner_expired_busy_status}" != "busy" ]]; then
+  echo "expired owner intent was not busy during its active claim lease" >&2
+  exit 1
+fi
+
+owner_expired_claim_active="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select public.is_owner_password_recovery_claim_active(
+    (select id from public.owner_password_recovery_intents
+     where token_hash = '${owner_expired_claim_token}'),
+    '${owner_expired_claim_id}'
+  );
+")"
+if [[ "${owner_expired_claim_active}" != "t" ]]; then
+  echo "expired owner claim did not remain fenced during its active lease" >&2
+  exit 1
+fi
+
+if psql --set ON_ERROR_STOP=1 --command "
+  update public.user_profiles
+  set role = 'manager'
+  where id = '${owner_user_id}';
+" >/dev/null 2>&1; then
+  echo "owner profile changed during an active expired-link claim lease" >&2
+  exit 1
+fi
+
+if psql --set ON_ERROR_STOP=1 --command "
+  select public.issue_owner_password_recovery_intent(
+    '${owner_user_id}', '${owner_expired_replacement_token}', now() + interval '10 minutes'
+  );
+" >/dev/null 2>&1; then
+  echo "replacement owner intent was issued during an active claim lease" >&2
+  exit 1
+fi
+
+psql --set ON_ERROR_STOP=1 --command "
+  update public.owner_password_recovery_intents
+  set claimed_at = now() - interval '6 minutes'
+  where token_hash = '${owner_expired_claim_token}';
+" >/dev/null
+
+psql --set ON_ERROR_STOP=1 --command "
+  select public.issue_owner_password_recovery_intent(
+    '${owner_user_id}', '${owner_expired_replacement_token}', now() + interval '10 minutes'
+  );
+" >/dev/null
+
+owner_expired_claim_state="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select concat_ws(':', old_intent.recovery_outcome, new_intent.consumed_at is null)
+  from public.owner_password_recovery_intents old_intent
+  join public.owner_password_recovery_intents new_intent
+    on new_intent.user_id = old_intent.user_id
+  where old_intent.token_hash = '${owner_expired_claim_token}'
+    and new_intent.token_hash = '${owner_expired_replacement_token}';
+")"
+if [[ "${owner_expired_claim_state}" != "superseded:t" ]]; then
+  echo "expired owner claim did not release the active-intent slot" >&2
+  exit 1
+fi
+
+owner_expired_claim_active="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select public.is_owner_password_recovery_claim_active(
+    (select id from public.owner_password_recovery_intents
+     where token_hash = '${owner_expired_claim_token}'),
+    '${owner_expired_claim_id}'
+  );
+")"
+if [[ "${owner_expired_claim_active}" != "f" ]]; then
+  echo "superseded owner claim remained active" >&2
+  exit 1
+fi
+
+echo "expired owner claim lease recovery passed"
+
+owner_quarantine_token="$(printf 'e%.0s' {1..64})"
+owner_quarantine_claim_id="90000000-0000-0000-0000-000000000015"
+psql --set ON_ERROR_STOP=1 --command "
+  select public.issue_owner_password_recovery_intent(
+    '${owner_user_id}', '${owner_quarantine_token}', now() + interval '10 minutes'
+  );
+  select * from public.claim_owner_password_recovery_intent(
+    '${owner_quarantine_token}',
+    '${owner_quarantine_claim_id}'
+  );
+" >/dev/null
+
+owner_quarantine_intent_id="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select id
+  from public.owner_password_recovery_intents
+  where token_hash = '${owner_quarantine_token}';
+")"
+
+psql --set ON_ERROR_STOP=1 --command "
+  begin;
+  select 1
+  from public.user_profiles
+  where id = '${owner_user_id}'
+  for update;
+  select pg_advisory_xact_lock(
+    hashtextextended('staff-auth-test-ready:owner-quarantine-lock-order', 0)
+  );
+  select pg_sleep(1);
+  update public.user_profiles
+  set role = 'manager'
+  where id = '${owner_user_id}';
+  commit;
+" >/dev/null 2>&1 &
+owner_quarantine_profile_pid=$!
+
+wait_for_test_ready "owner-quarantine-lock-order"
+
+owner_quarantine_result="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select public.quarantine_owner_password_recovery_claim(
+    '${owner_quarantine_intent_id}',
+    '${owner_quarantine_claim_id}',
+    'update_unknown'
+  );
+")"
+
+if wait "${owner_quarantine_profile_pid}"; then
+  echo "owner profile mutation unexpectedly succeeded during quarantine" >&2
+  exit 1
+fi
+
+owner_quarantine_state="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select concat_ws(':', intent.recovery_outcome, profile.is_active)
+  from public.owner_password_recovery_intents intent
+  join public.user_profiles profile on profile.id = intent.user_id
+  where intent.id = '${owner_quarantine_intent_id}';
+")"
+
+if [[ "${owner_quarantine_result}" != "t" || "${owner_quarantine_state}" != "update_unknown:f" ]]; then
+  echo "owner quarantine did not complete after the competing profile mutation failed" >&2
+  exit 1
+fi
+
+psql --set ON_ERROR_STOP=1 --command "
+  update public.user_profiles
+  set is_active = true
+  where id = '${owner_user_id}';
+" >/dev/null
+
+echo "concurrent owner quarantine lock order passed"
+
+owner_profile_guard_token="$(printf '8%.0s' {1..64})"
+owner_profile_guard_claim_id="90000000-0000-0000-0000-000000000013"
+psql --set ON_ERROR_STOP=1 --command "
+  select public.issue_owner_password_recovery_intent(
+    '${owner_user_id}', '${owner_profile_guard_token}', now() + interval '10 minutes'
+  );
+" >/dev/null
+
+psql --set ON_ERROR_STOP=1 --command "
+  begin;
+  select * from public.claim_owner_password_recovery_intent(
+    '${owner_profile_guard_token}',
+    '${owner_profile_guard_claim_id}'
+  );
+  select pg_advisory_xact_lock(
+    hashtextextended('staff-auth-test-ready:owner-profile-guard', 0)
+  );
+  select pg_sleep(1);
+  commit;
+" >/dev/null &
+owner_profile_guard_pid=$!
+
+wait_for_test_ready "owner-profile-guard"
+
+if psql --set ON_ERROR_STOP=1 --command "
+  update public.user_profiles
+  set role = 'manager'
+  where id = '${owner_user_id}';
+" >/dev/null 2>&1; then
+  echo "owner profile change bypassed an in-flight password recovery claim" >&2
+  exit 1
+fi
+
+wait "${owner_profile_guard_pid}"
+
+owner_profile_guard_intent_id="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select id
+  from public.owner_password_recovery_intents
+  where token_hash = '${owner_profile_guard_token}';
+")"
+psql --set ON_ERROR_STOP=1 --command "
+  select public.release_owner_password_recovery_claim(
+    '${owner_profile_guard_intent_id}',
+    '${owner_profile_guard_claim_id}'
+  );
+" >/dev/null
+
+echo "concurrent owner profile mutation guard passed"
+
+rate_limit_ip_hash="$(printf '4%.0s' {1..64})"
+rate_limit_email_hash="$(printf '5%.0s' {1..64})"
+psql --set ON_ERROR_STOP=1 --command "
+  delete from public.owner_password_recovery_rate_limit_windows
+  where (scope = 'ip' and subject_hash = '${rate_limit_ip_hash}')
+     or (scope = 'email' and subject_hash = '${rate_limit_email_hash}');
+  drop table if exists public.owner_recovery_rate_limit_concurrency_results;
+  create unlogged table public.owner_recovery_rate_limit_concurrency_results (
+    boundary text not null,
+    allowed boolean not null
+  );
+" >/dev/null
+
+rate_limit_pids=()
+for _request in {1..6}; do
+  psql --set ON_ERROR_STOP=1 --command "
+    insert into public.owner_recovery_rate_limit_concurrency_results (boundary, allowed)
+    select 'email', public.consume_owner_password_recovery_rate_limit(
+      '${rate_limit_ip_hash}',
+      '${rate_limit_email_hash}',
+      '2026-08-06T12:00:00Z'
+    );
+  " >/dev/null &
+  rate_limit_pids+=("$!")
+done
+for rate_limit_pid in "${rate_limit_pids[@]}"; do
+  wait "${rate_limit_pid}"
+done
+
+email_allowed_count="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select count(*) from public.owner_recovery_rate_limit_concurrency_results
+  where boundary = 'email' and allowed;
+")"
+if [[ "${email_allowed_count}" != "5" ]]; then
+  echo "expected exactly five concurrent requests for one email to be allowed" >&2
+  exit 1
+fi
+
+ip_boundary_hash="$(printf '6%.0s' {1..64})"
+rate_limit_pids=()
+for request_index in {1..21}; do
+  unique_email_hash="$(printf '%064d' "${request_index}")"
+  psql --set ON_ERROR_STOP=1 --command "
+    insert into public.owner_recovery_rate_limit_concurrency_results (boundary, allowed)
+    select 'ip', public.consume_owner_password_recovery_rate_limit(
+      '${ip_boundary_hash}',
+      '${unique_email_hash}',
+      '2026-08-06T12:00:00Z'
+    );
+  " >/dev/null &
+  rate_limit_pids+=("$!")
+done
+for rate_limit_pid in "${rate_limit_pids[@]}"; do
+  wait "${rate_limit_pid}"
+done
+
+ip_allowed_count="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select count(*) from public.owner_recovery_rate_limit_concurrency_results
+  where boundary = 'ip' and allowed;
+")"
+if [[ "${ip_allowed_count}" != "20" ]]; then
+  echo "expected exactly twenty concurrent requests for one IP to be allowed" >&2
+  exit 1
+fi
+
+ip_email_row_count="$(psql --tuples-only --no-align --set ON_ERROR_STOP=1 --command "
+  select count(*)
+  from public.owner_password_recovery_rate_limit_windows
+  where scope = 'email'
+    and subject_hash in (
+      select lpad(request_index::text, 64, '0')
+      from generate_series(1, 21) request_index
+    );
+")"
+if [[ "${ip_email_row_count}" != "20" ]]; then
+  echo "expected blocked concurrent IP request not to create an email row" >&2
+  exit 1
+fi
+
+psql --set ON_ERROR_STOP=1 --command "
+  drop table public.owner_recovery_rate_limit_concurrency_results;
+" >/dev/null
+
+echo "concurrent owner password recovery rate limiting passed"
+
 organization_id="00000000-0000-0000-0000-000000000001"
 auth_user_id="10000000-0000-0000-0000-000000000006"
 staff_id="20000000-0000-0000-0000-000000000006"

@@ -392,6 +392,14 @@ export function PrivilegedLogin({ variant }: { variant: LoginVariant }) {
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? 'ログイン中...' : 'ログイン'}
               </Button>
+              {variant === 'admin' && selectedRole === 'owner' && (
+                <Link
+                  href="/owner/password-recovery"
+                  className={buttonVariants({ variant: 'ghost', className: 'w-full' })}
+                >
+                  オーナーパスワードを忘れた場合
+                </Link>
+              )}
             </form>
           )}
 

@@ -96,3 +96,13 @@
 - APIキー管理は `/owner/integrations/api-keys` で行う。発行と無効化はownerをサーバー側で認可し、対象キーを組織IDでも絞る。
 - 発行キーは暗号学的乱数から生成してSHA-256ハッシュだけを `external_api_keys` に保存する。平文は発行直後の画面状態だけで一度表示し、URL、Cookie、localStorage、一覧、監査ログへ残さない。
 - 現行の発行可能スコープは `attendance:read` のみとする。有効期限はJST日付を指定日の末尾時刻として保存し、未指定は無期限とする。
+
+## A-001 オーナー本人向けパスワード再設定
+
+- 公開申請は登録有無、ロール、有効状態、Auth/Profile不整合、送信成否を問わず同じHTTP 202と本文を返し、アカウント列挙を防ぐ。
+- メール送信対象は、有効なownerでAuthユーザーIDとプロフィールID、正規化した両メールが一致する場合だけに限定する。
+- Supabase recovery OTP確認後も通常のAuthセッションを認可に使わず、owner専用の短命・単回利用DB intentとHttpOnly Cookieへ交換する。
+- パスワード更新intentは要求固有IDで原子的にclaimし、claim中のownerプロフィール変更と新規intent発行を同じuser単位advisory lockで直列化する。未失効またはclaim後5分以内は処理中として保護し、期限とleaseの両方が切れたclaimだけを終端化して再発行する。更新Routeは60秒、各Supabase通信は15秒を上限とし、Admin API更新の直前・直後にclaim所有権とowner整合性を再検証する。
+- 公開要求は2KB本文上限と、Vercel確定IP・正規化メールのHMAC別15分固定窓で保護する。owner確認とメール送信は`waitUntil()`でレスポンス後へ分離し、外部処理の時間を公開応答へ反映しない。制限・障害時も同じ202とし、平文IP・メールをDBへ保存しない。
+- 並行claimの敗者は先行claimのcommit前後を問わずbusyとしてCookieを保持する。明確なAuth 4xx拒否はclaimをreleaseして同じCookieで再試行可能とする。結果不明または更新後不整合では、同じclaimの所有権を保持するworkerだけがprofile行lockからadvisory lockの順でintentをquarantineし、quarantine成功後に限りプロフィールを無効化してAuthパスワードを未知の乱数へ置換・banする。成功時だけfinalizeしてCookieを消去する。
+- staffとownerの確認Route、Cookie、intentテーブル、更新APIは相互利用不可とする。共通Recoveryテンプレートは要求時の `RedirectTo` でそれぞれの確認Routeへ分岐する。

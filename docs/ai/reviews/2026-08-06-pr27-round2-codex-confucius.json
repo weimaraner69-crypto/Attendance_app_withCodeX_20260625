@@ -1,0 +1,212 @@
+{
+  "schema_version": 2,
+  "phase": "post_push",
+  "provider": "codex",
+  "reviewer_id": "codex-confucius-019fd72b",
+  "review_session_id": "019fd72b-43a6-7512-aa34-bfe6a478edfa",
+  "implementation_session_id": "codex-main-owner-recovery-20260806",
+  "head_sha": "66be35d48c2d6168607f616f38ccfa9d1c058905",
+  "diff_fingerprint": "sha256:6a0003110b4442f0b736691ca156953cd795a2fe834842497d5b5a7d32f87d64",
+  "risk_tier": "red",
+  "round": 2,
+  "review_status": "completed",
+  "secondary_verification": {
+    "required": true,
+    "method": "dedicated_tests",
+    "status": "passed",
+    "evidence": "修正後にVitest 175件、Python 39件、policy、lint、build、一時PostgreSQLの全migration・権限・窓更新・保持・並行境界を実行し、すべて成功した。",
+    "commands": [
+      {
+        "command": "npm test",
+        "exit_code": 0,
+        "summary": "全Vitest 175件が成功した",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "psql --set ON_ERROR_STOP=1 --file ci/test_staff_auth_postgres.sql",
+        "exit_code": 0,
+        "summary": "一時PostgreSQL 17へ全関連migrationを適用し、owner/staff DB回帰、公開ロール全DML拒否、窓更新、保持削除、IP遮断後のメール行非増加を確認した",
+        "covered_paths": ["supabase/**", "ci/**", "src/lib/auth/**", "src/app/api/auth/**"]
+      },
+      {
+        "command": "bash ci/test_staff_auth_postgres_concurrency.sh",
+        "exit_code": 0,
+        "summary": "owner/staff intentとowner claim、メール5件・IP20件の並行境界、IP遮断要求のメール行非作成を確認した",
+        "covered_paths": ["supabase/**", "ci/**", "src/lib/auth/**", "src/app/api/auth/**"]
+      }
+    ]
+  },
+  "summary": "独立full-repository reviewはMust 1件、Should 2件、Nice 1件を検出した。外部処理の応答後分離、IP遮断後のメール行非作成、古い窓の段階削除、ledger同期、DB回帰拡充をRound 2修正へ反映した。",
+  "repository_context_mode": "full_repo_agentic",
+  "diff_only_reason": "",
+  "changed_files": [
+    "CHANGELOG.md",
+    "NEXT.md",
+    "ci/staff_auth_postgres_premigration_setup.sql",
+    "ci/test_staff_auth_postgres.sql",
+    "ci/test_staff_auth_postgres_concurrency.sh",
+    "ci/test_supabase_advisor_migrations.py",
+    "docs/ai/decision-ledger.md",
+    "docs/ai/execution-ledger.md",
+    "docs/implementation-decisions.md",
+    "docs/operations-maintenance.md",
+    "docs/specs/issue-26-owner-password-recovery.md",
+    "next.config.mjs",
+    "src/app/api/auth/owner-password-recovery/route.test.ts",
+    "src/app/api/auth/owner-password-recovery/route.ts",
+    "src/app/api/auth/owner-password/route.test.ts",
+    "src/app/api/auth/owner-password/route.ts",
+    "src/app/auth/owner-confirm/complete/route.test.ts",
+    "src/app/auth/owner-confirm/complete/route.ts",
+    "src/app/auth/owner-confirm/page.tsx",
+    "src/app/auth/owner-password/page.tsx",
+    "src/app/owner/password-recovery/page.tsx",
+    "src/components/auth/PrivilegedLogin.tsx",
+    "src/lib/auth/owner-auth-confirmation.test.ts",
+    "src/lib/auth/owner-auth-confirmation.ts",
+    "src/lib/auth/owner-auth-identity.test.ts",
+    "src/lib/auth/owner-auth-identity.ts",
+    "src/lib/auth/owner-auth-operations.ts",
+    "src/lib/auth/owner-password-intent.test.ts",
+    "src/lib/auth/owner-password-intent.ts",
+    "src/lib/auth/owner-password-recovery-guard.test.ts",
+    "src/lib/auth/owner-password-recovery-guard.ts",
+    "src/lib/auth/owner-password-recovery.test.ts",
+    "src/lib/auth/owner-password-recovery.ts",
+    "src/lib/auth/owner-password-update.test.ts",
+    "src/lib/auth/owner-password-update.ts",
+    "src/lib/auth/staff-auth-templates.test.ts",
+    "src/lib/auth/staff-auth.test.ts",
+    "src/lib/auth/staff-auth.ts",
+    "src/lib/supabase/database.types.ts",
+    "supabase/migrations/20260806114444_owner_password_recovery_intents.sql",
+    "supabase/templates/recovery.html"
+  ],
+  "related_files": [
+    {
+      "path": "src/app/api/auth/owner-password-recovery/route.ts",
+      "reason": "公開応答と外部処理の実行境界",
+      "score": 100
+    },
+    {
+      "path": "supabase/migrations/20260806114444_owner_password_recovery_intents.sql",
+      "reason": "owner intentとDB-backedレート制限の権限・競合・保持",
+      "score": 100
+    },
+    {
+      "path": "ci/test_staff_auth_postgres_concurrency.sh",
+      "reason": "owner/staffの実DB並行境界",
+      "score": 100
+    },
+    {
+      "path": "SECURITY.md",
+      "reason": "秘密情報と個人情報の非露出要件",
+      "score": 95
+    },
+    {
+      "path": ".github/instructions/review-loop.instructions.md",
+      "reason": "red riskの独立レビュー・第2確認要件",
+      "score": 95
+    }
+  ],
+  "scanned_paths": [
+    "CHANGELOG.md",
+    "NEXT.md",
+    "SECURITY.md",
+    "package.json",
+    "package-lock.json",
+    "docs/ai",
+    "docs/specs/issue-26-owner-password-recovery.md",
+    "docs/operations-maintenance.md",
+    "docs/implementation-decisions.md",
+    "src/app/api/auth",
+    "src/app/auth",
+    "src/app/owner",
+    "src/components/auth",
+    "src/lib/auth",
+    "src/lib/supabase",
+    "supabase/migrations",
+    "supabase/templates",
+    "ci/test_staff_auth_postgres.sql",
+    "ci/test_staff_auth_postgres_concurrency.sh",
+    ".github/workflows/ci.yml",
+    ".github/instructions/review-loop.instructions.md"
+  ],
+  "commands_run": [
+    {
+      "command": "git diff --name-status origin/main...66be35d48c2d6168607f616f38ccfa9d1c058905",
+      "exit_code": 0,
+      "summary": "対象headの変更とRound 1証跡を確認した"
+    },
+    {
+      "command": "git diff --check origin/main...66be35d48c2d6168607f616f38ccfa9d1c058905",
+      "exit_code": 0,
+      "summary": "空白エラーなし"
+    },
+    {
+      "command": "review GitHub Actions run 31104054052",
+      "exit_code": 0,
+      "summary": "quality-gateとsecret-scan成功、Round 2証跡待ちのreview-evidence-gate失敗を確認した"
+    },
+    {
+      "command": "independent full-repository review of PR 27 at 66be35d48c2d6168607f616f38ccfa9d1c058905",
+      "exit_code": 0,
+      "summary": "変更41ファイルと関連Auth、RLS、migration、staff回帰を確認した"
+    }
+  ],
+  "context_fingerprint": "git-tree:b1bbfec847a462bbb8df3fd5529565a6e84fd298",
+  "context_budget": {
+    "max_related_files": 40,
+    "max_context_chars": 180000,
+    "max_file_excerpt_chars": 12000,
+    "max_context_commands": 12
+  },
+  "context_truncated": false,
+  "context_truncated_reason": "",
+  "issues": [
+    {
+      "severity": "Must",
+      "category": "account-enumeration-timing",
+      "file": "src/app/api/auth/owner-password-recovery/route.ts",
+      "line": 36,
+      "rationale": "最低1.2秒とjitterだけでは、有効ownerの外部処理が約1.5秒を超えた場合に公開応答が遅れ、アカウント有無を推測できる。",
+      "fix": "owner確認とメール送信をVercel管理対象のレスポンス後タスクへ移し、公開応答を外部処理時間から切り離す。",
+      "confidence": 0.99,
+      "disposition": "fixed",
+      "disposition_reason": "Next.js 14対応の@vercel/functions waitUntilへowner確認・メール送信Promiseを登録し、未完了Promiseを待たず202が返る回帰を追加した。"
+    },
+    {
+      "severity": "Should",
+      "category": "rate-limit-storage-amplification",
+      "file": "supabase/migrations/20260806114444_owner_password_recovery_intents.sql",
+      "line": 134,
+      "rationale": "IP上限を超えた要求でもメール別upsertを行うため、遮断済みIPから任意のメールhash行を増やし続けられる。保持用indexと削除経路もない。",
+      "fix": "IP上限を先に判定し、遮断時はメールlock/upsert前にreturnする。updated_at indexと有界な古い行削除を追加する。",
+      "confidence": 0.99,
+      "disposition": "fixed",
+      "disposition_reason": "IP counterが20件を超えた時点でメール処理前にfalseを返し、updated_at indexと1日超の行を要求ごと最大100件削除する経路を追加した。"
+    },
+    {
+      "severity": "Should",
+      "category": "execution-ledger-staleness",
+      "file": "docs/ai/execution-ledger.md",
+      "line": 25,
+      "rationale": "Round 1対応をpush済みなのに、ledgerがRound 1修正中・push前を示している。",
+      "fix": "commit 66be35d、Run 83、Round 2レビュー状態へ同期する。",
+      "confidence": 1,
+      "disposition": "fixed",
+      "disposition_reason": "Round 1修正commit、CI成功項目、Round 2 reviewer/session・指摘件数・次工程へ更新した。"
+    },
+    {
+      "severity": "Nice",
+      "category": "rate-limit-db-test-matrix",
+      "file": "ci/test_staff_auth_postgres.sql",
+      "line": 470,
+      "rationale": "レート窓の公開ロール全DML拒否、新窓reset、遅延旧窓、IP上限後のメール行数が実DBで未確認。",
+      "fix": "権限、窓更新、保持、行数、並行境界のPostgreSQL回帰を追加する。",
+      "confidence": 0.98,
+      "disposition": "fixed",
+      "disposition_reason": "anon/authenticated全DML拒否、新窓reset、遅延要求で窓非巻戻し、古い行削除、IP上限後の行数不変と並行20/21境界を追加した。"
+    }
+  ]
+}

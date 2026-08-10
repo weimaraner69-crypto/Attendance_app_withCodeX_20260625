@@ -17,7 +17,21 @@
 
 ## 記録
 
-### 現在状態（2026-08-06 Issue #5詳細APIの実装準備・最新）
+### 現在状態（2026-08-09 Issue #26オーナーパスワード再設定Round 3例外・最新）
+
+- 現在の mode: `daily_development`（Issue #26の公開本人回復導線実装）
+- active branch: `feat/owner-self-service-password-recovery`
+- 直近完了 PR: PR #25（Issue #5詳細APIの実装準備仕様）を2026-08-06に `main` へマージ済み
+- 現在タスク: PR #27の追加修正commit `de68b2ed2e590ca5212ca5687a596edf2ba5293a`を例外後exact-head独立確認し、Must 1件、Should 1件、Nice 1件を確認。期限切れworkerの実行fence、claim lease中の判定統一、実行台帳同期を追加対応した
+- requirements/spec: GitHub Issue #26、`docs/specs/issue-26-owner-password-recovery.md`、`docs/operations-maintenance.md`
+- review baseline: 独立reviewer Kepler `977bc91d-be8f-4447-8377-dd21f76ec459`がcommit `de68b2ed2e590ca5212ca5687a596edf2ba5293a`を`full_repo_agentic`で再確認。期限切れclaimを旧workerが継続できるMust、リンク期限切れでもclaim lease中は保護すべきShould、台帳時制のNiceを検出した
+- CI状況: commit `de68b2ed2e590ca5212ca5687a596edf2ba5293a`はquality-gate、secret-scan、Vercelが成功。review-evidence-gateだけが同head証跡待ちで失敗
+- 検証状況: 修正後にVitest 201件、Python 39件、lint、build、bash構文、diff check、空PostgreSQL 17への全migration・権限、期限切れリンクとactive leaseの別接続回帰、atomicity、owner/staff全並行回帰が成功。更新Route 60秒・各Supabase通信15秒の上限、更新前後のclaim fence、所有権を失ったworkerの補償拒否を専用回帰へ固定した
+- 次タスク: 修正をpushし、同じ独立reviewerが新しいexact headを確認する。Must・Should 0なら機械可読証跡を証跡専用pushし、最終CIへ進む。自動Round 4レビューとしては扱わない
+- 安全床: `.env.local`を読まない。秘密情報を表示しない。本番Supabase変更、実メール送信、本番デプロイ、日報側実接続、PRマージは対象外
+- 最終更新: 2026-08-09
+
+### 現在状態（2026-08-06 Issue #5詳細APIの実装準備・履歴）
 
 - 現在の mode: `daily_development`（Issue #5の要件・詳細設計の実装準備）
 - active branch: `docs/issue-5-detail-api-readiness`

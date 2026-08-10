@@ -1,0 +1,183 @@
+{
+  "schema_version": 2,
+  "phase": "post_push",
+  "provider": "codex",
+  "reviewer_id": "codex-kepler-977bc91d",
+  "review_session_id": "977bc91d-be8f-4447-8377-dd21f76ec459",
+  "implementation_session_id": "codex-main-owner-recovery-20260809",
+  "head_sha": "3d2edcbb15bf52d7a156bb335c41242a4b6bad13",
+  "diff_fingerprint": "sha256:9c9d62a85f2c6252362fff2b7ed536659cdc6b3c50b3177dc506a6e59e15bec8",
+  "risk_tier": "red",
+  "round": 3,
+  "exception_round": 6,
+  "exception_approved_by": "repository_owner",
+  "exception_approval_context": "The owner explicitly approved completing the Round 3 findings and exact-head post-exception confirmation. This is the same bounded exception workflow, not an automatic Round 4 review.",
+  "review_status": "completed",
+  "secondary_verification": {
+    "required": true,
+    "method": "dedicated_tests",
+    "status": "passed",
+    "evidence": "Fresh PostgreSQL 17 verified stale claim lease recovery across separate connections while preserving committed busy, release/reclaim, quarantine lock order, all migrations, and all owner/staff concurrency scenarios.",
+    "commands": [
+      {
+        "command": "psql --set ON_ERROR_STOP=1 --file ci/test_staff_auth_postgres.sql",
+        "exit_code": 0,
+        "summary": "Expired claimed intent terminalized as superseded and replacement intent became active",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "bash ci/test_staff_auth_postgres_concurrency.sh",
+        "exit_code": 0,
+        "summary": "Separate claim, expiry/lease, and replacement connections passed with all existing concurrency cases",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "bash ci/test_staff_auth_migration_atomicity.sh",
+        "exit_code": 0,
+        "summary": "Migration rollback and writer locking passed",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "python3 -m unittest ci.test_policy_check ci.test_supabase_advisor_migrations",
+        "exit_code": 0,
+        "summary": "39 policy and migration tests passed",
+        "covered_paths": ["**"]
+      }
+    ]
+  },
+  "summary": "The exact-head review of 3d2edcb found no Must, one Should stale claimed-intent recovery issue, and two documentation Nice findings. A five-minute claim lease plus link expiry now gates terminalization, new issuance succeeds after both expire, and Cookie and ledger documentation is synchronized. Final exact-head confirmation remains required after this fix push.",
+  "repository_context_mode": "full_repo_agentic",
+  "diff_only_reason": "",
+  "changed_files": [
+    "CHANGELOG.md",
+    "NEXT.md",
+    "ci/staff_auth_postgres_premigration_setup.sql",
+    "ci/test_staff_auth_postgres.sql",
+    "ci/test_staff_auth_postgres_concurrency.sh",
+    "ci/test_supabase_advisor_migrations.py",
+    "docs/ai/decision-ledger.md",
+    "docs/ai/execution-ledger.md",
+    "docs/ai/reviews/2026-08-09-pr27-round3-codex-curie.json",
+    "docs/ai/reviews/2026-08-09-pr27-round3-codex-herschel.json",
+    "docs/ai/reviews/2026-08-09-pr27-round3-codex-kepler.json",
+    "docs/implementation-decisions.md",
+    "docs/operations-maintenance.md",
+    "docs/specs/issue-26-owner-password-recovery.md",
+    "next.config.mjs",
+    "package-lock.json",
+    "package.json",
+    "src/app/api/auth/owner-password-recovery/route.test.ts",
+    "src/app/api/auth/owner-password-recovery/route.ts",
+    "src/app/api/auth/owner-password/route.test.ts",
+    "src/app/api/auth/owner-password/route.ts",
+    "src/app/auth/owner-confirm/complete/route.test.ts",
+    "src/app/auth/owner-confirm/complete/route.ts",
+    "src/app/auth/owner-confirm/page.tsx",
+    "src/app/auth/owner-password/page.tsx",
+    "src/app/owner/password-recovery/page.tsx",
+    "src/components/auth/PrivilegedLogin.tsx",
+    "src/lib/auth/owner-auth-confirmation.test.ts",
+    "src/lib/auth/owner-auth-confirmation.ts",
+    "src/lib/auth/owner-auth-identity.test.ts",
+    "src/lib/auth/owner-auth-identity.ts",
+    "src/lib/auth/owner-auth-operations.ts",
+    "src/lib/auth/owner-password-intent.test.ts",
+    "src/lib/auth/owner-password-intent.ts",
+    "src/lib/auth/owner-password-recovery-guard.test.ts",
+    "src/lib/auth/owner-password-recovery-guard.ts",
+    "src/lib/auth/owner-password-recovery.test.ts",
+    "src/lib/auth/owner-password-recovery.ts",
+    "src/lib/auth/owner-password-update.test.ts",
+    "src/lib/auth/owner-password-update.ts",
+    "src/lib/auth/staff-auth-templates.test.ts",
+    "src/lib/auth/staff-auth.test.ts",
+    "src/lib/auth/staff-auth.ts",
+    "src/lib/supabase/database.types.ts",
+    "supabase/migrations/20260806114444_owner_password_recovery_intents.sql",
+    "supabase/templates/recovery.html"
+  ],
+  "related_files": [
+    {
+      "path": "supabase/migrations/20260806114444_owner_password_recovery_intents.sql",
+      "reason": "Active claim protection, stale lease terminalization, and unique active-intent slot",
+      "score": 100
+    },
+    {
+      "path": "ci/test_staff_auth_postgres_concurrency.sh",
+      "reason": "Separate-connection stale lease recovery and existing lock regressions",
+      "score": 100
+    },
+    {
+      "path": "docs/specs/issue-26-owner-password-recovery.md",
+      "reason": "Cookie exceptions and claim lease contract",
+      "score": 95
+    },
+    {
+      "path": "docs/ai/execution-ledger.md",
+      "reason": "Exact current review and CI state",
+      "score": 95
+    }
+  ],
+  "scanned_paths": [".github", "CHANGELOG.md", "FINISHED.md", "NEXT.md", "SECURITY.md", "ci", "docs", "src", "supabase"],
+  "commands_run": [
+    {
+      "command": "git rev-parse HEAD and git rev-parse HEAD^{tree}",
+      "exit_code": 0,
+      "summary": "Confirmed reviewed head 3d2edcb and tree b5a1450"
+    },
+    {
+      "command": "git diff --binary 1809543f052a2f08f3b724be02d841b24890a240..3d2edcbb15bf52d7a156bb335c41242a4b6bad13 | shasum -a 256",
+      "exit_code": 0,
+      "summary": "Computed diff fingerprint 9c9d62a8"
+    },
+    {
+      "command": "independent full-repository exact-head review of PR 27 at 3d2edcbb15bf52d7a156bb335c41242a4b6bad13",
+      "exit_code": 0,
+      "summary": "Reviewed all changed files, related Auth files and migrations, CI, tests, and durable documentation without truncation"
+    }
+  ],
+  "context_fingerprint": "git-tree:b5a14506c77cff050bbe4a50e56e382d4301cbb3",
+  "context_budget": {
+    "max_related_files": 40,
+    "max_context_chars": 180000,
+    "max_file_excerpt_chars": 12000,
+    "max_context_commands": 12
+  },
+  "context_truncated": false,
+  "context_truncated_reason": "",
+  "issues": [
+    {
+      "severity": "Should",
+      "category": "expired-claim-permanent-block",
+      "file": "supabase/migrations/20260806114444_owner_password_recovery_intents.sql",
+      "line": 96,
+      "rationale": "A claimed intent that expired before release or finalize remained unconsumed and permanently occupied the active-user unique slot.",
+      "fix": "Protect unexpired or recently claimed work, but terminalize a claim only after both link expiry and a five-minute claim lease have elapsed under the per-user lock.",
+      "confidence": 0.99,
+      "disposition": "fixed",
+      "disposition_reason": "Fresh PostgreSQL and separate connection regressions prove the stale claim becomes superseded, the active slot is released, and a replacement intent is inserted while live claims remain protected."
+    },
+    {
+      "severity": "Nice",
+      "category": "cookie-contract-documentation",
+      "file": "docs/specs/issue-26-owner-password-recovery.md",
+      "line": 19,
+      "rationale": "The specification said every failure clears the Cookie despite busy and explicit Auth rejection preserving it.",
+      "fix": "List terminal failures that clear the Cookie and retryable failures that preserve it.",
+      "confidence": 1,
+      "disposition": "fixed",
+      "disposition_reason": "The specification now matches the implemented busy, explicit rejection, invalid, unknown, and compensation outcomes."
+    },
+    {
+      "severity": "Nice",
+      "category": "execution-ledger-staleness",
+      "file": "docs/ai/execution-ledger.md",
+      "line": 29,
+      "rationale": "The ledger described already committed verification as future pre-commit work.",
+      "fix": "Record the exact pushed head, review result, successful prior gates, current remediation, and next exact-head confirmation.",
+      "confidence": 1,
+      "disposition": "fixed",
+      "disposition_reason": "The current record now names 3d2edcb, Kepler's findings, prior CI and validation, and the active lease remediation."
+    }
+  ]
+}

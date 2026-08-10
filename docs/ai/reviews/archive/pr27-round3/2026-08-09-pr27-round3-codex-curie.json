@@ -1,0 +1,213 @@
+{
+  "schema_version": 2,
+  "phase": "post_push",
+  "provider": "codex",
+  "reviewer_id": "codex-curie-019fd743",
+  "review_session_id": "019fd743-a44c-7932-890d-9e47a414f245",
+  "implementation_session_id": "codex-main-owner-recovery-20260809",
+  "head_sha": "c497b493c57da301f58a613775ef1bebb442d6e8",
+  "diff_fingerprint": "sha256:20411cfd0e5248c524e2f78bbdf6925675400d23bbfb840999b6c36932e42ac7",
+  "risk_tier": "red",
+  "round": 3,
+  "review_status": "completed",
+  "secondary_verification": {
+    "required": true,
+    "method": "dedicated_tests",
+    "status": "passed",
+    "evidence": "オーナー承認のRound 3例外修正後に、targeted Vitest、一時PostgreSQLの全migration・状態機械・並行profile guard、migration rollbackとwriter lockを確認した。",
+    "commands": [
+      {
+        "command": "npm test",
+        "exit_code": 0,
+        "summary": "全193件が成功し、更新前後照合、release、finalize、quarantine、Authエラー分類、補償、Cookie再試行も確認した",
+        "covered_paths": ["**"]
+      },
+      {
+        "command": "psql --set ON_ERROR_STOP=1 --file ci/test_staff_auth_postgres.sql",
+        "exit_code": 0,
+        "summary": "一時PostgreSQL 17で全migration、claim/release/finalize/quarantine、権限、profile無効化が成功した",
+        "covered_paths": ["supabase/**", "ci/**", "src/lib/auth/**", "src/app/api/auth/**"]
+      },
+      {
+        "command": "bash ci/test_staff_auth_postgres_concurrency.sh",
+        "exit_code": 0,
+        "summary": "claim中profile変更がadvisory lock待機後に拒否され、owner/staff全並行競合も成功した",
+        "covered_paths": ["supabase/**", "ci/**", "src/lib/auth/**", "src/app/api/auth/**"]
+      }
+    ]
+  },
+  "summary": "Round 3独立full-repository reviewはMust 1件、Should 2件、Nice 0件を検出してfail-closeした。オーナーの明示承認に基づき、更新競合、失敗時intent状態、ledgerを例外修正へ反映した。",
+  "repository_context_mode": "full_repo_agentic",
+  "diff_only_reason": "",
+  "changed_files": [
+    "CHANGELOG.md",
+    "NEXT.md",
+    "ci/staff_auth_postgres_premigration_setup.sql",
+    "ci/test_staff_auth_postgres.sql",
+    "ci/test_staff_auth_postgres_concurrency.sh",
+    "ci/test_supabase_advisor_migrations.py",
+    "docs/ai/decision-ledger.md",
+    "docs/ai/execution-ledger.md",
+    "docs/implementation-decisions.md",
+    "docs/operations-maintenance.md",
+    "docs/specs/issue-26-owner-password-recovery.md",
+    "next.config.mjs",
+    "package-lock.json",
+    "package.json",
+    "src/app/api/auth/owner-password-recovery/route.test.ts",
+    "src/app/api/auth/owner-password-recovery/route.ts",
+    "src/app/api/auth/owner-password/route.test.ts",
+    "src/app/api/auth/owner-password/route.ts",
+    "src/app/auth/owner-confirm/complete/route.test.ts",
+    "src/app/auth/owner-confirm/complete/route.ts",
+    "src/app/auth/owner-confirm/page.tsx",
+    "src/app/auth/owner-password/page.tsx",
+    "src/app/owner/password-recovery/page.tsx",
+    "src/components/auth/PrivilegedLogin.tsx",
+    "src/lib/auth/owner-auth-confirmation.test.ts",
+    "src/lib/auth/owner-auth-confirmation.ts",
+    "src/lib/auth/owner-auth-identity.test.ts",
+    "src/lib/auth/owner-auth-identity.ts",
+    "src/lib/auth/owner-auth-operations.ts",
+    "src/lib/auth/owner-password-intent.test.ts",
+    "src/lib/auth/owner-password-intent.ts",
+    "src/lib/auth/owner-password-recovery-guard.test.ts",
+    "src/lib/auth/owner-password-recovery-guard.ts",
+    "src/lib/auth/owner-password-recovery.test.ts",
+    "src/lib/auth/owner-password-recovery.ts",
+    "src/lib/auth/owner-password-update.test.ts",
+    "src/lib/auth/owner-password-update.ts",
+    "src/lib/auth/staff-auth-templates.test.ts",
+    "src/lib/auth/staff-auth.test.ts",
+    "src/lib/auth/staff-auth.ts",
+    "src/lib/supabase/database.types.ts",
+    "supabase/migrations/20260806114444_owner_password_recovery_intents.sql",
+    "supabase/templates/recovery.html"
+  ],
+  "related_files": [
+    {
+      "path": "src/lib/auth/owner-password-update.ts",
+      "reason": "claim後の本人再照合とAuth更新・補償順序",
+      "score": 100
+    },
+    {
+      "path": "src/app/api/auth/owner-password/route.ts",
+      "reason": "intent Cookie、Admin Auth更新、失敗分類",
+      "score": 100
+    },
+    {
+      "path": "supabase/migrations/20260806114444_owner_password_recovery_intents.sql",
+      "reason": "intent状態・権限・profile変更とのDB競合境界",
+      "score": 100
+    },
+    {
+      "path": "ci/test_staff_auth_postgres_concurrency.sh",
+      "reason": "owner/staffの実DB並行競合",
+      "score": 100
+    },
+    {
+      "path": ".github/instructions/review-loop.instructions.md",
+      "reason": "Round 3 fail-closeと例外停止規則",
+      "score": 95
+    }
+  ],
+  "scanned_paths": [
+    "CHANGELOG.md",
+    "NEXT.md",
+    "SECURITY.md",
+    "package.json",
+    "package-lock.json",
+    "docs/ai",
+    "docs/specs",
+    "docs/operations-maintenance.md",
+    "docs/implementation-decisions.md",
+    "src/app/api/auth",
+    "src/app/auth",
+    "src/app/owner",
+    "src/components/auth",
+    "src/lib/auth",
+    "src/lib/supabase",
+    "supabase/migrations",
+    "supabase/templates",
+    "ci/test_staff_auth_postgres.sql",
+    "ci/test_staff_auth_postgres_concurrency.sh",
+    ".github/workflows/ci.yml",
+    ".github/instructions/review-loop.instructions.md"
+  ],
+  "commands_run": [
+    {
+      "command": "git diff --name-status origin/main...c497b493c57da301f58a613775ef1bebb442d6e8",
+      "exit_code": 0,
+      "summary": "対象45ファイル、証跡除外43ファイルを確定した"
+    },
+    {
+      "command": "git diff --check origin/main...c497b493c57da301f58a613775ef1bebb442d6e8",
+      "exit_code": 0,
+      "summary": "空白エラーなし"
+    },
+    {
+      "command": "npm test",
+      "exit_code": 0,
+      "summary": "対象headのVitest 175件成功"
+    },
+    {
+      "command": "python3 -m unittest ci.test_policy_check ci.test_supabase_advisor_migrations",
+      "exit_code": 0,
+      "summary": "対象headのPython 39件成功"
+    },
+    {
+      "command": "python3 ci/policy_check.py",
+      "exit_code": 0,
+      "summary": "対象headのポリシーチェック成功"
+    },
+    {
+      "command": "independent full-repository review of PR 27 at c497b493c57da301f58a613775ef1bebb442d6e8",
+      "exit_code": 0,
+      "summary": "Auth、RLS、migration、staff回帰をfull_repo_agenticで確認した"
+    }
+  ],
+  "context_fingerprint": "git-tree:07d542e7bd50914d7e84619d1769bf99e5976ca5",
+  "context_budget": {
+    "max_related_files": 40,
+    "max_context_chars": 180000,
+    "max_file_excerpt_chars": 12000,
+    "max_context_commands": 12
+  },
+  "context_truncated": false,
+  "context_truncated_reason": "",
+  "issues": [
+    {
+      "severity": "Must",
+      "category": "owner-identity-update-race",
+      "file": "src/lib/auth/owner-password-update.ts",
+      "line": 34,
+      "rationale": "claim後の本人確認とAdmin Auth更新の間にprofile role・有効状態・Authメールが変わると、旧権限に基づくパスワード更新が成立する。",
+      "fix": "更新直前・直後の再照合、profile変更のDB直列化、更新後不整合の安全な補償、実DB並行回帰を追加する。",
+      "confidence": 0.99,
+      "disposition": "fixed",
+      "disposition_reason": "claim ID状態機械とuser ID別advisory lock、claim中profile変更trigger、更新前後照合、profile quarantineとAuth資格情報ランダム化・ban、実DB並行guard回帰を追加した。"
+    },
+    {
+      "severity": "Should",
+      "category": "owner-intent-retry-state",
+      "file": "src/lib/auth/owner-password-update.ts",
+      "line": 34,
+      "rationale": "Auth更新が明確に拒否された場合もintentとCookieが消費され、同じ有効リンクで再試行できない。成功・明確な失敗・結果不明を区別していない。",
+      "fix": "claim・release・finalizeを分離し、明確な拒否だけ再試行可能、結果不明はfail-closeにする。",
+      "confidence": 0.99,
+      "disposition": "fixed",
+      "disposition_reason": "Auth 4xxはreleaseして503 retryableとCookie保持、成功はfinalize、5xx・例外はupdate_unknownとしてquarantineする状態機械と回帰を追加した。"
+    },
+    {
+      "severity": "Should",
+      "category": "execution-ledger-staleness",
+      "file": "docs/ai/execution-ledger.md",
+      "line": 25,
+      "rationale": "Round 2修正commit c497b49がpush済みなのにledgerがRound 2対応中・push前を示している。",
+      "fix": "Round 3 head、reviewer、CI、例外承認と修正状態へ同期する。",
+      "confidence": 1,
+      "disposition": "fixed",
+      "disposition_reason": "c497b49、Round 3 reviewer/session・指摘件数、Run 84、2026-08-09の例外承認、検証・次工程へ更新した。"
+    }
+  ]
+}
