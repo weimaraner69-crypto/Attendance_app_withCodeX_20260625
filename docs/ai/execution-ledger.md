@@ -17,17 +17,17 @@
 
 ## 記録
 
-### 現在状態（2026-08-10 PR #27完了状態同期・最新）
+### 現在状態（2026-08-10 PR #28レビュー準備・最新）
 
-- 現在の mode: `daily_development`（PR #27完了状態同期）
+- 現在の mode: `daily_development`（PR #28完了状態同期レビュー）
 - active branch: `chore/sync-pr27-completion-state`
 - 直近完了 PR: PR #27（Issue #26オーナー本人向け公開パスワード再設定）を2026-08-10に `main` へマージ済み。merge commit `ed4f15c49433fa9003901193d8c4496e0a6e98af`
-- 現在タスク: PR #27のマージ結果を `NEXT.md`、`FINISHED.md`、`CHANGELOG.md`、本台帳へ同期し、Issue #26をコード実装完了として閉じた
+- 現在タスク: PR #27のマージ結果を `NEXT.md`、`FINISHED.md`、`CHANGELOG.md`、本台帳へ同期し、Issue #26をコード実装完了として閉じた。同期PR #28をDraftで作成済み
 - requirements/spec: GitHub Issue #26、`docs/specs/issue-26-owner-password-recovery.md`、`docs/operations-maintenance.md`
 - review baseline: 独立reviewer Kepler `977bc91d-be8f-4447-8377-dd21f76ec459`が実装head `a42a3e4297cf9acb1aeedfb4a4c8ab6500d58853`を`full_repo_agentic`で確認し、Must / Should / Nice 0件。最終証跡は `docs/ai/reviews/2026-08-09-pr27-round3-codex-kepler-final.json`
 - CI状況: PR #27のquality-gate、secret-scan、review-evidence-gate、Vercel、Vercel Preview Commentsがすべて成功し、merge state CLEANでマージ済み
 - 検証状況: Vitest 201件、Python 39件、policy、lint、build、空PostgreSQL 17への全migration・権限、atomicity、owner/staff全並行回帰が成功
-- 次タスク: 完了同期PRを作成し、green tierの独立レビューとCI成功後にマージ判断へ進む。その後、本番Supabase設定・実メール確認はユーザーの明示承認を得て別工程で実施する
+- 次タスク: PR #28をgreen tierの独立レビューとCI成功まで進め、マージ判断を依頼する。その後、本番Supabase設定・実メール確認はユーザーの明示承認を得て別工程で実施する
 - 安全床: `.env.local`を読まない。秘密情報を表示しない。本番Supabase変更、実メール送信、本番デプロイ、日報側実接続、完了同期PRの自動マージは対象外
 - 最終更新: 2026-08-10
 
