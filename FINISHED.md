@@ -10,6 +10,50 @@
 
 ---
 
+## A-001-26 オーナー本人向け公開パスワード再設定
+
+- 実施日: 2026-08-06〜2026-08-10
+- 種別: 認証/公開本人回復/Supabase Auth
+- 完了PR: #27（2026-08-10 `main` へマージ、merge commit `ed4f15c49433fa9003901193d8c4496e0a6e98af`）
+
+### 実施内容
+
+- ログイン画面からオーナー専用の再設定申請、メール本人確認、新パスワード設定へ進める公開導線を追加した。
+- 登録有無、ロール、有効状態、メール送信成否にかかわらず公開応答を同一化し、IP・メールHMAC別レート制限と本文上限でアカウント列挙と濫用を抑止した。
+- Auth/ProfileのID・メール・owner有効状態が一致する場合だけメール送信と更新を許可し、staff用の確認Route、Cookie、intent、更新APIとの相互流用を拒否した。
+- DB intentをclaim・busy・release・finalize・quarantineへ分離し、5分lease、claim所有権fence、更新Route 60秒・Supabase通信15秒の実行上限で、期限切れworkerのAuth更新と補償をfail-closeした。
+- 更新結果不明または更新後の本人不整合では、claim所有権を保持するworkerだけがprofile無効化、Authパスワードのランダム化、banを行う補償経路を追加した。
+
+### 確認内容
+
+- Vitest 35ファイル・201件、Python 39件、policy check、lint、production build、bash構文、`git diff --check` が成功した。
+- 空のPostgreSQL 17へ全migrationを適用し、service role限定権限、intent単回利用、active lease、期限切れclaim回収、補償ロック順、owner/staff全並行回帰、migration rollbackとwriter lockを確認した。
+- 独立repo-aware exact-headレビューでMust / Should / Nice 0件を確認し、機械可読証跡を `docs/ai/reviews/2026-08-09-pr27-round3-codex-kepler-final.json` に保存した。
+- GitHub Actionsの `quality-gate`、`secret-scan`、`review-evidence-gate` とVercelチェックがすべて成功した。
+- PR #27のマージ結果と検証根拠をコメントし、GitHub Issue #26をコード実装完了として閉じた。
+- `.env.local` の値は読み取り・表示していない。本番Supabase変更、実メール送信、日報アプリとの実接続は未実施。
+
+### 残作業
+
+- 本番Supabaseへ `20260806114444_owner_password_recovery_intents.sql` を適用し、Recoveryメールテンプレートとowner/staffのRedirect URLを同じリリースで設定する。
+- 有効ownerの実メールで申請、確認POST、新パスワード設定、オーナーログインを確認してから、日報アプリ用APIキーを発行する。
+
+### 影響ファイル
+
+- `src/app/owner/password-recovery/**`
+- `src/app/auth/owner-confirm/**`
+- `src/app/auth/owner-password/**`
+- `src/app/api/auth/owner-password*/**`
+- `src/lib/auth/owner-*.ts`
+- `src/lib/http/fetch-with-timeout.ts`
+- `supabase/migrations/20260806114444_owner_password_recovery_intents.sql`
+- `supabase/templates/recovery.html`
+- `ci/test_staff_auth_postgres*`
+- `docs/specs/issue-26-owner-password-recovery.md`
+- `NEXT.md`
+- `CHANGELOG.md`
+- `docs/ai/execution-ledger.md`
+
 ## A-000-6 オーナー向けAPIキー管理画面
 
 - 実施日: 2026-07-24〜2026-08-06

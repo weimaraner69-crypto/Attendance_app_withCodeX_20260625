@@ -5,6 +5,21 @@
 
 ---
 
+## [2026-08-10] オーナー公開パスワード再設定の完了状態を同期
+
+### 変更
+
+- PR #27が独立exact-headレビューMust / Should / Nice 0件、全GitHub Actions・Vercel成功後に `main` へマージされた状態を正本へ反映した。
+- Issue #26のコード実装を完了として閉じ、`NEXT.md` から `FINISHED.md` の `A-001-26` へ移した。本番Supabase migration、Recoveryメールテンプレート、Redirect URL、実メール確認は別の運用工程として維持した。
+- 実行台帳をマージ前の修正状態から、完了同期ブランチと次の明示承認待ち作業へ更新した。
+
+### 影響ファイル
+
+- `NEXT.md`
+- `FINISHED.md`
+- `CHANGELOG.md`
+- `docs/ai/execution-ledger.md`
+
 ## [2026-08-06] オーナー本人向け公開パスワード再設定を追加
 
 ### 変更
