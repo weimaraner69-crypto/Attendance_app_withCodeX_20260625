@@ -21,7 +21,7 @@
 
 - 現在の mode: `daily_development`（PR #28完了状態同期レビュー）
 - active branch: `chore/sync-pr27-completion-state`
-- 直近完了 PR: PR #27（Issue #26オーナー本人向け公開パスワード再設定）を2026-08-10に `main` へマージ済み。merge commit `ed4f15c49433fa9003901193d8c4496e0a6e98af`
+- 直近完了 PR: PR #27（Issue #26オーナー本人向け公開パスワード再設定）を2026-08-10に `main` へマージ済み。squash commit `ed4f15c49433fa9003901193d8c4496e0a6e98af`
 - 現在タスク: PR #27のマージ結果を `NEXT.md`、`FINISHED.md`、`CHANGELOG.md`、本台帳へ同期し、Issue #26をコード実装完了として閉じた。同期PR #28をDraftで作成済み
 - requirements/spec: GitHub Issue #26、`docs/specs/issue-26-owner-password-recovery.md`、`docs/operations-maintenance.md`
 - review baseline: 独立reviewer Kepler `977bc91d-be8f-4447-8377-dd21f76ec459`が実装head `a42a3e4297cf9acb1aeedfb4a4c8ab6500d58853`を`full_repo_agentic`で確認し、Must / Should / Nice 0件。最終証跡は `docs/ai/reviews/2026-08-09-pr27-round3-codex-kepler-final.json`
