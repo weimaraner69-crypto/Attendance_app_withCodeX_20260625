@@ -30,14 +30,14 @@
 
 ## 受入条件と検証
 
-- [ ] valid owner、未登録、staff、manager、sr、無効owner、メール不整合のすべてで公開レスポンスが完全に一致し、valid ownerだけ送信処理へ到達する。
-- [ ] 公開要求は本文上限とIP・メール別レート制限を通り、owner確認・メール送信の完了を待たず、制限時・障害時も同じ202を返す。DBへ平文IP・メールを保存しない。
-- [ ] owner callbackは`recovery`だけを受け入れ、無効OTP・非owner・メール不整合・cross-originでintentを発行しない。
-- [ ] owner更新APIは有効かつ未消費のowner intentだけを受け入れ、弱いパスワード・cross-origin・失効・二重送信・期限切れworker・更新前後のrole剥奪・メール不整合・Auth結果不明をfail-closeする。claim busyと明確な更新拒否は同じCookieで再試行でき、期限切れworkerはAuth更新と補償を実行できない。
-- [ ] 実PostgreSQLでowner intentとレート窓の公開ロール全DML・関数実行拒否、同一tokenの並行claimが1件だけ成功してcommit後の敗者もbusyになること、claim中の新規intent発行とプロフィール変更拒否、期限・lease切れclaimの終端化と再発行、release後の再claim、profile更新とquarantineの交差時も無効化が完了すること、IP上限後にメール行が増えないことを確認する。
-- [ ] owner用とstaff用のCookie、intent、更新APIを相互に流用できない。
-- [ ] `npm test`、`npm run lint`、`npm run build`、`python3 -m unittest ci.test_policy_check ci.test_supabase_advisor_migrations`、`python3 ci/policy_check.py`、`git diff --check`が成功する。
-- [ ] Runtime smokeは、実メールを送らないfixtureまたはモックで公開画面、同一文言、更新画面の無効リンク表示を確認する。
+- [x] valid owner、未登録、staff、manager、sr、無効owner、メール不整合のすべてで公開レスポンスが完全に一致し、valid ownerだけ送信処理へ到達する。
+- [x] 公開要求は本文上限とIP・メール別レート制限を通り、owner確認・メール送信の完了を待たず、制限時・障害時も同じ202を返す。DBへ平文IP・メールを保存しない。
+- [x] owner callbackは`recovery`だけを受け入れ、無効OTP・非owner・メール不整合・cross-originでintentを発行しない。
+- [x] owner更新APIは有効かつ未消費のowner intentだけを受け入れ、弱いパスワード・cross-origin・失効・二重送信・期限切れworker・更新前後のrole剥奪・メール不整合・Auth結果不明をfail-closeする。claim busyと明確な更新拒否は同じCookieで再試行でき、期限切れworkerはAuth更新と補償を実行できない。
+- [x] 実PostgreSQLでowner intentとレート窓の公開ロール全DML・関数実行拒否、同一tokenの並行claimが1件だけ成功してcommit後の敗者もbusyになること、claim中の新規intent発行とプロフィール変更拒否、期限・lease切れclaimの終端化と再発行、release後の再claim、profile更新とquarantineの交差時も無効化が完了すること、IP上限後にメール行が増えないことを確認する。
+- [x] owner用とstaff用のCookie、intent、更新APIを相互に流用できない。
+- [x] `npm test`、`npm run lint`、`npm run build`、`python3 -m unittest ci.test_policy_check ci.test_supabase_advisor_migrations`、`python3 ci/policy_check.py`、`git diff --check`が成功する。
+- [x] Runtime smokeは、実メールを送らないfixtureまたはモックで公開画面、同一文言、更新画面の無効リンク表示を確認する。
 
 ## ロールバック方針
 
