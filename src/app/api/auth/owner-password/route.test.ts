@@ -30,18 +30,20 @@ vi.mock('@/lib/supabase', () => ({
 import { GET, POST } from './route';
 
 const apiOrigin = ['https:', '', 'attendance.example'].join('/');
+const deploymentOrigin = ['https:', '', 'attendance-deployment.example'].join('/');
 
 describe('owner password update API', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.NEXT_PUBLIC_APP_URL = apiOrigin;
     mocks.getIntentToken.mockReturnValue('opaque-token');
     mocks.validateIntent.mockResolvedValue({ id: 'intent-1', user_id: 'owner-user-1' });
     mocks.updateWithIntent.mockResolvedValue({ ok: true, code: 'updated' });
     mocks.createAdminClient.mockReturnValue({});
   });
 
-  function updateRequest(origin = apiOrigin) {
-    return new Request(`${apiOrigin}/api/auth/owner-password`, {
+  function updateRequest(origin = apiOrigin, requestOrigin = apiOrigin) {
+    return new Request(`${requestOrigin}/api/auth/owner-password`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Origin: origin },
       body: JSON.stringify({ password: 'new-password' }),
@@ -63,6 +65,13 @@ describe('owner password update API', () => {
       password: 'new-password',
     }));
     expect(mocks.clearIntent).toHaveBeenCalledOnce();
+  });
+
+  it('accepts the configured public origin behind a Vercel deployment origin', async () => {
+    const response = await POST(updateRequest(apiOrigin, deploymentOrigin));
+
+    expect(response.status).toBe(200);
+    expect(mocks.updateWithIntent).toHaveBeenCalledOnce();
   });
 
   it('keeps the browser intent when Auth explicitly rejects a retryable update', async () => {
@@ -112,6 +121,16 @@ describe('owner password update API', () => {
 
   it('rejects cross-origin updates before reading the intent', async () => {
     const response = await POST(updateRequest(['https:', '', 'foreign.example'].join('/')));
+    expect(response.status).toBe(403);
+    expect(mocks.getIntentToken).not.toHaveBeenCalled();
+    expect(mocks.updateWithIntent).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when the configured public origin is missing', async () => {
+    delete process.env.NEXT_PUBLIC_APP_URL;
+
+    const response = await POST(updateRequest());
+
     expect(response.status).toBe(403);
     expect(mocks.getIntentToken).not.toHaveBeenCalled();
     expect(mocks.updateWithIntent).not.toHaveBeenCalled();

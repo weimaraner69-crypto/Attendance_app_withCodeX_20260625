@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server';
 
 import { hasValidOwnerAuthIdentityForUser } from '@/lib/auth/owner-auth-identity';
 import { createOwnerAuthIdentityOperations } from '@/lib/auth/owner-auth-operations';
+import { buildOwnerPasswordRecoveryUrl } from '@/lib/auth/owner-password-recovery';
 import {
   clearOwnerPasswordIntent,
   getOwnerPasswordIntentToken,
@@ -123,7 +124,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const requestOrigin = request.headers.get('origin');
-  if (requestOrigin !== new URL(request.url).origin) {
+  const recoveryUrl = buildOwnerPasswordRecoveryUrl(process.env.NEXT_PUBLIC_APP_URL);
+  const configuredOrigin = recoveryUrl ? new URL(recoveryUrl).origin : null;
+  if (!configuredOrigin || requestOrigin !== configuredOrigin) {
     return NextResponse.json({ updated: false }, { status: 403 });
   }
 

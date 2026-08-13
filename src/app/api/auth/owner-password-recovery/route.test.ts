@@ -40,9 +40,10 @@ vi.mock('@/lib/supabase/env', () => ({
 import { POST } from './route';
 
 const appOrigin = ['https:', '', 'attendance.example'].join('/');
+const deploymentOrigin = ['https:', '', 'attendance-deployment.example'].join('/');
 
-function request(email: unknown, origin = appOrigin) {
-  return new Request(`${appOrigin}/api/auth/owner-password-recovery`, {
+function request(email: unknown, origin = appOrigin, requestOrigin = appOrigin) {
+  return new Request(`${requestOrigin}/api/auth/owner-password-recovery`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Origin: origin },
     body: JSON.stringify({ email }),
@@ -84,6 +85,14 @@ describe('owner password recovery request API', () => {
       secret: 'test-only-secret',
       operations: { kind: 'rate-limit-operations' },
     });
+    expect(mocks.waitUntil).toHaveBeenCalledWith(expect.any(Promise));
+  });
+
+  it('uses the configured public origin behind a Vercel deployment origin', async () => {
+    const response = await POST(request('owner@example.com', appOrigin, deploymentOrigin));
+
+    expect(response.status).toBe(202);
+    expect(mocks.requestRecovery).toHaveBeenCalledOnce();
     expect(mocks.waitUntil).toHaveBeenCalledWith(expect.any(Promise));
   });
 

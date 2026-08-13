@@ -36,13 +36,17 @@ function acceptedResponse() {
 export async function POST(request: Request) {
   try {
     const requestOrigin = request.headers.get('origin');
-    if (requestOrigin !== new URL(request.url).origin) {
+    const redirectTo = buildOwnerPasswordRecoveryUrl(process.env.NEXT_PUBLIC_APP_URL);
+    if (!redirectTo) {
+      return acceptedResponse();
+    }
+
+    const configuredOrigin = new URL(redirectTo).origin;
+    if (requestOrigin !== configuredOrigin) {
       return acceptedResponse();
     }
 
     const email = await readOwnerPasswordRecoveryEmail(request);
-    const redirectTo = buildOwnerPasswordRecoveryUrl(process.env.NEXT_PUBLIC_APP_URL);
-    if (!redirectTo) return acceptedResponse();
 
     const admin = createSupabaseAdminClient();
     const rateLimitAllowed = await consumeOwnerPasswordRecoveryRateLimit({

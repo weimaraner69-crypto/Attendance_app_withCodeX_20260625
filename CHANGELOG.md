@@ -5,6 +5,20 @@
 
 ---
 
+## [2026-08-13] オーナーパスワード再設定の本番Origin判定を修正
+
+### 変更
+
+- Vercelの公開ドメインとRoute Handler内部のリクエストURLが異なる場合でも、`NEXT_PUBLIC_APP_URL` の公開Originからの再設定要求・本人確認・パスワード更新を受け付けるようにした。
+- 外部Originと公開URL設定欠落は従来どおりfail-closeし、Vercel内部Originを直接信頼しない回帰テストを追加した。
+
+### 影響ファイル
+
+- `src/app/api/auth/owner-password-recovery/**`
+- `src/app/auth/owner-confirm/complete/**`
+- `src/app/api/auth/owner-password/**`
+- `docs/operations-maintenance.md`
+
 ## [2026-08-10] オーナー公開パスワード再設定の完了状態を同期
 
 ### 変更

@@ -31,12 +31,13 @@ vi.mock('@/lib/supabase', () => ({
 import { POST } from './route';
 
 const appOrigin = ['https:', '', 'attendance.example'].join('/');
+const deploymentOrigin = ['https:', '', 'attendance-deployment.example'].join('/');
 
-function confirmationRequest(type = 'recovery') {
+function confirmationRequest(type = 'recovery', requestOrigin = appOrigin) {
   const form = new FormData();
   form.set('token_hash', 'token-hash');
   form.set('type', type);
-  return new Request(`${appOrigin}/auth/owner-confirm/complete`, {
+  return new Request(`${requestOrigin}/auth/owner-confirm/complete`, {
     method: 'POST',
     headers: { Origin: appOrigin },
     body: form,
@@ -46,6 +47,7 @@ function confirmationRequest(type = 'recovery') {
 describe('owner Auth confirmation route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.NEXT_PUBLIC_APP_URL = appOrigin;
     mocks.verifyOtp.mockResolvedValue({ data: { user: { id: 'owner-user-1' } }, error: null });
     mocks.hasValidIdentity.mockResolvedValue(true);
     mocks.generateToken.mockReturnValue('opaque-token');
@@ -68,6 +70,14 @@ describe('owner Auth confirmation route', () => {
       p_expires_at: expect.any(String),
     });
     expect(mocks.setIntentCookie).toHaveBeenCalledWith('opaque-token');
+  });
+
+  it('uses the configured public origin behind a Vercel deployment origin', async () => {
+    const response = await POST(confirmationRequest('recovery', deploymentOrigin));
+
+    expect(response.status).toBe(303);
+    expect(response.headers.get('location')).toBe(`${appOrigin}/auth/owner-password`);
+    expect(mocks.verifyOtp).toHaveBeenCalledWith({ token_hash: 'token-hash', type: 'recovery' });
   });
 
   it('rejects other OTP types before verification', async () => {
@@ -101,5 +111,17 @@ describe('owner Auth confirmation route', () => {
       `${appOrigin}/auth/owner-password?invalid=1`
     );
     expect(mocks.verifyOtp).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when the configured public origin is missing', async () => {
+    delete process.env.NEXT_PUBLIC_APP_URL;
+
+    const response = await POST(confirmationRequest());
+
+    expect(response.headers.get('location')).toBe(
+      `${appOrigin}/auth/owner-password?invalid=1`
+    );
+    expect(mocks.verifyOtp).not.toHaveBeenCalled();
+    expect(mocks.issueIntent).not.toHaveBeenCalled();
   });
 });
