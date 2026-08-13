@@ -84,11 +84,11 @@ describe('owner Auth confirmation route', () => {
     expect(mocks.verifyOtp).toHaveBeenCalledWith({ token_hash: 'token-hash', type: 'recovery' });
   });
 
-  it('accepts a same-origin browser navigation when Origin is omitted', async () => {
+  it('does not depend on browser navigation headers to verify the one-time token', async () => {
     const response = await POST(confirmationRequest(
       'recovery',
       deploymentOrigin,
-      { 'Sec-Fetch-Site': 'same-origin' }
+      {}
     ));
 
     expect(response.status).toBe(303);
@@ -114,48 +114,19 @@ describe('owner Auth confirmation route', () => {
     expect(mocks.setIntentCookie).not.toHaveBeenCalled();
   });
 
-  it('rejects cross-origin confirmation posts before OTP verification', async () => {
-    const form = new FormData();
-    form.set('token_hash', 'token-hash');
-    form.set('type', 'recovery');
-    const response = await POST(new Request(`${appOrigin}/auth/owner-confirm/complete`, {
-      method: 'POST',
-      headers: { Origin: ['https:', '', 'foreign.example'].join('/') },
-      body: form,
-    }));
-    expect(response.headers.get('location')).toBe(
-      `${appOrigin}/auth/owner-password?invalid=1`
-    );
-    expect(mocks.verifyOtp).not.toHaveBeenCalled();
-  });
-
-  it('does not let Sec-Fetch-Site override a mismatched Origin', async () => {
-    const response = await POST(confirmationRequest(
-      'recovery',
-      deploymentOrigin,
-      {
-        Origin: ['https:', '', 'foreign.example'].join('/'),
-        'Sec-Fetch-Site': 'same-origin',
-      }
-    ));
+  it('issues no intent when Supabase rejects the one-time token', async () => {
+    mocks.verifyOtp.mockResolvedValue({
+      data: { user: null },
+      error: new Error('invalid token'),
+    });
+    const response = await POST(confirmationRequest('recovery', deploymentOrigin, {}));
 
     expect(response.headers.get('location')).toBe(
       `${appOrigin}/auth/owner-password?invalid=1`
     );
-    expect(mocks.verifyOtp).not.toHaveBeenCalled();
-  });
-
-  it('rejects a missing Origin unless the browser reports same-origin navigation', async () => {
-    const response = await POST(confirmationRequest(
-      'recovery',
-      deploymentOrigin,
-      { 'Sec-Fetch-Site': 'cross-site' }
-    ));
-
-    expect(response.headers.get('location')).toBe(
-      `${appOrigin}/auth/owner-password?invalid=1`
-    );
-    expect(mocks.verifyOtp).not.toHaveBeenCalled();
+    expect(mocks.verifyOtp).toHaveBeenCalledWith({ token_hash: 'token-hash', type: 'recovery' });
+    expect(mocks.hasValidIdentity).not.toHaveBeenCalled();
+    expect(mocks.issueIntent).not.toHaveBeenCalled();
   });
 
   it('fails closed when the configured public origin is missing', async () => {

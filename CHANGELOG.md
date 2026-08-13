@@ -10,8 +10,8 @@
 ### 変更
 
 - Vercelの公開ドメインとRoute Handler内部のリクエストURLが異なる場合でも、`NEXT_PUBLIC_APP_URL` の公開Originからの再設定要求・本人確認・パスワード更新を受け付けるようにした。
-- 本番のトップレベルフォームPOSTで `Origin` が渡らない場合は、ブラウザが付与する `Sec-Fetch-Site: same-origin` を本人確認処理の代替判定として受け付けるようにした。明示された不一致Originは優先して拒否する。
-- 外部Originと公開URL設定欠落は従来どおりfail-closeし、Vercel内部Originを直接信頼しない回帰テストを追加した。
+- 本人確認POSTはVercelとブラウザで変動する `Origin` / `Sec-Fetch-Site` に依存せず、メール内のワンタイムトークン、Supabase OTP、オーナーID、短時間Intentを認証境界として検証するようにした。パスワード更新APIのOrigin検証は維持する。
+- 再設定要求・パスワード更新APIでは外部Originを従来どおりfail-closeし、公開URL設定欠落やVercel内部Originの直接信頼を防ぐ回帰テストを維持した。
 
 ### 影響ファイル
 

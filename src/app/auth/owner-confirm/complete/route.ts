@@ -20,15 +20,10 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   clearOwnerPasswordIntent();
-  const requestOrigin = request.headers.get('origin');
-  const fetchSite = request.headers.get('sec-fetch-site');
   const recoveryUrl = buildOwnerPasswordRecoveryUrl(process.env.NEXT_PUBLIC_APP_URL);
   const configuredOrigin = recoveryUrl ? new URL(recoveryUrl).origin : null;
   const redirectOrigin = configuredOrigin ?? new URL(request.url).origin;
-  const trustedBrowserRequest = requestOrigin
-    ? requestOrigin === configuredOrigin
-    : fetchSite === 'same-origin';
-  if (!configuredOrigin || !trustedBrowserRequest) {
+  if (!configuredOrigin) {
     return NextResponse.redirect(
       new URL('/auth/owner-password?invalid=1', redirectOrigin),
       303
