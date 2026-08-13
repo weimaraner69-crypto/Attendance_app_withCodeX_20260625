@@ -26,7 +26,7 @@ Git、Issue、Pull Request、チャット、ログへ値を貼り付けません
 - 本番: Supabase project、LINE Messaging APIチャネル、公開HTTPSドメインを本番用に固定する。
 - `NEXT_PUBLIC_APP_URL` は末尾スラッシュなしにする。
 - Supabase DashboardのAuthentication > URL Configurationで、Site URLを `NEXT_PUBLIC_APP_URL` と同じOriginへ設定し、スタッフ招待・再設定用の `NEXT_PUBLIC_APP_URL` + `/auth/confirm` と、オーナー再設定用の `NEXT_PUBLIC_APP_URL` + `/auth/owner-confirm` をRedirect URLへ登録する。
-- オーナー再設定の公開要求・本人確認・パスワード更新は、Vercel内部のリクエストURLではなく `NEXT_PUBLIC_APP_URL` のOriginとブラウザの `Origin` を照合する。設定欠落または不一致時はfail-closeする。
+- オーナー再設定の公開要求・本人確認・パスワード更新は、Vercel内部のリクエストURLではなく `NEXT_PUBLIC_APP_URL` のOriginとブラウザの `Origin` を照合する。本人確認フォームで `Origin` が省略された場合に限り `Sec-Fetch-Site: same-origin` を代替判定とし、設定欠落、明示された不一致Origin、cross-site時はfail-closeする。
 - Authentication > Email TemplatesのInvite userへ `supabase/templates/invite.html`、Reset passwordへ `supabase/templates/recovery.html` の内容を反映する。Reset passwordは要求時の `RedirectTo` に従い、staffは `/auth/confirm`、ownerは `/auth/owner-confirm` で `token_hash` をサーバー検証する。
 - service role key、LINE secret、LINE access token はローテーション手順をパスワード管理ツールに残す。
 

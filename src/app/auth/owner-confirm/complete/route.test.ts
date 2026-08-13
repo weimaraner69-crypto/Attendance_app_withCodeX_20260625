@@ -33,13 +33,17 @@ import { POST } from './route';
 const appOrigin = ['https:', '', 'attendance.example'].join('/');
 const deploymentOrigin = ['https:', '', 'attendance-deployment.example'].join('/');
 
-function confirmationRequest(type = 'recovery', requestOrigin = appOrigin) {
+function confirmationRequest(
+  type = 'recovery',
+  requestOrigin = appOrigin,
+  headers: HeadersInit = { Origin: appOrigin }
+) {
   const form = new FormData();
   form.set('token_hash', 'token-hash');
   form.set('type', type);
   return new Request(`${requestOrigin}/auth/owner-confirm/complete`, {
     method: 'POST',
-    headers: { Origin: appOrigin },
+    headers,
     body: form,
   });
 }
@@ -80,6 +84,18 @@ describe('owner Auth confirmation route', () => {
     expect(mocks.verifyOtp).toHaveBeenCalledWith({ token_hash: 'token-hash', type: 'recovery' });
   });
 
+  it('accepts a same-origin browser navigation when Origin is omitted', async () => {
+    const response = await POST(confirmationRequest(
+      'recovery',
+      deploymentOrigin,
+      { 'Sec-Fetch-Site': 'same-origin' }
+    ));
+
+    expect(response.status).toBe(303);
+    expect(response.headers.get('location')).toBe(`${appOrigin}/auth/owner-password`);
+    expect(mocks.verifyOtp).toHaveBeenCalledWith({ token_hash: 'token-hash', type: 'recovery' });
+  });
+
   it('rejects other OTP types before verification', async () => {
     const response = await POST(confirmationRequest('invite'));
     expect(response.headers.get('location')).toBe(
@@ -107,6 +123,35 @@ describe('owner Auth confirmation route', () => {
       headers: { Origin: ['https:', '', 'foreign.example'].join('/') },
       body: form,
     }));
+    expect(response.headers.get('location')).toBe(
+      `${appOrigin}/auth/owner-password?invalid=1`
+    );
+    expect(mocks.verifyOtp).not.toHaveBeenCalled();
+  });
+
+  it('does not let Sec-Fetch-Site override a mismatched Origin', async () => {
+    const response = await POST(confirmationRequest(
+      'recovery',
+      deploymentOrigin,
+      {
+        Origin: ['https:', '', 'foreign.example'].join('/'),
+        'Sec-Fetch-Site': 'same-origin',
+      }
+    ));
+
+    expect(response.headers.get('location')).toBe(
+      `${appOrigin}/auth/owner-password?invalid=1`
+    );
+    expect(mocks.verifyOtp).not.toHaveBeenCalled();
+  });
+
+  it('rejects a missing Origin unless the browser reports same-origin navigation', async () => {
+    const response = await POST(confirmationRequest(
+      'recovery',
+      deploymentOrigin,
+      { 'Sec-Fetch-Site': 'cross-site' }
+    ));
+
     expect(response.headers.get('location')).toBe(
       `${appOrigin}/auth/owner-password?invalid=1`
     );
