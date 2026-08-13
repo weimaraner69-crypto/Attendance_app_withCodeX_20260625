@@ -19,13 +19,17 @@ import {
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
-  clearOwnerPasswordIntent();
   const recoveryUrl = buildOwnerPasswordRecoveryUrl(process.env.NEXT_PUBLIC_APP_URL);
   const configuredOrigin = recoveryUrl ? new URL(recoveryUrl).origin : null;
-  const redirectOrigin = configuredOrigin ?? new URL(request.url).origin;
   if (!configuredOrigin) {
     return NextResponse.redirect(
-      new URL('/auth/owner-password?invalid=1', redirectOrigin),
+      new URL('/auth/owner-password?invalid=1', new URL(request.url).origin),
+      303
+    );
+  }
+  if (request.headers.get('sec-fetch-site')?.toLowerCase() === 'cross-site') {
+    return NextResponse.redirect(
+      new URL('/auth/owner-password?invalid=1', configuredOrigin),
       303
     );
   }
@@ -54,6 +58,7 @@ export async function POST(request: Request) {
       hasValidOwnerAuthIdentityForUser(userId, identityOperations)
     ),
     async createIntent(userId) {
+      clearOwnerPasswordIntent();
       const token = generateOwnerPasswordIntentToken();
       const expiresAt = new Date(
         Date.now() + OWNER_PASSWORD_INTENT_TTL_SECONDS * 1000

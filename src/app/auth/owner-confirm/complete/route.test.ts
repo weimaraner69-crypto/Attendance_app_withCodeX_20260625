@@ -73,6 +73,10 @@ describe('owner Auth confirmation route', () => {
       p_token_hash: 'a'.repeat(64),
       p_expires_at: expect.any(String),
     });
+    expect(mocks.clearIntentCookie).toHaveBeenCalledOnce();
+    expect(mocks.clearIntentCookie.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.issueIntent.mock.invocationCallOrder[0]
+    );
     expect(mocks.setIntentCookie).toHaveBeenCalledWith('opaque-token');
   });
 
@@ -83,6 +87,39 @@ describe('owner Auth confirmation route', () => {
     expect(response.headers.get('location')).toBe(`${appOrigin}/auth/owner-password`);
     expect(mocks.verifyOtp).toHaveBeenCalledWith({ token_hash: 'token-hash', type: 'recovery' });
   });
+
+  it('rejects an explicitly cross-site confirmation before OTP verification', async () => {
+    const response = await POST(confirmationRequest(
+      'recovery',
+      deploymentOrigin,
+      { 'Sec-Fetch-Site': 'cross-site' }
+    ));
+
+    expect(response.status).toBe(303);
+    expect(response.headers.get('location')).toBe(
+      `${appOrigin}/auth/owner-password?invalid=1`
+    );
+    expect(mocks.verifyOtp).not.toHaveBeenCalled();
+    expect(mocks.clearIntentCookie).not.toHaveBeenCalled();
+    expect(mocks.issueIntent).not.toHaveBeenCalled();
+  });
+
+  it.each(['same-origin', 'same-site', 'none'])(
+    'allows a %s confirmation to reach OTP verification',
+    async (fetchSite) => {
+      const response = await POST(confirmationRequest(
+        'recovery',
+        deploymentOrigin,
+        { 'Sec-Fetch-Site': fetchSite }
+      ));
+
+      expect(response.headers.get('location')).toBe(`${appOrigin}/auth/owner-password`);
+      expect(mocks.verifyOtp).toHaveBeenCalledWith({
+        token_hash: 'token-hash',
+        type: 'recovery',
+      });
+    }
+  );
 
   it('does not depend on browser navigation headers to verify the one-time token', async () => {
     const response = await POST(confirmationRequest(
@@ -102,6 +139,7 @@ describe('owner Auth confirmation route', () => {
       `${appOrigin}/auth/owner-password?invalid=1`
     );
     expect(mocks.verifyOtp).not.toHaveBeenCalled();
+    expect(mocks.clearIntentCookie).not.toHaveBeenCalled();
     expect(mocks.issueIntent).not.toHaveBeenCalled();
   });
 
@@ -111,6 +149,7 @@ describe('owner Auth confirmation route', () => {
     expect(response.headers.get('location')).toBe(
       `${appOrigin}/auth/owner-password?invalid=1`
     );
+    expect(mocks.clearIntentCookie).toHaveBeenCalledOnce();
     expect(mocks.setIntentCookie).not.toHaveBeenCalled();
   });
 
@@ -126,6 +165,21 @@ describe('owner Auth confirmation route', () => {
     );
     expect(mocks.verifyOtp).toHaveBeenCalledWith({ token_hash: 'token-hash', type: 'recovery' });
     expect(mocks.hasValidIdentity).not.toHaveBeenCalled();
+    expect(mocks.clearIntentCookie).not.toHaveBeenCalled();
+    expect(mocks.issueIntent).not.toHaveBeenCalled();
+  });
+
+  it('preserves an existing intent when the verified user is not an active owner', async () => {
+    mocks.hasValidIdentity.mockResolvedValue(false);
+
+    const response = await POST(confirmationRequest());
+
+    expect(response.headers.get('location')).toBe(
+      `${appOrigin}/auth/owner-password?invalid=1`
+    );
+    expect(mocks.verifyOtp).toHaveBeenCalledOnce();
+    expect(mocks.hasValidIdentity).toHaveBeenCalledOnce();
+    expect(mocks.clearIntentCookie).not.toHaveBeenCalled();
     expect(mocks.issueIntent).not.toHaveBeenCalled();
   });
 
@@ -138,6 +192,7 @@ describe('owner Auth confirmation route', () => {
       `${appOrigin}/auth/owner-password?invalid=1`
     );
     expect(mocks.verifyOtp).not.toHaveBeenCalled();
+    expect(mocks.clearIntentCookie).not.toHaveBeenCalled();
     expect(mocks.issueIntent).not.toHaveBeenCalled();
   });
 });
