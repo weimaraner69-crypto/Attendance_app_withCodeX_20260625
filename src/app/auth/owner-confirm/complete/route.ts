@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { confirmOwnerPasswordRecoveryLink } from '@/lib/auth/owner-auth-confirmation';
 import { hasValidOwnerAuthIdentityForUser } from '@/lib/auth/owner-auth-identity';
 import { createOwnerAuthIdentityOperations } from '@/lib/auth/owner-auth-operations';
+import { buildOwnerPasswordRecoveryUrl } from '@/lib/auth/owner-password-recovery';
 import {
   clearOwnerPasswordIntent,
   generateOwnerPasswordIntentToken,
@@ -18,10 +19,19 @@ import {
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
-  clearOwnerPasswordIntent();
-  const requestOrigin = request.headers.get('origin');
-  if (requestOrigin !== new URL(request.url).origin) {
-    return NextResponse.redirect(new URL('/auth/owner-password?invalid=1', request.url), 303);
+  const recoveryUrl = buildOwnerPasswordRecoveryUrl(process.env.NEXT_PUBLIC_APP_URL);
+  const configuredOrigin = recoveryUrl ? new URL(recoveryUrl).origin : null;
+  if (!configuredOrigin) {
+    return NextResponse.redirect(
+      new URL('/auth/owner-password?invalid=1', new URL(request.url).origin),
+      303
+    );
+  }
+  if (request.headers.get('sec-fetch-site')?.toLowerCase() === 'cross-site') {
+    return NextResponse.redirect(
+      new URL('/auth/owner-password?invalid=1', configuredOrigin),
+      303
+    );
   }
 
   const form = await request.formData();
@@ -29,7 +39,7 @@ export async function POST(request: Request) {
   const typeEntry = form.get('type');
   const tokenHash = typeof tokenHashEntry === 'string' ? tokenHashEntry : '';
   const type = typeof typeEntry === 'string' ? typeEntry : '';
-  const callbackUrl = new URL('/auth/owner-confirm/complete', request.url);
+  const callbackUrl = new URL('/auth/owner-confirm/complete', configuredOrigin);
   callbackUrl.searchParams.set('token_hash', tokenHash);
   callbackUrl.searchParams.set('type', type);
 
@@ -48,6 +58,7 @@ export async function POST(request: Request) {
       hasValidOwnerAuthIdentityForUser(userId, identityOperations)
     ),
     async createIntent(userId) {
+      clearOwnerPasswordIntent();
       const token = generateOwnerPasswordIntentToken();
       const expiresAt = new Date(
         Date.now() + OWNER_PASSWORD_INTENT_TTL_SECONDS * 1000
@@ -64,7 +75,7 @@ export async function POST(request: Request) {
   });
 
   const destination = result.ok
-    ? new URL('/auth/owner-password', request.url)
-    : new URL('/auth/owner-password?invalid=1', request.url);
+    ? new URL('/auth/owner-password', configuredOrigin)
+    : new URL('/auth/owner-password?invalid=1', configuredOrigin);
   return NextResponse.redirect(destination, 303);
 }

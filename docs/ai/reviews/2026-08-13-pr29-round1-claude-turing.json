@@ -1,0 +1,195 @@
+{
+  "schema_version": 2,
+  "phase": "post_push",
+  "provider": "claude",
+  "reviewer_id": "claude-turing-ba0053fd",
+  "review_session_id": "ba0053fd-909a-4e8d-9f6f-1b6290595d7b",
+  "implementation_session_id": "codex-main-owner-recovery-origin-20260813",
+  "head_sha": "c6990e46c687bc47e6655e870f248f4114942a85",
+  "diff_fingerprint": "sha256:2f26c371cfd0e19bb6ec5ba319c525ca55fe79bfac8ed3fa99013956deaf6434",
+  "risk_tier": "red",
+  "round": 1,
+  "review_status": "completed",
+  "secondary_verification": {
+    "required": true,
+    "method": "dedicated_tests",
+    "status": "passed",
+    "evidence": "レビュー対象commit c6990e4 をローカルへfetchし、PR HEADと差分ゼロであることを確認したうえで全テストを実行した。Vitest 35ファイル207件、Python 39件、policy_check、next lint がいずれも成功。認可経路の3ファイル（owner-confirm/complete、owner-password、owner-password-recovery）に対応するテスト26件が、Originヘッダー除去後も one-time token 検証・オーナー本人照合・設定欠落時のfail-closeを固定していることを個別に再実行して確認した。",
+    "commands": [
+      {
+        "command": "npm test",
+        "exit_code": 0,
+        "summary": "35 test files and 207 tests passed",
+        "covered_paths": [
+          "**"
+        ]
+      },
+      {
+        "command": "python3 -m unittest ci.test_policy_check ci.test_supabase_advisor_migrations",
+        "exit_code": 0,
+        "summary": "39 policy and migration tests passed",
+        "covered_paths": [
+          "**"
+        ]
+      },
+      {
+        "command": "python3 ci/policy_check.py",
+        "exit_code": 0,
+        "summary": "policy_check OK",
+        "covered_paths": [
+          "**"
+        ]
+      },
+      {
+        "command": "npm run lint",
+        "exit_code": 0,
+        "summary": "No ESLint warnings or errors",
+        "covered_paths": [
+          "**"
+        ]
+      }
+    ]
+  },
+  "summary": "最終判定はマージ可。Must 0件 / Should 1件（rejected: 既存挙動のため本PRのブロッカーとしない）/ Nice 2件。Origin照合を request.url から NEXT_PUBLIC_APP_URL 基準へ統一した3経路のうち、再設定要求とパスワード更新はOrigin検証を維持したまま比較対象を正した改善であり、設定欠落時のfail-closeにも回帰テストがある。Vercelでは Route Handler が見る request.url が内部デプロイURLになりブラウザの Origin と一致しないため、従来の比較は常に失敗しており、設定値基準への統一は正しい是正である。確認POSTのOrigin検証除去は、認可境界が token_hash 必須・type=recovery 固定・Supabase OTP検証・オーナーロールとメール一致の本人照合・TTL付きDB-backed Intent の5段で構成されており、Origin は元々補助的だったため妥当と判断した。メールリンク経由のPOSTでは Origin が欠落しうるため、これを認可根拠にしていたことが本来の誤りである。有効な token_hash を保持していても role=owner かつ is_active でなければ Intent が発行されないことを owner-auth-identity.ts の実装で確認した。",
+  "repository_context_mode": "full_repo_agentic",
+  "diff_only_reason": "",
+  "changed_files": [
+    "CHANGELOG.md",
+    "docs/operations-maintenance.md",
+    "src/app/api/auth/owner-password-recovery/route.test.ts",
+    "src/app/api/auth/owner-password-recovery/route.ts",
+    "src/app/api/auth/owner-password/route.test.ts",
+    "src/app/api/auth/owner-password/route.ts",
+    "src/app/auth/owner-confirm/complete/route.test.ts",
+    "src/app/auth/owner-confirm/complete/route.ts"
+  ],
+  "related_files": [
+    {
+      "path": "src/lib/auth/owner-auth-confirmation.ts",
+      "reason": "確認POSTの認可順序（token_hash必須・type=recovery固定・OTP→本人照合→Intentのfail-close）を定義する中核。Origin検証除去後の実質的な認可境界がここに集約されているため精読した。",
+      "score": 100
+    },
+    {
+      "path": "src/lib/auth/owner-auth-identity.ts",
+      "reason": "hasValidOwnerAuthIdentity の実装。role=owner かつ is_active、profile.id と authUser.id の一致、正規化メールの一致を要求しており、有効なtoken_hashだけでは突破できないことの根拠。",
+      "score": 100
+    },
+    {
+      "path": "src/lib/auth/owner-password-recovery.ts",
+      "reason": "buildOwnerPasswordRecoveryUrl が3経路すべての configuredOrigin 算出元。未設定時に null を返す契約が fail-close の前提になる。",
+      "score": 95
+    },
+    {
+      "path": "src/lib/auth/owner-password-intent.ts",
+      "reason": "clearOwnerPasswordIntent / setOwnerPasswordIntentCookie / TTL定数。Should-2 で指摘した無条件クリアの影響範囲確認に使用。",
+      "score": 85
+    },
+    {
+      "path": "ci/policy_check.py",
+      "reason": "本証跡が満たすべき review evidence の検証条件（red tierのsecondary_verification要件、diff_fingerprint再計算、risk tier判定）を確認するため。",
+      "score": 70
+    },
+    {
+      "path": "docs/operations-maintenance.md",
+      "reason": "本PRが追記した運用手順。Origin照合の基準変更とfail-close方針が実装と一致しているか照合した。",
+      "score": 65
+    }
+  ],
+  "scanned_paths": [
+    "src/app/api/auth/owner-password-recovery/",
+    "src/app/api/auth/owner-password/",
+    "src/app/auth/owner-confirm/complete/",
+    "src/lib/auth/",
+    "ci/policy_check.py",
+    "docs/ai/reviews/",
+    "docs/operations-maintenance.md",
+    "CHANGELOG.md"
+  ],
+  "commands_run": [
+    {
+      "command": "git fetch origin fix/owner-recovery-origin-validation",
+      "exit_code": 0,
+      "summary": "レビュー対象ブランチを取得し、ローカルHEADがPR HEAD c6990e4 と差分ゼロであることを確認"
+    },
+    {
+      "command": "git diff --binary <merge-base>..c6990e4 -- . ':(exclude)docs/ai/reviews/**'",
+      "exit_code": 0,
+      "summary": "diff_fingerprint を再計算し sha256:2f26c371... を得た"
+    },
+    {
+      "command": "npx vitest run src/app/auth/owner-confirm/complete/route.test.ts src/app/api/auth/owner-password/route.test.ts src/app/api/auth/owner-password-recovery/route.test.ts",
+      "exit_code": 0,
+      "summary": "認可経路3ファイルのテスト26件がpass"
+    },
+    {
+      "command": "npm test",
+      "exit_code": 0,
+      "summary": "35ファイル207件がpass"
+    },
+    {
+      "command": "python3 -m unittest ci.test_policy_check ci.test_supabase_advisor_migrations",
+      "exit_code": 0,
+      "summary": "Python 39件がpass"
+    },
+    {
+      "command": "python3 ci/policy_check.py",
+      "exit_code": 0,
+      "summary": "policy_check OK"
+    },
+    {
+      "command": "npm run lint",
+      "exit_code": 0,
+      "summary": "ESLint 警告・エラーなし"
+    },
+    {
+      "command": "gh pr checks 29",
+      "exit_code": 0,
+      "summary": "quality-gate / secret-scan / Vercel が pass、review-evidence-gate のみ証跡未提出で fail"
+    }
+  ],
+  "context_fingerprint": "git-tree:cc96ac799992359a36d3b93696e7fc34b7315bc2",
+  "context_budget": {
+    "max_related_files": 40,
+    "max_context_chars": 180000,
+    "max_file_excerpt_chars": 12000,
+    "max_context_commands": 12
+  },
+  "context_truncated": false,
+  "context_truncated_reason": "",
+  "issues": [
+    {
+      "severity": "Should",
+      "category": "availability",
+      "file": "src/app/auth/owner-confirm/complete/route.ts",
+      "line": 22,
+      "rationale": "clearOwnerPasswordIntent() が関数先頭で無条件に実行されるため、token_hash を持たない外部サイトからのフォームPOSTでも正規ユーザーの進行中Intentが破棄され、パスワード再設定のやり直しを強制できる。変更前も同じ位置にあり本PRによる悪化ではないが、Origin検証が除去されたことで到達経路が広がった。被害は再試行の手間に限られ、認証情報の漏洩や不正な権限取得には至らない。",
+      "fix": "clearOwnerPasswordIntent() の呼び出しを、configuredOrigin の存在確認とOTP検証が成功した後（新しいIntentを発行する直前）へ移動する。または失敗時のみ既存Intentを維持する分岐にする。",
+      "confidence": 0.8,
+      "disposition": "rejected",
+      "disposition_reason": "本PRで新規に作り込まれた欠陥ではなく、変更前から同一位置に存在する既存挙動である。本PRのスコープはOrigin照合基準の是正であり、Intent破棄タイミングの再設計を同一PRへ混ぜるとレビュー単位が肥大化する。認証情報の漏洩や権限昇格には至らず、被害は再試行の手間に限られるためマージのブロッカーとしない。別Issueとして起票し独立に対応することを推奨する。",
+      "followup": "Origin検証が認可境界から外れた今、無条件クリアの到達経路が広がっている点は別Issueで扱うことを推奨する。"
+    },
+    {
+      "severity": "Nice",
+      "category": "readability",
+      "file": "src/app/auth/owner-confirm/complete/route.ts",
+      "line": 25,
+      "rationale": "redirectOrigin = configuredOrigin ?? new URL(request.url).origin と定義しているが、この変数を参照するのは直後の !configuredOrigin ブロック内だけであり、そこでは configuredOrigin は必ず null である。したがって ?? の左辺が採用されることはなく、redirectOrigin は常に new URL(request.url).origin と等価になる。読み手に「設定originが使われる場合がある」と誤読させる死んだ分岐であり、Origin基準を厳密化した本PRの意図を曖昧にする。挙動上の欠陥はなく、テストの期待値にも影響しない。",
+      "fix": "redirectOrigin 変数を削除し、!configuredOrigin ブロック内で new URL('/auth/owner-password?invalid=1', new URL(request.url).origin) を直接構築する。",
+      "confidence": 0.95,
+      "disposition": "open",
+      "disposition_reason": "可読性のみで挙動・テストに影響しないため、実装者の任意対応とする。"
+    },
+    {
+      "severity": "Nice",
+      "category": "security-defense-in-depth",
+      "file": "src/app/auth/owner-confirm/complete/route.ts",
+      "line": 22,
+      "rationale": "Origin が不安定であることは本PRの前提として妥当だが、Sec-Fetch-Site が cross-site と明示された場合に限って拒否する形であれば、ヘッダー欠落時は通すため正規ユーザーを弾かずに多層防御を一段追加できる。現状の認可境界（OTP・本人照合・Intent）で実務上のリスクは低く、必須ではない。",
+      "fix": "request.headers.get('sec-fetch-site') === 'cross-site' のときのみ早期リターンする分岐を追加する。ヘッダー欠落・same-origin・same-site・none は従来どおり通す。",
+      "confidence": 0.6,
+      "disposition": "open",
+      "disposition_reason": "任意の強化案。メールクライアントの挙動差を考慮すると導入判断は実装者に委ねるべき。"
+    }
+  ]
+}

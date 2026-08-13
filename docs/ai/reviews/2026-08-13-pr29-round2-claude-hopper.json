@@ -1,0 +1,266 @@
+{
+  "schema_version": 2,
+  "phase": "post_push",
+  "provider": "claude",
+  "reviewer_id": "claude-hopper-13f91583",
+  "review_session_id": "13f91583-c599-445b-b546-50f2ec381046",
+  "implementation_session_id": "codex-main-owner-recovery-origin-20260813",
+  "head_sha": "4f94007d9fb12955cfa2c761724eab5b328362f8",
+  "diff_fingerprint": "sha256:144c3f955e50dfbe88ddc4642f89bb194f068844f6e869f67139ea7c3e93d4fa",
+  "risk_tier": "red",
+  "round": 2,
+  "review_status": "completed",
+  "secondary_verification": {
+    "required": true,
+    "method": "dedicated_tests",
+    "status": "passed",
+    "evidence": "head 4f94007 をローカルへ取得し、作業ツリーが同commitと差分ゼロであることを確認したうえで検証した。認可経路3ファイルの専用テスト31件、全体のVitest 35ファイル212件、Python 39件、policy_check、next lint、next build がすべて成功した。Round 1で指摘した3件に対応する回帰テストが新規追加されており、(1) 成功時に clearOwnerPasswordIntent が issue_owner_password_recovery_intent より前に1回だけ呼ばれること、(2) OTP失敗・本人不一致・type不正・公開URL欠落・cross-site拒否のいずれでも clearOwnerPasswordIntent が呼ばれないこと、(3) Sec-Fetch-Site が cross-site のときだけOTP検証前に拒否し same-origin / same-site / none とヘッダー欠落は従来どおり通ることを、それぞれ独立したテストが固定していることを確認した。",
+    "commands": [
+      {
+        "command": "npx vitest run src/app/auth/owner-confirm/complete/route.test.ts src/app/api/auth/owner-password/route.test.ts src/app/api/auth/owner-password-recovery/route.test.ts",
+        "exit_code": 0,
+        "summary": "認可経路3ファイルのテスト31件がpass（Round 1時点の26件から5件増）",
+        "covered_paths": [
+          "src/app/auth/owner-confirm/complete/**",
+          "src/app/api/auth/owner-password/**",
+          "src/app/api/auth/owner-password-recovery/**"
+        ]
+      },
+      {
+        "command": "npm test",
+        "exit_code": 0,
+        "summary": "Vitest 35ファイル212件がpass",
+        "covered_paths": [
+          "**"
+        ]
+      },
+      {
+        "command": "python3 -m unittest ci.test_policy_check ci.test_supabase_advisor_migrations",
+        "exit_code": 0,
+        "summary": "policy / migrationのPythonテスト39件がpass",
+        "covered_paths": [
+          "**"
+        ]
+      },
+      {
+        "command": "python3 ci/policy_check.py",
+        "exit_code": 0,
+        "summary": "policy_check OK",
+        "covered_paths": [
+          "**"
+        ]
+      },
+      {
+        "command": "npm run lint",
+        "exit_code": 0,
+        "summary": "ESLintの警告・エラーなし",
+        "covered_paths": [
+          "**"
+        ]
+      },
+      {
+        "command": "npm run build",
+        "exit_code": 0,
+        "summary": "next build が成功し31ページを生成",
+        "covered_paths": [
+          "**"
+        ]
+      }
+    ]
+  },
+  "summary": "最終判定はマージ可。本Roundの新規指摘は Must 0件 / Should 0件 / Nice 1件（本PR差分外の既存欠陥、backlog）。Round 1の Should 1件・Nice 2件はいずれも head 4f94007 で適切に修正され、回帰テストが伴っている。Should-1（Intentの無条件破棄）は clearOwnerPasswordIntent() の呼び出しをPOST先頭から createIntent 内へ移し、confirmOwnerPasswordRecoveryLink が token_hash 検証・Supabase OTP検証・オーナー本人照合をすべて通した後にしか到達しない位置へ限定した。外部からの無効POSTで正規ユーザーの進行中Intentが破棄される経路は塞がれており、`preserves an existing intent when the verified user is not an active owner` 他4件のテストが各失敗経路で未呼び出しを固定している。移動先が createIntent 冒頭であるため、RPC が失敗した場合だけ古いcookieが消える挙動は残るが、これは完全認証後のfail-close側であり `issues no cookie when the database intent fails` が意図として固定している。DB側は issue_owner_password_recovery_intent が同一ユーザーの未消費Intentを superseded へ更新するため、cookieの残存が二重に有効なIntentを生むこともない。Nice-1（死んだ redirectOrigin 分岐）は変数ごと削除され、公開URL欠落時のfail-closeが new URL(request.url).origin を直接使う形に整理された。Nice-2（Sec-Fetch-Site 多層防御）は cross-site が明示された場合だけOTP検証前に早期拒否する形で追加され、ヘッダー欠落・same-origin・same-site・none は通す設計になっている。/auth/owner-confirm のフォームは action が相対パス `/auth/owner-confirm/complete` であり、POSTは常にページを配信したoriginへ向かうため Sec-Fetch-Site は same-origin となり、Vercelの内部デプロイURLと公開ドメインが異なる環境でも正規フローを誤拒否しないことをページ実装まで遡って確認した。新規の回帰・セキュリティ問題は検出していない。差分外の観察として、staff側の /auth/confirm/complete と /api/auth/staff-password が本PRで是正した request.url origin 基準の比較を維持しており、本PRが本番で実証した「公開ドメイン != Route Handler の request.url origin」が成立する環境では同じ誤拒否が起きうる。本PRのスコープ（owner経路）外であり、混ぜるとレビュー単位が肥大化するため別Issueとして起票することを推奨し、Nice / backlog として記録した。",
+  "repository_context_mode": "full_repo_agentic",
+  "diff_only_reason": "",
+  "changed_files": [
+    "CHANGELOG.md",
+    "docs/operations-maintenance.md",
+    "src/app/api/auth/owner-password-recovery/route.test.ts",
+    "src/app/api/auth/owner-password-recovery/route.ts",
+    "src/app/api/auth/owner-password/route.test.ts",
+    "src/app/api/auth/owner-password/route.ts",
+    "src/app/auth/owner-confirm/complete/route.test.ts",
+    "src/app/auth/owner-confirm/complete/route.ts"
+  ],
+  "related_files": [
+    {
+      "path": "src/app/auth/owner-confirm/page.tsx",
+      "reason": "確認POSTを発行するフォームの実装。action が相対パス `/auth/owner-confirm/complete` であるため Sec-Fetch-Site が同一originとなり、Nice-2で追加した cross-site 早期拒否が正規フローを誤拒否しないことの根拠。Round 1では未参照だったため本Roundで新たに精読した。",
+      "score": 100
+    },
+    {
+      "path": "src/lib/auth/owner-auth-confirmation.ts",
+      "reason": "confirmOwnerPasswordRecoveryLink の検証順序。createIntent が token_hash 検証・OTP検証・本人照合をすべて通過した後にしか呼ばれないことを確認し、clearOwnerPasswordIntent の移動先が Should-1 の要求を満たすことの根拠とした。",
+      "score": 100
+    },
+    {
+      "path": "supabase/migrations/20260806114444_owner_password_recovery_intents.sql",
+      "reason": "issue_owner_password_recovery_intent の本体。同一ユーザーの未消費Intentを superseded へ更新し、claim進行中は例外で拒否する。cookie破棄タイミングを後ろへ移してもDB側で二重の有効Intentが生じないことの根拠。",
+      "score": 95
+    },
+    {
+      "path": "src/lib/auth/owner-password-intent.ts",
+      "reason": "clearOwnerPasswordIntent と setOwnerPasswordIntentCookie が同一cookie名を httpOnly / SameSite=Lax / path=/ で操作する。createIntent 内で消去→発行が連続しても最終的なSet-Cookieが新トークンになることを確認した。",
+      "score": 90
+    },
+    {
+      "path": "src/lib/auth/owner-password-recovery.ts",
+      "reason": "buildOwnerPasswordRecoveryUrl が3経路すべての configuredOrigin 算出元。https固定・origin only path・認証情報なしを要求し、不正時に null を返す契約が fail-close の前提。",
+      "score": 85
+    },
+    {
+      "path": "src/app/auth/confirm/complete/route.ts",
+      "reason": "staff側の同等経路。requestOrigin と new URL(request.url).origin を比較する本PR以前のパターンを維持しており、差分外の観察（Nice / backlog）の対象。",
+      "score": 75
+    },
+    {
+      "path": "src/app/api/auth/staff-password/route.ts",
+      "reason": "staff側パスワード更新API。同じく request.url origin 基準の比較を維持している。差分外の観察の対象。",
+      "score": 70
+    },
+    {
+      "path": "ci/policy_check.py",
+      "reason": "本証跡が満たすべき検証条件（red tierの第2確認要件、diff_fingerprint再計算、changed_files一致、round連続性、Should のbacklog禁止）を確認するため。",
+      "score": 65
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "reason": "quality-gate と review-evidence-gate の実行内容。ローカルで再現すべきコマンド集合の正本として参照した。",
+      "score": 60
+    },
+    {
+      "path": "docs/operations-maintenance.md",
+      "reason": "本PRが更新した運用手順。Sec-Fetch-Site による早期拒否とIntent破棄タイミングの記述が実装と一致することを照合した。",
+      "score": 55
+    }
+  ],
+  "scanned_paths": [
+    "src/app/auth/owner-confirm/",
+    "src/app/api/auth/owner-password/",
+    "src/app/api/auth/owner-password-recovery/",
+    "src/app/auth/confirm/complete/",
+    "src/app/api/auth/staff-password/",
+    "src/lib/auth/",
+    "supabase/migrations/",
+    "ci/policy_check.py",
+    ".github/workflows/ci.yml",
+    "docs/ai/reviews/",
+    "docs/operations-maintenance.md",
+    "CHANGELOG.md",
+    "next.config.mjs"
+  ],
+  "commands_run": [
+    {
+      "command": "git fetch origin main",
+      "exit_code": 0,
+      "summary": "merge-base 再計算のため origin/main を更新"
+    },
+    {
+      "command": "git rev-parse HEAD",
+      "exit_code": 0,
+      "summary": "作業ツリーがレビュー対象 4f94007 と一致し未コミット差分ゼロであることを確認"
+    },
+    {
+      "command": "git diff --binary <merge-base>..4f94007 -- . ':(exclude)docs/ai/reviews/**'",
+      "exit_code": 0,
+      "summary": "diff_fingerprint を再計算し sha256:144c3f95... を得た"
+    },
+    {
+      "command": "git show 4f94007",
+      "exit_code": 0,
+      "summary": "Round 1指摘への修正commitの全差分を精読"
+    },
+    {
+      "command": "npx vitest run src/app/auth/owner-confirm/complete/route.test.ts src/app/api/auth/owner-password/route.test.ts src/app/api/auth/owner-password-recovery/route.test.ts",
+      "exit_code": 0,
+      "summary": "認可経路3ファイルのテスト31件がpass"
+    },
+    {
+      "command": "npm test",
+      "exit_code": 0,
+      "summary": "Vitest 35ファイル212件がpass"
+    },
+    {
+      "command": "python3 -m unittest ci.test_policy_check ci.test_supabase_advisor_migrations",
+      "exit_code": 0,
+      "summary": "Python 39件がpass"
+    },
+    {
+      "command": "python3 ci/policy_check.py",
+      "exit_code": 0,
+      "summary": "policy_check OK"
+    },
+    {
+      "command": "npm run lint",
+      "exit_code": 0,
+      "summary": "ESLintの警告・エラーなし"
+    },
+    {
+      "command": "npm run build",
+      "exit_code": 0,
+      "summary": "next build 成功"
+    },
+    {
+      "command": "gh pr checks 29",
+      "exit_code": 0,
+      "summary": "quality-gate / secret-scan / Vercel が pass、review-evidence-gate のみ本Round証跡の未提出により fail"
+    }
+  ],
+  "context_fingerprint": "git-tree:70bff4b158cf317c63068807da37de9def1be96f",
+  "context_budget": {
+    "max_related_files": 40,
+    "max_context_chars": 180000,
+    "max_file_excerpt_chars": 12000,
+    "max_context_commands": 12
+  },
+  "context_truncated": false,
+  "context_truncated_reason": "",
+  "issues": [
+    {
+      "severity": "Should",
+      "category": "availability",
+      "file": "src/app/auth/owner-confirm/complete/route.ts",
+      "line": 61,
+      "rationale": "Round 1指摘。clearOwnerPasswordIntent() がPOST先頭で無条件に実行され、token_hash を持たない外部POSTでも正規ユーザーの進行中Intentが破棄されていた。head 4f94007 で呼び出しが createIntent 内へ移動し、confirmOwnerPasswordRecoveryLink の token_hash 必須・type=recovery 固定・Supabase OTP検証・オーナー本人照合をすべて通過した後にしか到達しなくなった。",
+      "fix": "clearOwnerPasswordIntent() を createIntent 冒頭（新Intent発行の直前）へ移動済み。失敗経路5件（type不正・OTP失敗・本人不一致・公開URL欠落・cross-site拒否）で未呼び出しを固定するテストが追加されている。",
+      "confidence": 0.95,
+      "disposition": "fixed",
+      "carried_over_from_round": 1,
+      "disposition_reason": "指摘どおりの位置へ移動済みであることを実装とテストの両面で確認した。成功時は invocationCallOrder で clear が issue_owner_password_recovery_intent より前であることを固定し、失敗時は各経路で clearIntentCookie が呼ばれないことを固定している。DB側も issue_owner_password_recovery_intent が未消費Intentを superseded へ更新するため、cookie残存による二重有効Intentは発生しない。"
+    },
+    {
+      "severity": "Nice",
+      "category": "readability",
+      "file": "src/app/auth/owner-confirm/complete/route.ts",
+      "line": 26,
+      "rationale": "Round 1指摘。redirectOrigin = configuredOrigin ?? new URL(request.url).origin は参照箇所が !configuredOrigin ブロック内だけであり、左辺が採用されない死んだ分岐だった。head 4f94007 で変数ごと削除され、fail-close時の redirect base が new URL(request.url).origin として直接記述された。",
+      "fix": "redirectOrigin 変数を削除し、公開URL欠落時のredirectで new URL(request.url).origin を直接使用する形へ修正済み。",
+      "confidence": 0.95,
+      "disposition": "fixed",
+      "carried_over_from_round": 1,
+      "disposition_reason": "指摘どおり変数が削除され、誤読を招く分岐が解消された。挙動は変わらず既存テスト（fails closed when the configured public origin is missing）がそのままpassしている。"
+    },
+    {
+      "severity": "Nice",
+      "category": "security-defense-in-depth",
+      "file": "src/app/auth/owner-confirm/complete/route.ts",
+      "line": 30,
+      "rationale": "Round 1指摘。Sec-Fetch-Site が cross-site と明示された場合に限って拒否すれば、ヘッダー欠落時は通しつつ多層防御を一段追加できる。head 4f94007 で公開Origin確定後・formData読み取り前に早期拒否が追加された。",
+      "fix": "request.headers.get('sec-fetch-site')?.toLowerCase() === 'cross-site' のときだけOTP検証前にfail-closeする分岐を追加済み。same-origin / same-site / none とヘッダー欠落は従来どおり通す。",
+      "confidence": 0.9,
+      "disposition": "fixed",
+      "carried_over_from_round": 1,
+      "disposition_reason": "提案どおり cross-site 限定の早期拒否として実装され、cross-site拒否1件と same-origin / same-site / none の3ケースを網羅するテストが追加された。/auth/owner-confirm のフォームは action が相対パスであり、POSTは常にページ配信originへ向かうため Sec-Fetch-Site は same-origin となる。Vercelの内部デプロイURLと公開ドメインが異なる環境でも正規フローを誤拒否しないことをページ実装まで遡って確認した。"
+    },
+    {
+      "severity": "Nice",
+      "category": "availability",
+      "file": "src/app/auth/confirm/complete/route.ts",
+      "line": 22,
+      "rationale": "本PR差分外の観察。staff側の確認POST（src/app/auth/confirm/complete/route.ts:22）とパスワード更新API（src/app/api/auth/staff-password/route.ts:72）は、本PRがowner側で是正した requestOrigin と new URL(request.url).origin の比較を維持している。本PRは「Vercelでは Route Handler の request.url が内部デプロイURLになり、ブラウザの Origin と一致しない」ことを本番で実証しており、その前提が成立する環境ではstaffの招待・再設定も同じ理由で誤拒否される。staff側テストは常に request.url origin と Origin を一致させて実行しており、この差異を検出できていない。",
+      "fix": "staff側の2経路も buildStaffAuthUrl 相当の設定済み公開URL基準（NEXT_PUBLIC_APP_URL）へ統一し、Vercel内部originを直接信頼しないこと。あわせて、Originが公開ドメイン・request.urlが内部デプロイoriginとなるケースの回帰テストを追加する。",
+      "confidence": 0.7,
+      "disposition": "backlog",
+      "disposition_reason": "本PRの変更ファイルに含まれない既存経路であり、本PRのスコープはowner経路のOrigin基準是正である。認証境界に触れる修正を同一PRへ混ぜるとレビュー単位が肥大化し、P-031の粒度規律に反する。マージ阻害としない代わりに別Issueとして起票し、staff側でも本番でのOrigin誤拒否が再現するかの確認とあわせて独立に対応することを推奨する。"
+    }
+  ]
+}

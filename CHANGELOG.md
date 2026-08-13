@@ -5,6 +5,22 @@
 
 ---
 
+## [2026-08-13] オーナーパスワード再設定の本番Origin判定を修正
+
+### 変更
+
+- Vercelの公開ドメインとRoute Handler内部のリクエストURLが異なる場合でも、`NEXT_PUBLIC_APP_URL` の公開Originからの再設定要求・本人確認・パスワード更新を受け付けるようにした。
+- 本人確認POSTはVercelとブラウザで変動する `Origin` に依存せず、`Sec-Fetch-Site: cross-site` が明示された場合だけ早期拒否し、メール内のワンタイムトークン、Supabase OTP、オーナーID、短時間Intentを認証境界として検証するようにした。パスワード更新APIのOrigin検証は維持する。
+- 無効な外部POSTで進行中の再設定Intentが破棄されないよう、既存Intentの消去を本人確認成功後の新Intent発行直前へ移動した。
+- 再設定要求・パスワード更新APIでは外部Originを従来どおりfail-closeし、公開URL設定欠落やVercel内部Originの直接信頼を防ぐ回帰テストを維持した。
+
+### 影響ファイル
+
+- `src/app/api/auth/owner-password-recovery/**`
+- `src/app/auth/owner-confirm/complete/**`
+- `src/app/api/auth/owner-password/**`
+- `docs/operations-maintenance.md`
+
 ## [2026-08-10] オーナー公開パスワード再設定の完了状態を同期
 
 ### 変更
