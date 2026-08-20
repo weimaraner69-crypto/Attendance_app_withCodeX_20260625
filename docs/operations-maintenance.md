@@ -49,6 +49,8 @@ Git、Issue、Pull Request、チャット、ログへ値を貼り付けません
 - `/api/internal/supabase/health` が `ok: true` を返す。
 - 外部連携APIを使う場合、APIキーはハッシュ保存し、平文キーは発行直後だけ安全に渡す。
 - 外部連携APIを使う場合、`20260716055206_external_api_rate_limit_access_logs.sql` を適用し、レートヘッダー、61件目の429、旧窓で現在窓が巻き戻らないこと、429ログの窓単位集約、`external_api_access_logs` 保存を値非表示で確認する。
+- 2026-08-13に上記レート制限migration、Staff Auth password intent、Staff Authメールclaim、LINE連携DB基盤を本番へ適用済み。対象のDB権限・RLS・triggerと、隔離トランザクション内のレート制限関数を確認した。Keychainを使う値非表示の本番HTTP smokeでは `/health`、`/stores`、`/staff` がすべて200だった。勤怠一覧は店舗・スタッフ・完了済み勤怠の準備後に確認する。
+- 2026-08-20にIssue #30のmigration履歴をSupabase CLIでローカル13本と本番13本の1対1へ復旧した。`supabase db push --linked --dry-run` は本番最新状態を返した。DBパスワード、接続文字列、APIキーは記録・表示しない。
 - LINEを使う場合、LINE DevelopersのWebhook検証がHTTP 200になる。
 - スタッフAuthを使う場合、招待と再設定の実メールが `/auth/confirm` の確認POSTで検証された後に `/auth/staff-password` へ到達し、設定前は通常画面と打刻を利用できず、設定後に新しいパスワードで `/stamp/mobile` へログインできる。
 - オーナー公開再設定を使う場合、未登録・非owner・無効・不整合・レート制限時でも公開画面が同じ案内を即時に返し、owner確認とメール送信がレスポンス後の管理対象タスクで完了すること、有効ownerの実メールだけが `/auth/owner-confirm` の確認POST後に `/auth/owner-password` へ到達することを確認する。レート制限テーブルにはHMAC、窓、件数以外を保存しない。

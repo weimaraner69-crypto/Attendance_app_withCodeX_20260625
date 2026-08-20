@@ -10,6 +10,73 @@
 
 ---
 
+## OPS-30B Issue #30 migration履歴の1対1復旧
+
+- 実施日: 2026-08-20
+- 種別: 本番DB運用/Supabase CLI
+- 対象Issue: #30
+
+### 実施内容
+
+- DBパスワードのリセット前に、ローカル設定・リポジトリ・CI・Vercel本番の環境変数名を値非表示で確認し、直接Postgres接続を示す設定がないことを確認した。
+- Supabase CLIで本番プロジェクトをlinkし、ローカルの13本のmigration versionを本番履歴へ適用済みとして記録した。
+- 同じ既存スキーマを表す、適用時刻採番の重複5 versionを本番履歴からrevertedとして除外した。DDL、アプリデータ、認証データは変更していない。
+
+### 確認内容
+
+- `supabase migration list --linked` で、ローカル13本と本番13本がすべて同じversionとして対応することを確認した。
+- `supabase db push --linked --dry-run` は `Remote database is up to date.` を返した。
+- Keychain内の外部API認証情報を値非表示で使い、本番の `/health` がHTTP 200、`/stores` が1件、`/staff` が0件を返すことを確認した。店舗・スタッフ・完了済み勤怠がないため、勤怠一覧の実データ検証は引き続き保留する。
+- CLIの完全ダンプはDocker未起動のため取得できなかったが、修復前の本番version一覧を値非表示の作業チェックポイントとして保存してから履歴操作を実施した。
+
+### 残作業
+
+- Issue #30に関連する残作業は、店舗・スタッフ・完了済み勤怠を準備した後の勤怠一覧API確認、およびLINE環境変数・Webhook・実機確認のみ。
+
+### 影響ファイル
+
+- `.gitignore`
+- `NEXT.md`
+- `CHANGELOG.md`
+- `docs/supabase-setup.md`
+- `docs/operations-maintenance.md`
+
+---
+
+## OPS-30 本番Supabaseの未適用マイグレーション是正
+
+- 実施日: 2026-08-13
+- 種別: 本番DB/Staff Auth/RLS/外部連携API
+- 対象Issue: #30
+
+### 実施内容
+
+- `secure_staff_password_intents`、`external_api_rate_limit_access_logs`、`staff_auth_email_serialization`、`line_integration` を本番へ順番に適用した。
+- 各ファイルはトランザクション単位で適用し、適用前に既存データ整合性と競合トランザクションを値を表示しない集計で確認した。
+
+### 確認内容
+
+- 複合FK、password intent、レート窓、アクセスログ、メールclaim、RLS、service role専用実行権限、匿名ロールの拒否、メールclaim trigger 4件がすべて存在することを確認した。
+- 既存の有効外部APIキーを識別子・キー値を出さずに使用し、隔離トランザクション内で固定1分窓のレート制限関数が期待値を返すことを確認してロールバックした。
+- Keychain内のAPIキーを値非表示で使用して、本番外部APIの `/health`、`/stores`、`/staff` がすべてHTTP 200を返すことを確認した。店舗1件、スタッフ0件のため、店舗指定が必要な勤怠一覧確認は保留した。
+- LINE連携ではlink tokenテーブル、RLS、索引、通知の配送状態3列と索引を確認した。LINE環境変数、Webhook、実機操作は実施していない。
+- `.env.local`、APIキー、ユーザー識別子、メールアドレスの値は読み取り・表示していない。
+
+### 後続作業
+
+- 履歴の完全な1対1復旧は `OPS-30B` で完了した。店舗・スタッフ・完了済み勤怠を準備した後の勤怠一覧API確認、およびLINE環境変数・Webhook・実機確認を別工程で実施する。
+
+### 影響ファイル
+
+- `supabase/migrations/20260716034432_secure_staff_password_intents.sql`
+- `supabase/migrations/20260716055206_external_api_rate_limit_access_logs.sql`
+- `supabase/migrations/20260716145718_staff_auth_email_serialization.sql`
+- `supabase/migrations/202606290004_line_integration.sql`
+- `NEXT.md`
+- `CHANGELOG.md`
+- `docs/supabase-setup.md`
+- `docs/operations-maintenance.md`
+
 ## A-001-26 オーナー本人向け公開パスワード再設定
 
 - 実施日: 2026-08-06〜2026-08-10

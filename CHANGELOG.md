@@ -5,6 +5,50 @@
 
 ---
 
+## [2026-08-20] Issue #30のSupabase migration履歴を復旧
+
+### 変更
+
+- Supabase CLIで本番プロジェクトをlinkし、ローカル13本のmigration versionを本番履歴へ適用済みとして記録した。
+- 同一スキーマを表す適用時刻採番の重複5 versionを履歴からrevertedとして除外し、ローカルと本番のmigration履歴を1対1に統一した。
+- DBパスワードリセット前に、ローカル・リポジトリ・CI・Vercel本番の環境変数名を値非表示で確認し、直接Postgres接続がないことを確認した。
+
+### 確認
+
+- `supabase migration list --linked` でローカル13本と本番13本のversion一致を確認した。
+- `supabase db push --linked --dry-run` が本番最新状態を返した。
+- Keychainを使う値非表示の外部API smokeで、`/health`、`/stores`、`/staff` がHTTP 200を返した。勤怠一覧は実データ準備後に確認する。
+
+### 影響ファイル
+
+- `.gitignore`
+- `NEXT.md`
+- `FINISHED.md`
+- `docs/supabase-setup.md`
+- `docs/operations-maintenance.md`
+
+---
+
+## [2026-08-13] Issue #30の本番Supabase未適用マイグレーションを是正
+
+### 変更
+
+- 本番プロジェクトへ、スタッフAuthのpassword intent、外部連携APIのレート制限・アクセスログ、スタッフAuthメールclaim、LINE連携DB基盤の4マイグレーションを適用した。
+- 適用前に対象オブジェクトの未作成、スタッフAuthの既存紐付け不整合0件、メール空値0件、競合トランザクション0件を確認した。
+- 適用後にテーブル、RLS、service role専用RPC、匿名実行拒否、複合FK、メールclaimの4 triggerを確認し、隔離トランザクション内でレート制限関数の動作を確認した。
+- Supabaseの履歴versionは適用時刻で採番されたため、既存migration historyとの完全な1対1対応は別の是正工程として保留した（2026-08-20に復旧済み）。
+
+### 影響ファイル
+
+- `supabase/migrations/20260716034432_secure_staff_password_intents.sql`
+- `supabase/migrations/20260716055206_external_api_rate_limit_access_logs.sql`
+- `supabase/migrations/20260716145718_staff_auth_email_serialization.sql`
+- `supabase/migrations/202606290004_line_integration.sql`
+- `NEXT.md`
+- `FINISHED.md`
+- `docs/supabase-setup.md`
+- `docs/operations-maintenance.md`
+
 ## [2026-08-13] オーナーパスワード再設定の本番Origin判定を修正
 
 ### 変更

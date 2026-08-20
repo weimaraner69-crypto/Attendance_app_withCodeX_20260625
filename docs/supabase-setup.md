@@ -109,6 +109,20 @@ order by procedure.proname;
 - Performance Advisor再実行後はErrors 0、Warnings 0、Info 42。Infoはすべて未使用の非制約インデックスであり、本番トラフィックを30日以上観測してから再評価する。
 - 2026-07-13のCopilotレビューを受け、`set_updated_at()` の `search_path` 最小化と重複索引の解消を反映。`202607130001_supabase_advisor_review_followup.sql` を本番適用し、`search_path` が `pg_catalog` のみ、既存索引が存在、重複索引が削除済みの3条件すべてを `true` と確認済み。
 
+### 2026-08-13 Issue #30 本番適用記録
+
+- 本番の既存データ整合性（Staff Auth紐付け・メール空値）と競合トランザクションを値非表示の集計で確認してから、`secure_staff_password_intents`、`external_api_rate_limit_access_logs`、`staff_auth_email_serialization`、`line_integration` を個別に適用した。
+- password intent、レート窓、アクセスログ、メールclaim、RLS、service role専用RPC、匿名ロールの実行拒否、メールclaim trigger 4件を確認した。隔離トランザクション内のレート制限関数スモークは成功後にロールバックした。
+- Keychain内のAPIキーを値非表示で使い、本番外部APIの `/health`、`/stores`、`/staff` がHTTP 200を返すことを確認した。店舗1件、スタッフ0件のため、勤怠一覧の実接続検証はfixture準備後に行う。
+- Supabase MCPのmigration versionは適用時刻で採番される。今回の4件は `20260813104057`、`20260813104112`、`20260813104125`、`20260813104653` として記録された。既存の履歴乖離を直接SQLで変更せず、完全な1対1復旧は別の承認済み工程で扱う（2026-08-20に完了）。
+
+### 2026-08-20 Issue #30 migration履歴復旧記録
+
+- DBパスワードのリセット前に、ローカル設定・リポジトリ・CI・Vercel本番の環境変数名を値非表示で確認し、直接Postgres接続の設定がないことを確認した。
+- Supabase CLI v2.109.1で本番プロジェクトをlinkし、ローカル13本を本番履歴へ適用済みとして記録した後、適用時刻採番の重複5 versionをrevertedとして除外した。スキーマ、アプリデータ、認証データの変更はない。
+- `supabase migration list --linked` でローカル13本と本番13本のversion一致を確認し、`supabase db push --linked --dry-run` で本番が最新状態であることを確認した。
+- DBパスワード、接続文字列、APIキーは記録・表示しない。履歴の修復前には、対象version一覧を値非表示の作業チェックポイントとして保存する。Docker未起動の場合、CLIの完全ダンプは使えないため、Docker起動またはプラットフォームのバックアップ機能を使う。
+
 ## 4. 接続確認
 
 開発サーバーを起動します。
@@ -135,4 +149,4 @@ supabase link --project-ref your-project-ref
 supabase db push
 ```
 
-この環境では 2026-06-25 時点で `supabase` コマンドは未インストールです。
+この環境では2026-08-20時点で Supabase CLI v2.109.1 を使用して本番linkとmigration履歴確認を実施済みです。
