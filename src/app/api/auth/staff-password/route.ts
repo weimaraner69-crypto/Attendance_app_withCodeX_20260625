@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
 import { hasValidStaffAuthIdentity } from '@/lib/auth/staff-auth-identity';
+import { buildStaffPasswordUrl } from '@/lib/auth/staff-auth';
 import {
   clearStaffPasswordIntent,
   getStaffPasswordIntentToken,
@@ -69,7 +70,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const requestOrigin = request.headers.get('origin');
-  if (requestOrigin && requestOrigin !== new URL(request.url).origin) {
+  const staffPasswordUrl = buildStaffPasswordUrl(process.env.NEXT_PUBLIC_APP_URL);
+  const configuredOrigin = staffPasswordUrl ? new URL(staffPasswordUrl).origin : null;
+  if (!configuredOrigin || requestOrigin !== configuredOrigin) {
     return NextResponse.json({ updated: false }, { status: 403 });
   }
 

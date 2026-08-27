@@ -33,14 +33,19 @@ vi.mock('@/lib/supabase', () => ({
 import { POST } from './route';
 
 const appOrigin = ['https:', '', 'attendance.example'].join('/');
+const deploymentOrigin = ['https:', '', 'attendance-deployment.example'].join('/');
 
-function confirmationRequest(type = 'invite') {
+function confirmationRequest(
+  type = 'invite',
+  requestOrigin = appOrigin,
+  headers: HeadersInit = { Origin: appOrigin }
+) {
   const form = new FormData();
   form.set('token_hash', 'token-hash');
   form.set('type', type);
-  return new Request(`${appOrigin}/auth/confirm/complete`, {
+  return new Request(`${requestOrigin}/auth/confirm/complete`, {
     method: 'POST',
-    headers: { Origin: appOrigin },
+    headers,
     body: form,
   });
 }
@@ -48,6 +53,7 @@ function confirmationRequest(type = 'invite') {
 describe('staff Auth confirmation route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.NEXT_PUBLIC_APP_URL = appOrigin;
     mocks.verifyOtp.mockResolvedValue({ data: { user: { id: 'auth-user-1' } }, error: null });
     mocks.hasValidIdentity.mockResolvedValue(true);
     mocks.generateToken.mockReturnValue('opaque-token');
@@ -71,6 +77,22 @@ describe('staff Auth confirmation route', () => {
     expect(mocks.setIntentCookie).toHaveBeenCalledWith('opaque-token');
   });
 
+  it('accepts the configured public origin behind a Vercel deployment origin', async () => {
+    const response = await POST(confirmationRequest('invite', deploymentOrigin));
+
+    expect(response.status).toBe(303);
+    expect(response.headers.get('location')).toBe(`${appOrigin}/auth/staff-password`);
+    expect(mocks.verifyOtp).toHaveBeenCalledWith({ token_hash: 'token-hash', type: 'invite' });
+  });
+
+  it('allows an Origin-less confirmation to reach one-time-token verification', async () => {
+    const response = await POST(confirmationRequest('recovery', deploymentOrigin, {}));
+
+    expect(response.status).toBe(303);
+    expect(response.headers.get('location')).toBe(`${appOrigin}/auth/staff-password`);
+    expect(mocks.verifyOtp).toHaveBeenCalledWith({ token_hash: 'token-hash', type: 'recovery' });
+  });
+
   it('issues no browser intent when the atomic database operation fails', async () => {
     mocks.issueIntent.mockResolvedValue({ error: new Error('issue failed') });
 
@@ -84,43 +106,69 @@ describe('staff Auth confirmation route', () => {
     expect(mocks.setIntentCookie).not.toHaveBeenCalled();
   });
 
-  it('clears an old intent when OTP verification fails', async () => {
+  it('preserves an old intent when OTP verification fails', async () => {
     mocks.verifyOtp.mockResolvedValue({ data: { user: null }, error: new Error('invalid OTP') });
 
     const response = await POST(confirmationRequest());
 
     expect(response.status).toBe(303);
-    expect(mocks.clearIntentCookie).toHaveBeenCalledOnce();
+    expect(mocks.clearIntentCookie).not.toHaveBeenCalled();
     expect(mocks.issueIntent).not.toHaveBeenCalled();
     expect(mocks.setIntentCookie).not.toHaveBeenCalled();
   });
 
-  it('clears an old intent when the staff identity is invalid', async () => {
+  it('preserves an old intent when the staff identity is invalid', async () => {
     mocks.hasValidIdentity.mockResolvedValue(false);
 
     const response = await POST(confirmationRequest());
 
     expect(response.status).toBe(303);
-    expect(mocks.clearIntentCookie).toHaveBeenCalledOnce();
+    expect(mocks.clearIntentCookie).not.toHaveBeenCalled();
     expect(mocks.issueIntent).not.toHaveBeenCalled();
     expect(mocks.setIntentCookie).not.toHaveBeenCalled();
   });
 
-  it('rejects cross-origin confirmation posts before OTP verification', async () => {
-    const form = new FormData();
-    form.set('token_hash', 'token-hash');
-    form.set('type', 'invite');
-    const response = await POST(new Request(`${appOrigin}/auth/confirm/complete`, {
-      method: 'POST',
-      headers: { Origin: ['https:', '', 'foreign.example'].join('/') },
-      body: form,
-    }));
+  it('rejects a foreign confirmation origin before OTP verification', async () => {
+    const response = await POST(confirmationRequest(
+      'invite',
+      deploymentOrigin,
+      { Origin: ['https:', '', 'foreign.example'].join('/') }
+    ));
 
     expect(response.status).toBe(303);
     expect(response.headers.get('location')).toBe(
       `${appOrigin}/auth/staff-password?invalid=1`
     );
-    expect(mocks.clearIntentCookie).toHaveBeenCalledOnce();
+    expect(mocks.clearIntentCookie).not.toHaveBeenCalled();
     expect(mocks.verifyOtp).not.toHaveBeenCalled();
+  });
+
+  it('rejects an explicitly cross-site confirmation before OTP verification', async () => {
+    const response = await POST(confirmationRequest(
+      'invite',
+      deploymentOrigin,
+      { Origin: appOrigin, 'Sec-Fetch-Site': 'cross-site' }
+    ));
+
+    expect(response.status).toBe(303);
+    expect(response.headers.get('location')).toBe(
+      `${appOrigin}/auth/staff-password?invalid=1`
+    );
+    expect(mocks.clearIntentCookie).not.toHaveBeenCalled();
+    expect(mocks.verifyOtp).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when the configured public origin is missing', async () => {
+    delete process.env.NEXT_PUBLIC_APP_URL;
+
+    const response = await POST(confirmationRequest());
+
+    expect(response.status).toBe(303);
+    expect(response.headers.get('location')).toBe(
+      `${appOrigin}/auth/staff-password?invalid=1`
+    );
+    expect(mocks.clearIntentCookie).not.toHaveBeenCalled();
+    expect(mocks.verifyOtp).not.toHaveBeenCalled();
+    expect(mocks.issueIntent).not.toHaveBeenCalled();
   });
 });
