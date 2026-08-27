@@ -2,11 +2,11 @@
   "schema_version": 2,
   "phase": "post_push",
   "provider": "codex",
-  "reviewer_id": "codex-origin-verifier",
-  "review_session_id": "codex-agent-issue31-round2-20260827",
+  "reviewer_id": "codex-origin-verifier-exact",
+  "review_session_id": "codex-agent-issue31-round2-exact-20260827",
   "implementation_session_id": "codex-root-issue31-20260827",
-  "head_sha": "15df5ee6075ff6f33017b37db1a8854401814d36",
-  "diff_fingerprint": "sha256:a1e6c6120e790fb40aa52b4949d450b3f9dcca0b9b528e74551285e5c7599d28",
+  "head_sha": "b0936ddf136b75dee377d3548c359ed2ad953771",
+  "diff_fingerprint": "sha256:aaf42f44b83583087120a5989fd77588d62b98c53c8e285b0e25ec5992d7119c",
   "risk_tier": "red",
   "round": 2,
   "review_status": "completed",
@@ -14,7 +14,7 @@
     "required": true,
     "method": "dedicated_tests",
     "status": "passed",
-    "evidence": "認証境界の専用回帰で、公開Originと内部deployment Originの分離、内部Originの拒否、Origin欠落、外部Origin、設定欠落、OTP本人照合失敗を確認した。",
+    "evidence": "最終通常headに対する認証境界の専用回帰で、公開Originと内部deployment Originの分離、内部Originの拒否、Origin欠落、外部Origin、設定欠落、OTP本人照合失敗を確認した。",
     "commands": [
       {
         "command": "npm test -- src/app/auth/confirm/complete/route.test.ts src/app/api/auth/staff-password/route.test.ts src/lib/auth/staff-auth-confirmation.test.ts src/lib/auth/staff-auth.test.ts",
@@ -31,7 +31,7 @@
       }
     ]
   },
-  "summary": "Round 2のfull-repository認証レビューはMust 0、Should 0、Nice 0。Round 1の運用文書正確化と、内部deployment OriginをブラウザOriginとして拒否する両Route回帰を確認した。",
+  "summary": "Round 2 exact-head再確認はMust 0、Should 0、Nice 0。AC-6同期後の通常headでRound 1の運用文書正確化、両Routeの内部deployment Origin拒否回帰、公開Origin基準とfail-closeを確認した。",
   "repository_context_mode": "full_repo_agentic",
   "diff_only_reason": "",
   "changed_files": [
@@ -97,7 +97,7 @@
   ],
   "commands_run": [
     {
-      "command": "git diff origin/main...15df5ee6075ff6f33017b37db1a8854401814d36",
+      "command": "git diff origin/main...b0936ddf136b75dee377d3548c359ed2ad953771",
       "exit_code": 0,
       "summary": "実装headのコミット済み差分だけを確認した"
     },
@@ -112,7 +112,7 @@
       "summary": "基本ポリシーチェックが成功した"
     }
   ],
-  "context_fingerprint": "git-tree:7ae9001dcd0cdb0c4d3c088a4749f269991ef248",
+  "context_fingerprint": "git-tree:f377ef4988772d252ff599db57c1c4e56c275eb8",
   "context_budget": {
     "max_related_files": 40,
     "max_context_chars": 180000,
