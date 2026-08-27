@@ -17,7 +17,18 @@
 
 ## 記録
 
-### 現在状態（2026-08-10 PR #28レビュー準備・最新）
+### 現在状態（2026-08-27 Issue #5詳細API PR準備・最新）
+
+- 現在の mode: `daily_development`（Issue #5実装PRの独立レビュー・CI待ち）
+- active branch: `feat/issue-5-attendance-detail-api`
+- 現在タスク: `GET /api/external/v1/attendance/{record_id}`、任意イベント返却、署名付きイベントカーソルを実装し、受入条件のRoute Handler契約テストを追加した。
+- requirements/spec: GitHub Issue #5、`docs/specs/issue-5-attendance-detail-api.md`、`docs/integrations/attendance-api-spec.md`
+- 検証状況: 詳細API・既存外部API回帰33件、lintが成功。全テスト、policy、build、独立レビュー、GitHub ActionsはPR作成後に実施する。
+- 次タスク: 未達の受入条件（修正承認後の再同期、詳細Routeの認証・レート制限実機確認）をPRへ明記し、独立レビューとCIを通してからIssue #5のclose可否を判断する。
+- 安全床: `.env.local`を読まない。秘密情報を表示しない。本番Supabase変更、実メール送信、本番デプロイ、日報側実接続、PR自動マージは対象外。
+- 最終更新: 2026-08-27
+
+### 現在状態（2026-08-10 PR #28レビュー準備・履歴）
 
 - 現在の mode: `daily_development`（PR #28完了状態同期レビュー）
 - active branch: `chore/sync-pr27-completion-state`

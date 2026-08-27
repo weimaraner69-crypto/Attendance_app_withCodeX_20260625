@@ -12,6 +12,10 @@ vi.mock('@/lib/external-api/request', () => ({
 
 import { GET as getAttendance } from '@/app/api/external/v1/attendance/route';
 import {
+  GET as getAttendanceDetail,
+  POST as postAttendanceDetail,
+} from '@/app/api/external/v1/attendance/[record_id]/route';
+import {
   GET as getHealth,
   HEAD as headHealth,
   OPTIONS as optionsHealth,
@@ -41,16 +45,42 @@ function authenticatedContext(supabase: unknown) {
 
 function chainWithResult(result: unknown) {
   const chain: Record<string, ReturnType<typeof vi.fn>> = {};
-  for (const method of ['select', 'eq', 'gte', 'lte', 'order']) {
+  for (const method of ['select', 'eq', 'gte', 'lte', 'order', 'or']) {
     chain[method] = vi.fn(() => chain);
   }
   chain.maybeSingle = vi.fn().mockResolvedValue(result);
   chain.range = vi.fn().mockResolvedValue(result);
+  chain.limit = vi.fn().mockResolvedValue(result);
   return chain;
+}
+
+function detailRecord(
+  overrides: Partial<Record<string, unknown>> = {}
+) {
+  return {
+    id: '22222222-2222-4222-8222-222222222222',
+    work_date: '2026-07-01',
+    status: 'finished',
+    clock_in_at: '2026-07-01T00:00:00.000Z',
+    clock_out_at: '2026-07-01T09:00:00.000Z',
+    break_minutes: 60,
+    total_work_minutes: 480,
+    night_shift_minutes: 0,
+    is_manual: false,
+    updated_at: '2026-07-01T09:00:01.000Z',
+    store: { id: organization.id, code: 'STORE-01', name: 'Contract Store' },
+    staff: {
+      id: '33333333-3333-4333-8333-333333333333',
+      employee_code: 'E-001',
+      name: 'Contract Staff',
+    },
+    ...overrides,
+  };
 }
 
 describe('Phase 1 external API contracts', () => {
   beforeEach(() => {
+    vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'test-service-role-key');
     externalApiMethodNotAllowedMock.mockReset();
     externalApiMethodNotAllowedMock.mockImplementation(async () => {
       const response = new Response('method not allowed', { status: 405 });
@@ -200,5 +230,183 @@ describe('Phase 1 external API contracts', () => {
     });
     expect(attendanceQuery.eq).toHaveBeenCalledWith('organization_id', organization.id);
     expect(attendanceQuery.range).toHaveBeenCalledWith(0, 500);
+  });
+
+  it('returns a fixed attendance detail without note or events by default', async () => {
+    const record = detailRecord({ is_manual: true });
+    const recordQuery = chainWithResult({ data: record, error: null });
+    authenticatedContext({ from: vi.fn(() => recordQuery) });
+
+    const response = await getAttendanceDetail(
+      new Request(`${apiOrigin}/api/external/v1/attendance/${record.id}`),
+      { params: { record_id: record.id } }
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      store: record.store,
+      record: {
+        id: record.id, staff: record.staff, work_date: record.work_date, status: record.status,
+        clock_in_at: record.clock_in_at, clock_out_at: record.clock_out_at,
+        break_minutes: 60, total_work_minutes: 480, night_shift_minutes: 0,
+        is_manual: true, updated_at: record.updated_at,
+      },
+    });
+    expect(recordQuery.eq).toHaveBeenCalledWith('organization_id', organization.id);
+  });
+
+  it.each(['not_started', 'working', 'on_break', 'finished'])(
+    'returns the %s status without treating it as finished',
+    async (status) => {
+      const record = detailRecord({ status });
+      const recordQuery = chainWithResult({ data: record, error: null });
+      authenticatedContext({ from: vi.fn(() => recordQuery) });
+
+      const response = await getAttendanceDetail(
+        new Request(`${apiOrigin}/api/external/v1/attendance/${record.id}`),
+        { params: { record_id: record.id } }
+      );
+
+      expect(response.status).toBe(200);
+      expect((await response.json()).record.status).toBe(status);
+    }
+  );
+
+  it('returns the same 404 for missing and other-organization records', async () => {
+    for (const recordId of [
+      '44444444-4444-4444-8444-444444444444',
+      '55555555-5555-4555-8555-555555555555',
+    ]) {
+      const recordQuery = chainWithResult({ data: null, error: null });
+      authenticatedContext({ from: vi.fn(() => recordQuery) });
+      const response = await getAttendanceDetail(
+        new Request(`${apiOrigin}/api/external/v1/attendance/${recordId}`),
+        { params: { record_id: recordId } }
+      );
+
+      expect(response.status).toBe(404);
+      expect(await response.json()).toMatchObject({ error: { code: 'NOT_FOUND' } });
+      expect(recordQuery.eq).toHaveBeenCalledWith('organization_id', organization.id);
+    }
+  });
+
+  it.each(['', 'false'])(
+    'does not return events when include_events=%s',
+    async (includeEvents) => {
+      const record = detailRecord();
+      const recordQuery = chainWithResult({ data: record, error: null });
+      authenticatedContext({ from: vi.fn(() => recordQuery) });
+      const response = await getAttendanceDetail(
+        new Request(`${apiOrigin}/api/external/v1/attendance/${record.id}?include_events=${includeEvents}`),
+        { params: { record_id: record.id } }
+      );
+      const body = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(body).not.toHaveProperty('events');
+      expect(body).not.toHaveProperty('pending_requests');
+    }
+  );
+
+  it('rejects invalid detail parameters before querying attendance data', async () => {
+    authenticatedContext({ from: vi.fn() });
+
+    const invalidBoolean = await getAttendanceDetail(
+      new Request(`${apiOrigin}/api/external/v1/attendance/${organization.id}?include_events=yes`),
+      { params: { record_id: organization.id } }
+    );
+    const invalidCursorUse = await getAttendanceDetail(
+      new Request(`${apiOrigin}/api/external/v1/attendance/${organization.id}?event_cursor=cursor`),
+      { params: { record_id: organization.id } }
+    );
+
+    expect(invalidBoolean.status).toBe(400);
+    expect(invalidCursorUse.status).toBe(400);
+  });
+
+  it('returns stable, minimal event pages and rejects a tampered cursor', async () => {
+    const record = detailRecord({
+      clock_in_at: null,
+      clock_out_at: null,
+      break_minutes: 0,
+      total_work_minutes: 0,
+      staff: {
+        id: '33333333-3333-4333-8333-333333333333',
+        employee_code: null,
+        name: 'Contract Staff',
+      },
+    });
+    const events = Array.from({ length: 101 }, (_, index) => ({
+      id: `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
+      event_type: 'clock_in', occurred_at: `2026-07-01T00:${String(index % 60).padStart(2, '0')}:00.000Z`, source: 'mobile_web',
+    }));
+    const recordQuery = chainWithResult({ data: record, error: null });
+    const eventQuery = chainWithResult({ data: events, error: null });
+    authenticatedContext({ from: vi.fn((table: string) => table === 'attendance_records' ? recordQuery : eventQuery) });
+
+    const response = await getAttendanceDetail(
+      new Request(`${apiOrigin}/api/external/v1/attendance/${record.id}?include_events=true`),
+      { params: { record_id: record.id } }
+    );
+    const body = await response.json();
+    expect(response.status).toBe(200);
+    expect(body.events.items).toHaveLength(100);
+    expect(Object.keys(body.events.items[0]).sort()).toEqual(['event_type', 'id', 'occurred_at', 'source']);
+    expect(body.events.next_cursor).toEqual(expect.any(String));
+    expect(eventQuery.order).toHaveBeenNthCalledWith(1, 'occurred_at', { ascending: true });
+    expect(eventQuery.order).toHaveBeenNthCalledWith(2, 'id', { ascending: true });
+    expect(eventQuery.limit).toHaveBeenCalledWith(101);
+
+    const continuation = await getAttendanceDetail(
+      new Request(`${apiOrigin}/api/external/v1/attendance/${record.id}?include_events=true&event_cursor=${body.events.next_cursor}`),
+      { params: { record_id: record.id } }
+    );
+    expect(continuation.status).toBe(200);
+    expect(eventQuery.or).toHaveBeenCalledOnce();
+
+    const invalid = await getAttendanceDetail(
+      new Request(`${apiOrigin}/api/external/v1/attendance/${record.id}?include_events=true&event_cursor=${body.events.next_cursor}x`),
+      { params: { record_id: record.id } }
+    );
+    expect(invalid.status).toBe(400);
+  });
+
+  it('uses null as the final event cursor', async () => {
+    const record = detailRecord();
+    const recordQuery = chainWithResult({ data: record, error: null });
+    const eventQuery = chainWithResult({
+      data: [
+        {
+          id: '66666666-6666-4666-8666-666666666666',
+          event_type: 'clock_in',
+          occurred_at: '2026-07-01T00:00:00.000Z',
+          source: 'mobile_web',
+        },
+      ],
+      error: null,
+    });
+    authenticatedContext({
+      from: vi.fn((table: string) =>
+        table === 'attendance_records' ? recordQuery : eventQuery
+      ),
+    });
+
+    const response = await getAttendanceDetail(
+      new Request(`${apiOrigin}/api/external/v1/attendance/${record.id}?include_events=true`),
+      { params: { record_id: record.id } }
+    );
+
+    expect((await response.json()).events.next_cursor).toBeNull();
+  });
+
+  it('uses the common guarded 405 response for the detail route', async () => {
+    const response = await postAttendanceDetail(
+      new Request(`${apiOrigin}/api/external/v1/attendance/${organization.id}`, {
+        method: 'POST',
+      })
+    );
+
+    expect(response.status).toBe(405);
+    expect(response.headers.get('Allow')).toBe('GET, HEAD');
   });
 });

@@ -5,6 +5,31 @@
 
 ---
 
+## [2026-08-27] Issue #5勤怠詳細APIとイベントページングを追加
+
+### 変更
+
+- `GET /api/external/v1/attendance/{record_id}` を追加し、組織境界を維持した固定勤怠サマリーを返すようにした。
+- `include_events=true` 時だけ、公開項目を限定したイベントを最大100件、安定順で返すようにした。
+- 改ざんおよび別組織・別レコードへの流用を拒否する署名付きイベントカーソルを追加した。
+
+### 確認
+
+- 詳細Routeの固定形、4状態、404、イベント有無、ページング、カーソル、405を契約テストで確認した。
+- PRレビュー、全CI、修正承認後の再同期、詳細Routeの認証・レート制限実機確認は未完了であり、Issueはcloseしない。
+
+### 影響ファイル
+
+- `src/app/api/external/v1/attendance/[record_id]/route.ts`
+- `src/lib/external-api/event-cursor.ts`
+- `src/lib/external-api/routes.test.ts`
+- `docs/specs/issue-5-attendance-detail-api.md`
+- `docs/integrations/attendance-api-spec.md`
+- `NEXT.md`
+- `docs/ai/execution-ledger.md`
+
+---
+
 ## [2026-08-20] Issue #30のSupabase migration履歴を復旧
 
 ### 変更
