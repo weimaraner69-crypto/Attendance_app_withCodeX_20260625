@@ -88,6 +88,14 @@ describe('staff password update API', () => {
     expect(mocks.updateWithIntent).not.toHaveBeenCalled();
   });
 
+  it('does not trust the Vercel deployment origin as a browser Origin', async () => {
+    const response = await POST(updateRequest(deploymentOrigin, deploymentOrigin));
+
+    expect(response.status).toBe(403);
+    expect(mocks.getIntentToken).not.toHaveBeenCalled();
+    expect(mocks.updateWithIntent).not.toHaveBeenCalled();
+  });
+
   it('fails closed when the password update Origin header is missing', async () => {
     const response = await POST(new Request(
       `${deploymentOrigin}/api/auth/staff-password`,

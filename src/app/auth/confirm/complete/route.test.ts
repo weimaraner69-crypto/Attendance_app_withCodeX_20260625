@@ -143,6 +143,21 @@ describe('staff Auth confirmation route', () => {
     expect(mocks.verifyOtp).not.toHaveBeenCalled();
   });
 
+  it('does not trust the Vercel deployment origin as a browser Origin', async () => {
+    const response = await POST(confirmationRequest(
+      'invite',
+      deploymentOrigin,
+      { Origin: deploymentOrigin }
+    ));
+
+    expect(response.status).toBe(303);
+    expect(response.headers.get('location')).toBe(
+      `${appOrigin}/auth/staff-password?invalid=1`
+    );
+    expect(mocks.clearIntentCookie).not.toHaveBeenCalled();
+    expect(mocks.verifyOtp).not.toHaveBeenCalled();
+  });
+
   it('rejects an explicitly cross-site confirmation before OTP verification', async () => {
     const response = await POST(confirmationRequest(
       'invite',

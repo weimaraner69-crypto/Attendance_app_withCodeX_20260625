@@ -1,0 +1,163 @@
+{
+  "schema_version": 2,
+  "phase": "post_push",
+  "provider": "codex",
+  "reviewer_id": "codex-origin-audit",
+  "review_session_id": "codex-agent-issue31-round1-20260827",
+  "implementation_session_id": "codex-root-issue31-20260827",
+  "head_sha": "80e3101cbb7b27740557dcb0c28b39e00b8bc3d2",
+  "diff_fingerprint": "sha256:b6674f3583990d50b7721831f592318f39856682541b3eb3522c5cb96c0dbc0b",
+  "risk_tier": "red",
+  "round": 1,
+  "review_status": "completed",
+  "secondary_verification": {
+    "required": true,
+    "method": "dedicated_tests",
+    "status": "passed",
+    "evidence": "認証境界の専用Route回帰テストとstaff Auth helperテストを実行し、公開Originと内部deployment Originの分離、外部Origin、設定欠落、OTP失敗を確認した。",
+    "commands": [
+      {
+        "command": "npm test -- src/app/auth/confirm/complete/route.test.ts src/app/api/auth/staff-password/route.test.ts src/lib/auth/staff-auth.test.ts",
+        "exit_code": 0,
+        "summary": "対象Routeと公開URL検証helperの42件が成功した",
+        "covered_paths": [
+          "src/app/auth/confirm/complete/route.ts",
+          "src/app/auth/confirm/complete/route.test.ts",
+          "src/app/api/auth/staff-password/route.ts",
+          "src/app/api/auth/staff-password/route.test.ts",
+          "docs/operations-maintenance.md",
+          "docs/specs/issue-31-staff-auth-public-origin.md"
+        ]
+      }
+    ]
+  },
+  "summary": "Round 1のfull-repository認証レビューでMust 0、Should 1、Nice 2。Shouldはownerとstaffの本人確認Origin規則を同一と読める運用文書であり、実装変更を伴わない文書是正で対応する。Niceの内部deployment Origin拒否も両Routeの回帰へ追加する。",
+  "repository_context_mode": "full_repo_agentic",
+  "diff_only_reason": "",
+  "changed_files": [
+    "docs/operations-maintenance.md",
+    "docs/specs/issue-31-staff-auth-public-origin.md",
+    "src/app/api/auth/staff-password/route.test.ts",
+    "src/app/api/auth/staff-password/route.ts",
+    "src/app/auth/confirm/complete/route.test.ts",
+    "src/app/auth/confirm/complete/route.ts"
+  ],
+  "related_files": [
+    {
+      "path": "src/lib/auth/staff-auth.ts",
+      "reason": "公開URLを検証してstaff確認画面URLを組み立てる既存helper",
+      "score": 100
+    },
+    {
+      "path": "src/lib/auth/staff-auth-confirmation.ts",
+      "reason": "OTP、staff本人照合、Intent発行のfail-close境界",
+      "score": 100
+    },
+    {
+      "path": "src/lib/auth/staff-password-update.ts",
+      "reason": "短命Intentを消費してパスワードを更新する境界",
+      "score": 100
+    },
+    {
+      "path": "src/app/auth/owner-confirm/complete/route.ts",
+      "reason": "PR #29で公開Originに是正したowner本人確認の比較対象",
+      "score": 95
+    },
+    {
+      "path": "src/app/api/auth/owner-password/route.ts",
+      "reason": "PR #29で公開Originに是正したowner更新APIの比較対象",
+      "score": 95
+    },
+    {
+      "path": "docs/operations-maintenance.md",
+      "reason": "公開OriginとSupabase Redirect URLの運用契約",
+      "score": 90
+    },
+    {
+      "path": "SECURITY.md",
+      "reason": "認証変更と秘密情報非表示の安全要件",
+      "score": 85
+    }
+  ],
+  "scanned_paths": [
+    "src/app/auth/confirm/complete/route.ts",
+    "src/app/auth/confirm/complete/route.test.ts",
+    "src/app/api/auth/staff-password/route.ts",
+    "src/app/api/auth/staff-password/route.test.ts",
+    "src/lib/auth/staff-auth.ts",
+    "src/lib/auth/staff-auth-confirmation.ts",
+    "src/lib/auth/staff-password-update.ts",
+    "src/app/auth/owner-confirm/complete/route.ts",
+    "src/app/api/auth/owner-password/route.ts",
+    "docs/operations-maintenance.md",
+    "docs/specs/issue-31-staff-auth-public-origin.md",
+    "SECURITY.md",
+    "ci/policy_check.py"
+  ],
+  "commands_run": [
+    {
+      "command": "git diff origin/main...80e3101cbb7b27740557dcb0c28b39e00b8bc3d2",
+      "exit_code": 0,
+      "summary": "実装headのコミット済み差分だけを確認した"
+    },
+    {
+      "command": "rg -n NEXT_PUBLIC_APP_URL src/app src/lib docs",
+      "exit_code": 0,
+      "summary": "owner実装、staff実装、運用文書の公開Origin契約を比較した"
+    },
+    {
+      "command": "npm test -- src/app/auth/confirm/complete/route.test.ts src/app/api/auth/staff-password/route.test.ts src/lib/auth/staff-auth.test.ts",
+      "exit_code": 0,
+      "summary": "対象Routeとhelperの回帰テストが成功した"
+    },
+    {
+      "command": "python3 ci/policy_check.py",
+      "exit_code": 0,
+      "summary": "基本ポリシーチェックが成功した"
+    }
+  ],
+  "context_fingerprint": "git-tree:8d2be15892160f829711fdc78db3e46ff8815bcd",
+  "context_budget": {
+    "max_related_files": 40,
+    "max_context_chars": 180000,
+    "max_file_excerpt_chars": 12000,
+    "max_context_commands": 12
+  },
+  "context_truncated": false,
+  "context_truncated_reason": "",
+  "issues": [
+    {
+      "severity": "Should",
+      "category": "documentation-accuracy",
+      "file": "docs/operations-maintenance.md",
+      "line": 29,
+      "rationale": "owner本人確認POSTとstaff本人確認POSTのOrigin検証規則が異なるのに、同一規則のように記載されていた。",
+      "fix": "ownerとstaffを分け、staffだけが存在するOriginの公開Origin一致を要求することを明記する。",
+      "confidence": 0.97,
+      "disposition": "fixed",
+      "disposition_reason": "Round 1後のコミットで運用文書をフロー別に分離して正確化した。"
+    },
+    {
+      "severity": "Nice",
+      "category": "regression-coverage",
+      "file": "src/app/auth/confirm/complete/route.test.ts",
+      "line": 131,
+      "rationale": "公開Originと内部request.urlの正常系はあるが、内部deployment Origin自体をブラウザOriginとして拒否するケースが明示されていなかった。",
+      "fix": "確認POSTの内部deployment OriginをOrigin headerにした拒否回帰を追加する。",
+      "confidence": 0.9,
+      "disposition": "fixed",
+      "disposition_reason": "Round 1後のコミットで拒否回帰を追加した。"
+    },
+    {
+      "severity": "Nice",
+      "category": "regression-coverage",
+      "file": "src/app/api/auth/staff-password/route.test.ts",
+      "line": 83,
+      "rationale": "更新APIも内部deployment Originを直接信頼しないことを回帰として明示できる。",
+      "fix": "更新APIの内部deployment OriginをOrigin headerにした403回帰を追加する。",
+      "confidence": 0.9,
+      "disposition": "fixed",
+      "disposition_reason": "Round 1後のコミットで403回帰を追加した。"
+    }
+  ]
+}
