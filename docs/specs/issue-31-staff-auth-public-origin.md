@@ -32,7 +32,7 @@ Vercel の Route Handler が受け取る `request.url` は内部デプロイOrig
 - [x] ブラウザOriginが公開ドメイン、`request.url` が内部デプロイOriginの回帰テストを両経路へ追加する。
 - [x] 設定欠落、外部Origin、不正トークンは副作用を起こさずfail-closeする。
 - [x] スタッフ招待・再設定のOTP確認からパスワード設定までの正常系を維持する。
-- [ ] policy、全テスト、lint、build、独立repo-aware review、PR上のreview-evidence-gateが成功する。
+- [x] policy、全テスト、lint、build、独立repo-aware review、PR上のreview-evidence-gateが成功する。
 
 ## 検証計画
 
