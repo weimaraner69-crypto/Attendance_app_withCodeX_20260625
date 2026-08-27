@@ -1,10 +1,10 @@
-# Issue #5 勤怠詳細APIとイベント返却の実装準備
+# Issue #5 勤怠詳細APIとイベント返却
 
 ## 背景と目的
 
 - 対象の課題: GitHub Issue #5「`/attendance/{id}` と `include_events` を実装する」。
 - 利用者の意図: 日報管理アプリが、一覧取得後に必要な1件だけを再確認し、勤怠修正の有無を安全に判断できるようにする。
-- 現在状態: 日報側の勤怠連携 `A-005` はBacklogのままであり、本仕様は勤怠側の実装準備用ドラフトである。API実装、日報側への本文同期、APIキー設定、実接続は開始しない。
+- 現在状態: 勤怠側のコード実装と契約テストは完了し、PRレビュー待ちである。日報側への本文同期、APIキー設定、実接続、本番Supabase変更は開始しない。
 - 非目標: 位置座標・端末ID・認証ユーザーID・LINE識別子・イベントメモ・修正申請理由の外部公開、日報側データの書き換え、本番Supabase変更。
 
 ## 要件
@@ -15,7 +15,7 @@
 - `GET /api/external/v1/attendance` の既存レスポンスと `note` の扱いは変更しない。
 - 他組織のレコードIDと存在しないレコードIDは区別せず、どちらも `404 NOT_FOUND` にする。
 
-### 提案する詳細API契約
+### 詳細API契約
 
 `GET /api/external/v1/attendance/{record_id}` を追加する。
 
@@ -74,7 +74,7 @@
 - 変更する責務境界: 新しいRoute Handlerは既存の `withExternalApiRequest` を必ず通し、認証、組織スコープ、レート制限、アクセスログ、`GET` / `HEAD` 以外の405を共通化する。
 - データ取得: `attendance_records` を組織IDとIDで絞り、スタッフ情報を既存一覧と同じ形で結合する。イベントは `include_events=true` のときだけ、同じ組織IDかつ `attendance_record_id` で絞る。
 - 失敗時の扱い: 不正UUID、不正な `include_events`、または不正な `event_cursor` は `400 INVALID_PARAMS`、対象外または不存在は `404 NOT_FOUND`、認証・スコープ・レート制限は既存の共通応答を維持する。
-- 契約バージョン: 実装承認後に `attendance-external-v1` の次スナップショットへ更新する。このドラフト作成だけでは公開契約を更新しない。
+- 契約バージョン: `attendance-external-v1-2026-08-27`。日報側へ同期する前に、PRレビューと本仕様の未達受入条件を確認する。
 
 ## 受入条件と検証
 
@@ -88,16 +88,16 @@
 
 ### 実装受入条件
 
-- [ ] 同一組織かつ `attendance:read` のキーで、`note` を除いた固定形の勤怠サマリーを1件返す。`status` は `not_started`、`working`、`on_break`、`finished` の全値を正しく返す。
-- [ ] 存在しないIDと他組織IDのどちらも `404 NOT_FOUND` を返す。
-- [ ] `include_events` 未指定、空文字、または `false` のとき、`events` と `pending_requests` を返さない。不正値は `400 INVALID_PARAMS` を返す。
-- [ ] `include_events=true` のときも既定の `store` と `record` を保持し、`events.items` を最大100件、`occurred_at`・`id` の安定順で返す。続きがある場合は不透明な `next_cursor`、最終ページは `next_cursor: null` を返す。
-- [ ] `event_cursor` は `include_events=true` で前ページの `next_cursor` だけを受け付け、続きページを安定順で返す。不正カーソルまたはイベント未指定時のカーソルは `400 INVALID_PARAMS` を返す。TTLは設けず、ページ間のスナップショット一貫性は保証しない。
-- [ ] `include_events=true` のとき、最小イベント項目だけを返し、位置・端末・認証・LINE・自由記述の各情報を含めない。
-- [ ] 詳細の `record` は固定レスポンス形に一致し、`note` を返さない。
+- [x] 同一組織かつ `attendance:read` のキーで、`note` を除いた固定形の勤怠サマリーを1件返す。`status` は `not_started`、`working`、`on_break`、`finished` の全値を正しく返す。Route Handler契約テストで確認。
+- [x] 存在しないIDと他組織IDのどちらも `404 NOT_FOUND` を返す。組織ID条件を含むRoute Handler契約テストで確認。
+- [x] `include_events` 未指定、空文字、または `false` のとき、`events` と `pending_requests` を返さない。不正値は `400 INVALID_PARAMS` を返す。Route Handler契約テストで確認。
+- [x] `include_events=true` のときも既定の `store` と `record` を保持し、`events.items` を最大100件、`occurred_at`・`id` の安定順で返す。続きがある場合は不透明な `next_cursor`、最終ページは `next_cursor: null` を返す。Route Handler契約テストで確認。
+- [x] `event_cursor` は `include_events=true` で前ページの `next_cursor` だけを受け付け、続きページを安定順で返す。不正カーソルまたはイベント未指定時のカーソルは `400 INVALID_PARAMS` を返す。TTLは設けず、ページ間のスナップショット一貫性は保証しない。署名・組織・レコード境界を含むRoute Handler契約テストで確認。
+- [x] `include_events=true` のとき、最小イベント項目だけを返し、位置・端末・認証・LINE・自由記述の各情報を含めない。Route Handler契約テストで確認。
+- [x] 詳細の `record` は固定レスポンス形に一致し、`note` を返さない。Route Handler契約テストで確認。
 - [ ] 修正承認後の `is_manual` と `updated_at` が一覧・詳細の両方へ反映される。
 - [ ] 無効・期限切れ・スコープ不足キー、405、429、レート制限ヘッダーの既存挙動を維持する。
-- [ ] 一覧APIの `include_events=true` は、日報側の明示承認と追加受入条件が揃うまで `400 INVALID_PARAMS` のままにする。
+- [x] 一覧APIの `include_events=true` は、日報側の明示承認と追加受入条件が揃うまで `400 INVALID_PARAMS` のままにする。既存一覧Route Handler契約テストで確認。
 
 ### 検証コマンド（実装時）
 
@@ -116,7 +116,7 @@
 ### リスクティア
 
 - 今回の実装準備文書はgreen相当である。
-- 詳細Route、外部APIのパラメータ、認証・組織スコープ、イベント公開を変更する実装PRはredとして扱い、`full_repo_agentic`の独立レビュー、専用回帰テスト、全CI、ロールバック手順を必須とする。
+- 詳細Route、外部APIのパラメータ、認証・組織スコープ、イベント公開を変更する実装PRはredとして扱い、`full_repo_agentic`の独立レビュー、専用回帰テスト、全CI、ロールバック手順を必須とする。未達の受入条件を満たしてPRレビューが完了するまでIssueはcloseしない。
 
 ## ロールバック方針
 
