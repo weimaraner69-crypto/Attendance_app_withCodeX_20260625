@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 
 import { confirmStaffAuthLink } from '@/lib/auth/staff-auth-confirmation';
 import { hasValidStaffAuthIdentity } from '@/lib/auth/staff-auth-identity';
+import { buildStaffPasswordUrl } from '@/lib/auth/staff-auth';
 import {
   clearStaffPasswordIntent,
   generateStaffPasswordIntentToken,
@@ -17,11 +18,22 @@ import {
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
-  clearStaffPasswordIntent();
-  const requestOrigin = request.headers.get('origin');
-  if (requestOrigin && requestOrigin !== new URL(request.url).origin) {
+  const staffPasswordUrl = buildStaffPasswordUrl(process.env.NEXT_PUBLIC_APP_URL);
+  const configuredOrigin = staffPasswordUrl ? new URL(staffPasswordUrl).origin : null;
+  if (!configuredOrigin) {
     return NextResponse.redirect(
-      new URL('/auth/staff-password?invalid=1', request.url),
+      new URL('/auth/staff-password?invalid=1', new URL(request.url).origin),
+      303
+    );
+  }
+
+  const requestOrigin = request.headers.get('origin');
+  if (
+    (requestOrigin && requestOrigin !== configuredOrigin)
+    || request.headers.get('sec-fetch-site')?.toLowerCase() === 'cross-site'
+  ) {
+    return NextResponse.redirect(
+      new URL('/auth/staff-password?invalid=1', configuredOrigin),
       303
     );
   }
@@ -31,7 +43,7 @@ export async function POST(request: Request) {
   const typeEntry = form.get('type');
   const tokenHash = typeof tokenHashEntry === 'string' ? tokenHashEntry : '';
   const type = typeof typeEntry === 'string' ? typeEntry : '';
-  const callbackUrl = new URL('/auth/confirm/complete', request.url);
+  const callbackUrl = new URL('/auth/confirm/complete', configuredOrigin);
   callbackUrl.searchParams.set('token_hash', tokenHash);
   callbackUrl.searchParams.set('type', type);
 
@@ -44,6 +56,7 @@ export async function POST(request: Request) {
     },
     hasValidStaffIdentity: (userId) => hasValidStaffAuthIdentity(admin, userId),
     async createIntent(userId, intentType) {
+      clearStaffPasswordIntent();
       const token = generateStaffPasswordIntentToken();
       const expiresAt = new Date(Date.now() + STAFF_PASSWORD_INTENT_TTL_SECONDS * 1000).toISOString();
       const { error } = await admin.rpc('issue_staff_password_intent', {
@@ -59,7 +72,7 @@ export async function POST(request: Request) {
   });
 
   const destination = result.ok
-    ? new URL('/auth/staff-password', request.url)
-    : new URL('/auth/staff-password?invalid=1', request.url);
+    ? new URL('/auth/staff-password', configuredOrigin)
+    : new URL('/auth/staff-password?invalid=1', configuredOrigin);
   return NextResponse.redirect(destination, 303);
 }

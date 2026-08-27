@@ -1,0 +1,158 @@
+{
+  "schema_version": 2,
+  "phase": "post_push",
+  "provider": "codex",
+  "reviewer_id": "codex-evidence-audit",
+  "review_session_id": "codex-agent-issue31-round3-final-20260827",
+  "implementation_session_id": "codex-root-issue31-20260827",
+  "head_sha": "b0936ddf136b75dee377d3548c359ed2ad953771",
+  "diff_fingerprint": "sha256:aaf42f44b83583087120a5989fd77588d62b98c53c8e285b0e25ec5992d7119c",
+  "risk_tier": "red",
+  "round": 3,
+  "review_status": "completed",
+  "secondary_verification": {
+    "required": true,
+    "method": "dedicated_tests",
+    "status": "passed",
+    "evidence": "最終headで全Vitest、policy、lint、production buildを再実行し、スタッフ認証の専用Route回帰は公開Originと内部deployment Originの分離およびfail-closeを確認した。",
+    "commands": [
+      {
+        "command": "npm test",
+        "exit_code": 0,
+        "summary": "全35ファイル221件のVitestが成功した",
+        "covered_paths": [
+          "src/app/auth/confirm/complete/route.ts",
+          "src/app/auth/confirm/complete/route.test.ts",
+          "src/app/api/auth/staff-password/route.ts",
+          "src/app/api/auth/staff-password/route.test.ts",
+          "docs/operations-maintenance.md",
+          "docs/specs/issue-31-staff-auth-public-origin.md"
+        ]
+      }
+    ]
+  },
+  "summary": "Round 3 final exact-headレビューは、初回の証跡head非互換をMustとして検出した。実装はMust 0、Should 0、Nice 0であり、AC-6の実測完了を同期したheadに対するこの証跡を追加してMustを解消する。",
+  "repository_context_mode": "full_repo_agentic",
+  "diff_only_reason": "",
+  "changed_files": [
+    "docs/operations-maintenance.md",
+    "docs/specs/issue-31-staff-auth-public-origin.md",
+    "src/app/api/auth/staff-password/route.test.ts",
+    "src/app/api/auth/staff-password/route.ts",
+    "src/app/auth/confirm/complete/route.test.ts",
+    "src/app/auth/confirm/complete/route.ts"
+  ],
+  "related_files": [
+    {
+      "path": "src/lib/auth/staff-auth.ts",
+      "reason": "NEXT_PUBLIC_APP_URLの検証済み公開URLからOriginを導出する",
+      "score": 100
+    },
+    {
+      "path": "src/lib/auth/staff-auth-confirmation.ts",
+      "reason": "OTP、staff本人照合、Intent発行のfail-close順序",
+      "score": 100
+    },
+    {
+      "path": "src/lib/auth/staff-password-update.ts",
+      "reason": "Intent消費とAdminパスワード更新の認可境界",
+      "score": 100
+    },
+    {
+      "path": "src/app/auth/owner-confirm/complete/route.ts",
+      "reason": "PR #29のowner本人確認との意図的なヘッダー差異を検証する",
+      "score": 95
+    },
+    {
+      "path": "src/app/api/auth/owner-password/route.ts",
+      "reason": "PR #29のowner更新APIとの公開Origin基準を検証する",
+      "score": 95
+    },
+    {
+      "path": "docs/ai/reviews/2026-08-27-pr32-round1-codex-origin-audit.json",
+      "reason": "Round 1のdispositionを確認する",
+      "score": 90
+    },
+    {
+      "path": "docs/ai/reviews/2026-08-27-pr32-round2-codex-origin-verifier.json",
+      "reason": "Round 2のexact-head互換と結論を確認する",
+      "score": 90
+    },
+    {
+      "path": "ci/policy_check.py",
+      "reason": "review-evidence-gateのexact-head互換規則を確認する",
+      "score": 90
+    },
+    {
+      "path": "SECURITY.md",
+      "reason": "認証変更の安全要件と秘密値非表示を確認する",
+      "score": 85
+    }
+  ],
+  "scanned_paths": [
+    "src/app/auth/confirm/complete/route.ts",
+    "src/app/auth/confirm/complete/route.test.ts",
+    "src/app/api/auth/staff-password/route.ts",
+    "src/app/api/auth/staff-password/route.test.ts",
+    "src/lib/auth/staff-auth.ts",
+    "src/lib/auth/staff-auth-confirmation.ts",
+    "src/lib/auth/staff-password-update.ts",
+    "src/app/auth/owner-confirm/complete/route.ts",
+    "src/app/api/auth/owner-password/route.ts",
+    "docs/operations-maintenance.md",
+    "docs/specs/issue-31-staff-auth-public-origin.md",
+    "docs/ai/reviews/2026-08-27-pr32-round1-codex-origin-audit.json",
+    "docs/ai/reviews/2026-08-27-pr32-round2-codex-origin-verifier.json",
+    "ci/policy_check.py",
+    "SECURITY.md"
+  ],
+  "commands_run": [
+    {
+      "command": "git diff origin/main...b0936ddf136b75dee377d3548c359ed2ad953771",
+      "exit_code": 0,
+      "summary": "最終実装headのコミット済み差分だけを確認した"
+    },
+    {
+      "command": "npm test",
+      "exit_code": 0,
+      "summary": "全35ファイル221件のVitestが成功した"
+    },
+    {
+      "command": "python3 ci/policy_check.py",
+      "exit_code": 0,
+      "summary": "基本ポリシーチェックが成功した"
+    },
+    {
+      "command": "npm run lint",
+      "exit_code": 0,
+      "summary": "ESLint警告・エラーなし"
+    },
+    {
+      "command": "npm run build",
+      "exit_code": 0,
+      "summary": "production buildが成功した"
+    }
+  ],
+  "context_fingerprint": "git-tree:f377ef4988772d252ff599db57c1c4e56c275eb8",
+  "context_budget": {
+    "max_related_files": 40,
+    "max_context_chars": 180000,
+    "max_file_excerpt_chars": 12000,
+    "max_context_commands": 12
+  },
+  "context_truncated": false,
+  "context_truncated_reason": "",
+  "issues": [
+    {
+      "severity": "Must",
+      "category": "review-evidence",
+      "file": "docs/specs/issue-31-staff-auth-public-origin.md",
+      "line": 31,
+      "rationale": "AC-6を完了に同期した通常文書コミット後、Round 2証跡はその前のheadを指しておりreview-evidence-gateのexact-head条件を満たさなかった。",
+      "fix": "AC-6同期後のheadを対象とするRound 3独立レビュー証跡を追加し、証跡専用コミット後にreview-evidence-gateを再実行する。",
+      "confidence": 1.0,
+      "disposition": "fixed",
+      "disposition_reason": "このRound 3 exact-head証跡を追加し、後続の証跡専用commitで互換性を保つ。"
+    }
+  ]
+}

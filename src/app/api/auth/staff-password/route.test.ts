@@ -26,10 +26,20 @@ vi.mock('@/lib/supabase', () => ({
 import { GET, POST } from './route';
 
 const apiOrigin = ['https:', '', 'attendance.example'].join('/');
+const deploymentOrigin = ['https:', '', 'attendance-deployment.example'].join('/');
+
+function updateRequest(origin = apiOrigin, requestOrigin = apiOrigin) {
+  return new Request(`${requestOrigin}/api/auth/staff-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Origin: origin },
+    body: JSON.stringify({ password: 'new-password' }),
+  });
+}
 
 describe('staff password update API', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.NEXT_PUBLIC_APP_URL = apiOrigin;
     mocks.getIntentToken.mockReturnValue('opaque-token');
     mocks.validateIntent.mockResolvedValue({ id: 'intent-1', user_id: 'auth-user-1' });
     mocks.updateWithIntent.mockResolvedValue({ ok: true, code: 'updated' });
@@ -38,22 +48,14 @@ describe('staff password update API', () => {
 
   it('rejects an ordinary request without a callback-issued intent cookie', async () => {
     mocks.getIntentToken.mockReturnValue(null);
-    const response = await POST(new Request(`${apiOrigin}/api/auth/staff-password`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Origin: apiOrigin },
-      body: JSON.stringify({ password: 'new-password' }),
-    }));
+    const response = await POST(updateRequest());
 
     expect(response.status).toBe(401);
     expect(mocks.updateWithIntent).not.toHaveBeenCalled();
   });
 
   it('delegates to the atomic DB-backed update and consumes the browser token', async () => {
-    const response = await POST(new Request(`${apiOrigin}/api/auth/staff-password`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Origin: apiOrigin },
-      body: JSON.stringify({ password: 'new-password' }),
-    }));
+    const response = await POST(updateRequest());
 
     expect(response.status).toBe(200);
     expect(mocks.updateWithIntent).toHaveBeenCalledWith(expect.objectContaining({
@@ -63,13 +65,16 @@ describe('staff password update API', () => {
     expect(mocks.clearIntent).toHaveBeenCalledOnce();
   });
 
+  it('accepts the configured public origin behind a Vercel deployment origin', async () => {
+    const response = await POST(updateRequest(apiOrigin, deploymentOrigin));
+
+    expect(response.status).toBe(200);
+    expect(mocks.updateWithIntent).toHaveBeenCalledOnce();
+  });
+
   it('clears a consumed token when the Admin password update fails', async () => {
     mocks.updateWithIntent.mockResolvedValue({ ok: false, code: 'update_failed' });
-    const response = await POST(new Request(`${apiOrigin}/api/auth/staff-password`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Origin: apiOrigin },
-      body: JSON.stringify({ password: 'new-password' }),
-    }));
+    const response = await POST(updateRequest());
 
     expect(response.status).toBe(400);
     expect(mocks.clearIntent).toHaveBeenCalledOnce();
@@ -77,13 +82,42 @@ describe('staff password update API', () => {
 
   it('rejects cross-origin password update requests', async () => {
     const foreignOrigin = ['https:', '', 'foreign.example'].join('/');
-    const response = await POST(new Request(`${apiOrigin}/api/auth/staff-password`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Origin: foreignOrigin },
-      body: JSON.stringify({ password: 'new-password' }),
-    }));
+    const response = await POST(updateRequest(foreignOrigin, deploymentOrigin));
 
     expect(response.status).toBe(403);
+    expect(mocks.updateWithIntent).not.toHaveBeenCalled();
+  });
+
+  it('does not trust the Vercel deployment origin as a browser Origin', async () => {
+    const response = await POST(updateRequest(deploymentOrigin, deploymentOrigin));
+
+    expect(response.status).toBe(403);
+    expect(mocks.getIntentToken).not.toHaveBeenCalled();
+    expect(mocks.updateWithIntent).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when the password update Origin header is missing', async () => {
+    const response = await POST(new Request(
+      `${deploymentOrigin}/api/auth/staff-password`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: 'new-password' }),
+      }
+    ));
+
+    expect(response.status).toBe(403);
+    expect(mocks.getIntentToken).not.toHaveBeenCalled();
+    expect(mocks.updateWithIntent).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when the configured public origin is missing', async () => {
+    delete process.env.NEXT_PUBLIC_APP_URL;
+
+    const response = await POST(updateRequest());
+
+    expect(response.status).toBe(403);
+    expect(mocks.getIntentToken).not.toHaveBeenCalled();
     expect(mocks.updateWithIntent).not.toHaveBeenCalled();
   });
 

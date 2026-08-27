@@ -1,0 +1,125 @@
+{
+  "schema_version": 2,
+  "phase": "post_push",
+  "provider": "codex",
+  "reviewer_id": "codex-origin-verifier-exact",
+  "review_session_id": "codex-agent-issue31-round2-exact-20260827",
+  "implementation_session_id": "codex-root-issue31-20260827",
+  "head_sha": "b0936ddf136b75dee377d3548c359ed2ad953771",
+  "diff_fingerprint": "sha256:aaf42f44b83583087120a5989fd77588d62b98c53c8e285b0e25ec5992d7119c",
+  "risk_tier": "red",
+  "round": 2,
+  "review_status": "completed",
+  "secondary_verification": {
+    "required": true,
+    "method": "dedicated_tests",
+    "status": "passed",
+    "evidence": "最終通常headに対する認証境界の専用回帰で、公開Originと内部deployment Originの分離、内部Originの拒否、Origin欠落、外部Origin、設定欠落、OTP本人照合失敗を確認した。",
+    "commands": [
+      {
+        "command": "npm test -- src/app/auth/confirm/complete/route.test.ts src/app/api/auth/staff-password/route.test.ts src/lib/auth/staff-auth-confirmation.test.ts src/lib/auth/staff-auth.test.ts",
+        "exit_code": 0,
+        "summary": "確認POST、更新API、OTP確認、公開URLhelperの50件が成功した",
+        "covered_paths": [
+          "src/app/auth/confirm/complete/route.ts",
+          "src/app/auth/confirm/complete/route.test.ts",
+          "src/app/api/auth/staff-password/route.ts",
+          "src/app/api/auth/staff-password/route.test.ts",
+          "docs/operations-maintenance.md",
+          "docs/specs/issue-31-staff-auth-public-origin.md"
+        ]
+      }
+    ]
+  },
+  "summary": "Round 2 exact-head再確認はMust 0、Should 0、Nice 0。AC-6同期後の通常headでRound 1の運用文書正確化、両Routeの内部deployment Origin拒否回帰、公開Origin基準とfail-closeを確認した。",
+  "repository_context_mode": "full_repo_agentic",
+  "diff_only_reason": "",
+  "changed_files": [
+    "docs/operations-maintenance.md",
+    "docs/specs/issue-31-staff-auth-public-origin.md",
+    "src/app/api/auth/staff-password/route.test.ts",
+    "src/app/api/auth/staff-password/route.ts",
+    "src/app/auth/confirm/complete/route.test.ts",
+    "src/app/auth/confirm/complete/route.ts"
+  ],
+  "related_files": [
+    {
+      "path": "src/lib/auth/staff-auth.ts",
+      "reason": "検証済みのNEXT_PUBLIC_APP_URLからstaff確認URLを構築するhelper",
+      "score": 100
+    },
+    {
+      "path": "src/lib/auth/staff-auth-confirmation.ts",
+      "reason": "OTP、staff本人照合、Intent発行の順序を定義する",
+      "score": 100
+    },
+    {
+      "path": "src/lib/auth/staff-password-update.ts",
+      "reason": "Intent消費とAdmin更新のfail-close境界",
+      "score": 100
+    },
+    {
+      "path": "src/app/auth/owner-confirm/complete/route.ts",
+      "reason": "owner側PR #29の本人確認基準との差分確認",
+      "score": 95
+    },
+    {
+      "path": "src/app/api/auth/owner-password/route.ts",
+      "reason": "owner側PR #29の更新API基準との差分確認",
+      "score": 95
+    },
+    {
+      "path": "docs/ai/reviews/2026-08-27-pr32-round1-codex-origin-audit.json",
+      "reason": "Round 1のfixed dispositionを検証する",
+      "score": 90
+    },
+    {
+      "path": "SECURITY.md",
+      "reason": "認証境界と秘密情報非表示の安全要件",
+      "score": 85
+    }
+  ],
+  "scanned_paths": [
+    "src/app/auth/confirm/complete/route.ts",
+    "src/app/auth/confirm/complete/route.test.ts",
+    "src/app/api/auth/staff-password/route.ts",
+    "src/app/api/auth/staff-password/route.test.ts",
+    "src/lib/auth/staff-auth.ts",
+    "src/lib/auth/staff-auth-confirmation.ts",
+    "src/lib/auth/staff-password-update.ts",
+    "src/app/auth/owner-confirm/complete/route.ts",
+    "src/app/api/auth/owner-password/route.ts",
+    "docs/operations-maintenance.md",
+    "docs/specs/issue-31-staff-auth-public-origin.md",
+    "docs/ai/reviews/2026-08-27-pr32-round1-codex-origin-audit.json",
+    "SECURITY.md",
+    "ci/policy_check.py"
+  ],
+  "commands_run": [
+    {
+      "command": "git diff origin/main...b0936ddf136b75dee377d3548c359ed2ad953771",
+      "exit_code": 0,
+      "summary": "実装headのコミット済み差分だけを確認した"
+    },
+    {
+      "command": "npm test -- src/app/auth/confirm/complete/route.test.ts src/app/api/auth/staff-password/route.test.ts src/lib/auth/staff-auth-confirmation.test.ts src/lib/auth/staff-auth.test.ts",
+      "exit_code": 0,
+      "summary": "対象RouteとOTP、公開URLhelperの回帰が成功した"
+    },
+    {
+      "command": "python3 ci/policy_check.py",
+      "exit_code": 0,
+      "summary": "基本ポリシーチェックが成功した"
+    }
+  ],
+  "context_fingerprint": "git-tree:f377ef4988772d252ff599db57c1c4e56c275eb8",
+  "context_budget": {
+    "max_related_files": 40,
+    "max_context_chars": 180000,
+    "max_file_excerpt_chars": 12000,
+    "max_context_commands": 12
+  },
+  "context_truncated": false,
+  "context_truncated_reason": "",
+  "issues": []
+}
