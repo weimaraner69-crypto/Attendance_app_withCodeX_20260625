@@ -1,0 +1,63 @@
+{
+  "schema_version": 2,
+  "phase": "post_push",
+  "provider": "codex",
+  "reviewer_id": "codex-independent-review-pr35",
+  "review_session_id": "codex-pr35-independent-review-39e6beda",
+  "implementation_session_id": "codex-root-pr35-freeze-record",
+  "head_sha": "39e6beda9a0b36a72601586bb2497927afc73761",
+  "diff_fingerprint": "sha256:9fa28f306e454065625a1bb34755ee592105c05741c5d7eea1263c00c0cfea5e",
+  "risk_tier": "green",
+  "round": 1,
+  "review_status": "completed",
+  "repository_context_mode": "related_context",
+  "secondary_verification": {
+    "required": false,
+    "method": "not_required",
+    "status": "not_required",
+    "evidence": "対象は凍結方針と運用履歴の文書変更。",
+    "commands": []
+  },
+  "summary": "独立レビューで、日報側 ADR-0002 のマージ状態と、勤怠側の凍結方針・A-005 の実機検証履歴を照合した。変更は指定の Markdown 4 ファイル。修正後の再確認で Must / Should / Nice はいずれも0件。",
+  "diff_only_reason": "",
+  "changed_files": [
+    "CHANGELOG.md",
+    "FINISHED.md",
+    "NEXT.md",
+    "docs/ai/execution-ledger.md"
+  ],
+  "related_files": [
+    {
+      "path": "docs/adr/ADR-0002-integration-direct-build.md",
+      "reason": "日報側の凍結方針と統合方式を確認した（別リポジトリの PR #53）"
+    }
+  ],
+  "scanned_paths": [
+    "CHANGELOG.md",
+    "FINISHED.md",
+    "NEXT.md",
+    "docs/ai/execution-ledger.md"
+  ],
+  "commands_run": [
+    {
+      "command": "GitHub PR #35 の差分とコミット比較",
+      "exit_code": 0,
+      "summary": "指定された4文書のみの変更と、修正後のレビュー対象コミットを確認した"
+    },
+    {
+      "command": "GitHub 日報側 PR #53 と勤怠側 Issue #1 の取得",
+      "exit_code": 0,
+      "summary": "ADR のマージと A-005 の実機検証完了を照合した"
+    }
+  ],
+  "context_fingerprint": "git-tree:324a9862307eccc286fbf0a48c5039166278eb5c",
+  "context_budget": {
+    "max_related_files": 40,
+    "max_context_chars": 180000,
+    "max_file_excerpt_chars": 12000,
+    "max_context_commands": 12
+  },
+  "context_truncated": false,
+  "context_truncated_reason": "",
+  "issues": []
+}
